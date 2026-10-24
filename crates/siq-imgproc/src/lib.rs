@@ -24,6 +24,16 @@ pub use display::{BINS, Colormap, DisplayMapping, Histogram, Lut, histogram};
 pub use focus::{FocusMeasure, focus};
 pub use resample::{BinMode, bin, copy, downsample_area, upsample_bilinear};
 
+/// Runs `work` on every row of `out`, with the row's index, in the kernels' row bands: for other
+/// crates' per-pixel passes.
+pub fn for_each_row<T: Send>(out: &mut ImageViewMut<'_, T>, work: impl Fn(usize, &mut [T]) + Sync) {
+    bands::for_bands(out.reborrow(), &|first, mut band| {
+        for (y, row) in (first..).zip(band.rows_mut()) {
+            work(y, row);
+        }
+    });
+}
+
 /// A pixel type the kernels compute with in `f32`.
 pub trait Sample: Copy + Send + Sync + 'static {
     /// The value as `f32`.

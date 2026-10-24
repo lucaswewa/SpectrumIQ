@@ -944,6 +944,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "siq-sim"
+version = "0.1.0"
+dependencies = [
+ "png",
+ "siq-devices",
+ "siq-imgproc",
+ "siq-synth",
+ "siq-types",
+]
+
+[[package]]
 name = "siq-synth"
 version = "0.1.0"
 dependencies = [

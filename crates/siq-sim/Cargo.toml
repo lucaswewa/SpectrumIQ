@@ -1,0 +1,21 @@
+[package]
+name = "siq-sim"
+description = "SpectrumIQ's simulators: image formation for the simulated camera, and later the camera, stage, focus and peripheral simulators."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+siq-devices = { path = "../siq-devices" }
+siq-imgproc = { path = "../siq-imgproc" }
+siq-synth = { path = "../siq-synth" }
+siq-types = { path = "../siq-types" }
+
+[dev-dependencies]
+png.workspace = true
+
+[lints]
+workspace = true

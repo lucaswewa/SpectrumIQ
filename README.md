@@ -11,8 +11,9 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** P1.5, [`siq-imgproc`](crates/siq-imgproc/README.md): allocation-free CPU kernels for
-correction, resampling, histograms, display mapping and focus, within the 100 MP frame budget.
+**In review:** P1.6, [`siq-sim`](crates/siq-sim/README.md)'s image formation: realistic 14-bit frames
+of a synthetic specimen for the stage pose and focus, with optics, sensor noise and a noiseless
+cache.
 
 Done so far:
 
@@ -30,7 +31,10 @@ Done so far:
   - P1.3, [`siq-devices`](crates/siq-devices/README.md), the device traits that the engines use,
     with capability descriptors, status watches, and mocks for engine tests;
   - P1.4, [`siq-synth`](crates/siq-synth/README.md), deterministic synthetic specimens with exact
-    ground truth, and real images as specimens.
+    ground truth, and real images as specimens;
+  - P1.5, [`siq-imgproc`](crates/siq-imgproc/README.md), allocation-free CPU kernels for
+    correction, resampling, histograms, display mapping and focus, within the 100 MP frame
+    budget.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

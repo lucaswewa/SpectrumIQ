@@ -39,6 +39,7 @@ The design is in [ADR-0025](../../docs/adr/0025-cpu-kernel-strategy.md).
 | `histogram(input, step, &mut Histogram)` | 4096 bins, every `step`-th pixel and row. `Histogram::percentile`, `auto_window(low, high)` |
 | `Lut::new(&DisplayMapping { min, max, gamma, colormap })` | 64 Ki levels; `apply` to `u8`, `apply_rgb` to `[u8; 3]`. `Colormap::{Grey, Inverted, Colour(rgb)}` |
 | `focus(input, FocusMeasure::{LaplacianVariance, Tenengrad, NormalizedVariance})` | Larger is sharper |
+| `for_each_row(out, work)` | Runs `work(y, row)` on every row in the kernels' bands: for other crates' per-pixel passes (P1.6) |
 | `Sample` | `u8`, `u16`, `f32`: what the resampling kernels and `focus` take |
 | `KernelError` | `Size { what, expected, found }` or `Parameter` |
 

@@ -145,8 +145,8 @@ A phase is Done once it is merged.
 | P1.2 | Frame fan-out | 600 | P1.1 | Done |
 | P1.3 | Device traits | 700 | P1.1 | Done |
 | P1.4 | Synthetic specimen worlds | 900 | P0.2 | Done |
-| P1.5 | CPU image kernels | 850 | P0.2 | Review |
-| P1.6 | Image formation model | 800 | P1.4, P1.5 | — |
+| P1.5 | CPU image kernels | 850 | P0.2 | Done |
+| P1.6 | Image formation model | 800 | P1.4, P1.5 | Review |
 | P1.7 | Simulated camera device | 600 | P1.2, P1.3, P1.6 | — |
 | P1.8 | Serial transport and GRBL emulator | 850 | P1.7 | — |
 | P1.9 | GRBL stage driver | 800 | P1.3, P1.8 | — |
@@ -342,3 +342,6 @@ These are needed later; none of them blocks M0–M2.
 8. **Real specimen images** to use as `ImageWorld` inputs. Needed by P1.4, optional.
 9. **Sync with `microscope`:** should SpectrumIQ periodically re-sync the copied frontend from
    `microscope`, or diverge permanently after P3.1?
+10. **The JPEG encoder's licence:** `jpeg-encoder` 0.7.1, which P2.2 names, is licensed
+    "(MIT OR Apache-2.0) AND IJG". Allow IJG, with its attribution, or choose another encoder.
+    Needed by P2.2 (raised in P1.6).
