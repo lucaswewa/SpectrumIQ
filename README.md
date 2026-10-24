@@ -11,14 +11,16 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** P0.3b, [`siq-config`](crates/siq-config/README.md): the instrument
-configuration, with [`config/sim.toml`](config/sim.toml) for the simulated instrument.
+**In review:** P1.1, [`siq-buffer`](crates/siq-buffer/README.md): the frame pool, with slots
+locked in RAM and frames shared without allocation or copy.
 
-Done so far:
+Done so far, Milestone 0 (foundations):
 
 - P0.1, the workspace and the `cargo xtask` quality gate;
 - P0.2, [`siq-types`](crates/siq-types/README.md), the shared vocabulary;
-- P0.3a, [`siq-telemetry`](crates/siq-telemetry/README.md), logging and metrics.
+- P0.3a, [`siq-telemetry`](crates/siq-telemetry/README.md), logging and metrics;
+- P0.3b, [`siq-config`](crates/siq-config/README.md), the instrument configuration, with
+  [`config/sim.toml`](config/sim.toml) for the simulated instrument.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

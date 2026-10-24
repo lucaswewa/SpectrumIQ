@@ -45,3 +45,14 @@ correlation, least squares, blending, DFF, Richardson–Lucy, and light-field re
 - `cargo deny` license checks.
 - `cargo xtask layers`.
 - Review of unsafe blocks in each phase that adds them.
+
+## Amendment (P1.1, 2026-10-23): test-only global allocators
+
+A test that proves code allocates nothing needs a counting `#[global_allocator]`, which can only be
+written with `unsafe`. Such a test may allow `unsafe_code` in its own file, if:
+
+- it is the only test in its binary;
+- the allocator forwards every call to `System` unchanged;
+- each block has a `SAFETY` comment.
+
+The first is `siq-buffer`'s `tests/no_alloc.rs`. Production code is unaffected.

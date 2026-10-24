@@ -16,7 +16,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 | ID | Requirement | Source | Phases | Verified by |
 |---|---|---|---|---|
 | REQ-ACQ-001 | Acquire ~100 MP 14-bit mono frames (Mono16 container) from a Euresys CoaXPress grabber at the camera's native rate (~9 fps). | G | P2.5, P10.1 | |
-| REQ-ACQ-002 | Frames are DMA'd into pre-allocated, page-locked buffers. The per-frame path makes no heap allocations in steady state. | G | P1.1, P10.1 | |
+| REQ-ACQ-002 | Frames are DMA'd into pre-allocated, page-locked buffers. The per-frame path makes no heap allocations in steady state. | G | P1.1, P10.1 | The pool, in P1.1. `siq-buffer` tests: `the_steady_state_allocates_nothing` (counting allocator), `locked_slots_are_aligned_and_the_working_set_is_raised_then_restored`, `slots_are_never_shared_with_a_writer` (property test), `frames_cross_threads_intact_and_every_slot_comes_back`, `a_slot_goes_from_free_to_filling_to_leased_and_back`. The DMA follows in P10.1 |
 | REQ-ACQ-003 | ROI and binning modes, with their higher frame rates. | Q | P1.7, P10.1, P10.2 | |
 | REQ-ACQ-004 | Every frame carries metadata: sequence, device and host timestamps, exposure, ROI/binning, pose (XYZ + focus) with quality, channel, objective, and calibration id. | G, D | P0.2, P2.1 | The type, in P0.2: `siq-types` `tests/serde.rs` (`frame_metadata_json_is_stable`, `json_schemas_are_stable`, `frame_metadata_round_trips_through_json`) and the stage↔pixel tests in `affine::tests`. Stamping frames follows in P2.1 |
 | REQ-ACQ-005 | Lost frames, whether at the grabber or from pool exhaustion, are detected, counted and reported. | D | P1.2, P2.1, P10.1 | |
@@ -143,7 +143,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 |---|---|---|---|---|
 | REQ-NFR-001 | Windows 11 x64 only. | G | P0.1, P15.1 | `rust-toolchain.toml` pins `x86_64-pc-windows-msvc`, and `deny.toml` targets it (P0.1, by configuration) |
 | REQ-NFR-002 | Runs within the fixed workstation: 32 GB RAM and RTX 3060 8 GB. | Q | P0.3b, P1.1, P2.4, P4.3, P7.1, P8.3, P8.5, P11.1, P12.2 | The budget's configuration, in P0.3b: `[memory]` defaults for 32 GB / 8 GB, checked by `defaults_fill_what_a_minimal_configuration_leaves_out`. Enforcement follows in P1.1 and P4.3 |
-| REQ-NFR-003 | No lost frames in full-rate live view with both previews, the live mosaic and the recorder active. | D | P1.1, P1.2, P1.5, P9.5, P10.2, P15.2 | |
+| REQ-NFR-003 | No lost frames in full-rate live view with both previews, the live mosaic and the recorder active. | D | P1.1, P1.2, P1.5, P9.5, P10.2, P15.2 | A precondition, in P1.1: the pool hands frames across threads with no allocation and no copy (`frames_cross_threads_intact_and_every_slot_comes_back`, `the_steady_state_allocates_nothing`). The full-rate test follows in P10.2 |
 | REQ-NFR-004 | Live preview latency ≤ 250 ms on the LAN, from exposure end to display. | D | P9.5, P10.2, P14.2 | |
 | REQ-NFR-005 | Permissive licences only; no Euresys SDK files in the repository. | Q | P2.5, all | |
 | REQ-NFR-006 | Traceability (REQ ↔ tests), a SOUP register and an audit trail, so that IVD work later is possible. | Q | P0.1, P9.3, P15.3 | Partly: the impl-notes and README templates, the SOUP register, and REQ-tagged tests exist (P0.1). The matrix tooling follows in P15.3 |

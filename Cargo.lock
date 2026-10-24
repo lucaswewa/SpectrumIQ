@@ -766,6 +766,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
+name = "siq-buffer"
+version = "0.1.0"
+dependencies = [
+ "proptest",
+ "siq-telemetry",
+ "siq-types",
+ "thiserror",
+ "windows-sys",
+]
+
+[[package]]
 name = "siq-config"
 version = "0.1.0"
 dependencies = [

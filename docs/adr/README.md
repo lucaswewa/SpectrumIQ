@@ -15,7 +15,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0004](0004-euresys-via-cpp-shim-and-bindgen.md) | Euresys eGrabber through a C++ shim and bindgen | Accepted | planning |
 | [0005](0005-memory-model-and-out-of-core.md) | Memory model: pinned frame pool, streaming and out-of-core processing | Accepted | planning |
 | [0006](0006-data-formats.md) | Data formats: OME-Zarr master, raw scratch, OME-TIFF and DZI derived (amended in P0.2: exact float round trips) | Accepted | planning |
-| [0007](0007-pure-rust-wgpu-and-unsafe-policy.md) | Pure Rust + wgpu for algorithms; unsafe and native-code allow-list | Accepted | planning |
+| [0007](0007-pure-rust-wgpu-and-unsafe-policy.md) | Pure Rust + wgpu for algorithms; unsafe and native-code allow-list (amended in P1.1: test-only global allocators) | Accepted | planning |
 | [0008](0008-frontend-stack-and-microscope-reuse.md) | Frontend: Vue + PrimeVue (unstyled) skinned with `microscope`'s tokens, copied from `microscope@0640f99` | Accepted | planning |
 | [0009](0009-visualization-stack.md) | Visualization: OpenSeadragon first, WebGL2 16-bit later; VTK.js; optional native viewer | Accepted | planning |
 | [0010](0010-streaming-tiers.md) | Streaming tiers, browser connection budget, and staged local fast paths | Accepted | planning |
@@ -29,3 +29,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0018](0018-coordinate-frames-units-and-handedness.md) | Coordinate frames, units and handedness | Accepted | P0.2 |
 | [0019](0019-logging-and-metrics.md) | Logging and metrics conventions | Accepted | P0.3a |
 | [0020](0020-instrument-configuration.md) | Instrument configuration format and layering | Accepted | P0.3b |
+| [0021](0021-frame-pool.md) | Frame pool design | Accepted | P1.1 |

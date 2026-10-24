@@ -36,6 +36,8 @@ tracing = "0.1.41"
 tracing-appender = "0.2.5"
 tracing-subscriber = { version = "0.3.20", default-features = false, features = ["std", "registry", "fmt", "ansi", "env-filter"] }
 uuid = { version = "1.18", features = ["v4", "v7", "serde"] }
+# Already in the lockfile through tempfile and clap, and teta-wot's version.
+windows-sys = "0.61.2"
 
 [workspace.lints.rust]
 missing_docs = "warn"
