@@ -7,14 +7,18 @@
 //! - Consumers share the frame through cloned leases, read-only.
 //! - When the last lease drops, the slot goes to the pool's [`ReleaseSink`]: back to the grabber,
 //!   or back to the free list.
+//! - A [`Fanout`] hands each published frame to its subscribers, each with a [`Policy`] and a
+//!   filter, and never makes the producer wait (ADR-0022).
 //!
 //! The unsafe code is in `alloc` (memory, locking) and `slot` (the ownership protocol that makes
 //! sharing the bytes sound, described there).
 
 mod alloc;
+mod fanout;
 mod pool;
 mod slot;
 
 pub use alloc::{Backend, PAGE, working_set};
+pub use fanout::{Fanout, Overflow, Policy, Recv, RecvError, Subscriber, SubscriberStats};
 pub use pool::{FramePool, PoolConfig, PoolError, PoolStats, ReleaseSink, ReturnToPool};
 pub use slot::{FillGuard, FrameLease, Pixel, PublishError};

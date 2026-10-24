@@ -1,5 +1,6 @@
 //! The frame path allocates nothing once warm (REQ-ACQ-002): acquire, fill, publish, clone, drop
-//! and release, with metrics on. A counting global allocator watches this test's thread.
+//! and release, with metrics on; then the same through the fan-out. A counting global allocator
+//! watches this test's thread.
 //!
 //! It is the only test in its binary, so the allocator counts nothing but this loop.
 
@@ -9,12 +10,16 @@ mod common;
 
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
+use std::future::Future;
+use std::num::NonZeroUsize;
+use std::pin::pin;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::task::{Context, Waker};
 use std::time::Duration;
 
 use common::meta;
-use siq_buffer::{Backend, FramePool, PoolConfig};
+use siq_buffer::{Backend, Fanout, FramePool, Overflow, Policy, PoolConfig};
 use siq_telemetry::Registry;
 use siq_types::ManualClock;
 
@@ -63,7 +68,7 @@ unsafe impl GlobalAlloc for Counting {
 #[global_allocator]
 static GLOBAL: Counting = Counting;
 
-// REQ-ACQ-002
+// REQ-ACQ-002, REQ-ACQ-005
 #[test]
 fn the_steady_state_allocates_nothing() {
     let clock = Arc::new(ManualClock::new());
@@ -104,4 +109,39 @@ fn the_steady_state_allocates_nothing() {
 
     assert_eq!(ALLOCATIONS.load(Ordering::Relaxed), 0);
     assert_eq!(pool.stats().free, 4);
+
+    // The fan-out: three mailboxes, read through `try_recv`, `recv_timeout` and `recv`.
+    let fanout = Fanout::new(&pool);
+    let mut preview = fanout.subscribe("preview", Policy::LatestOnly, |_| true);
+    let overflow = Overflow::DropOldest;
+    let capacity = NonZeroUsize::new(2).unwrap();
+    let mut stats = fanout.subscribe("stats", Policy::Bounded { capacity, overflow }, |_| true);
+    let mut writer = fanout.subscribe("writer", Policy::Lossless, |meta| {
+        meta.seq.0.is_multiple_of(2)
+    });
+    let mut context = Context::from_waker(Waker::noop());
+    let mut fan_out = |n: u64| {
+        assert!(pin!(writer.recv()).poll(&mut context).is_pending());
+        let mut guard = pool.try_acquire_free().expect("a free slot");
+        guard.image_mut::<u16>(64, 64).unwrap().fill(n as u16);
+        fanout.publish(&guard.publish(meta(n, 64, 64)).unwrap());
+        let saved = pin!(writer.recv()).poll(&mut context);
+        assert_eq!(saved.is_ready(), n.is_multiple_of(2));
+        drop(saved);
+        drop(preview.try_recv().expect("the newest frame"));
+        if n.is_multiple_of(3) {
+            drop(stats.recv_timeout(Duration::ZERO).expect("a queued frame"));
+        }
+    };
+    fan_out(0); // warm-up
+
+    COUNTING.with(|counting| counting.set(true));
+    for n in 1..=1000 {
+        fan_out(n);
+    }
+    COUNTING.with(|counting| counting.set(false));
+
+    assert_eq!(ALLOCATIONS.load(Ordering::Relaxed), 0);
+    assert!(stats.stats().dropped > 0);
+    assert_eq!(writer.stats().taken, 501);
 }

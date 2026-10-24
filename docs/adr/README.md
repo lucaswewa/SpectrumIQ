@@ -30,3 +30,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0019](0019-logging-and-metrics.md) | Logging and metrics conventions | Accepted | P0.3a |
 | [0020](0020-instrument-configuration.md) | Instrument configuration format and layering | Accepted | P0.3b |
 | [0021](0021-frame-pool.md) | Frame pool design | Accepted | P1.1 |
+| [0022](0022-fanout-consumer-policies-and-backpressure.md) | Fan-out consumer policies and backpressure | Accepted | P1.2 |
