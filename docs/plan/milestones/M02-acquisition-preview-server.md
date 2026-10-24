@@ -92,7 +92,7 @@ architecture §4.2.
 
 ### P2.3 — Service core: camera, display, stage and focus Things (`siq-server`, `apps/spectrumiq-server`)
 
-**Budget** ~900 · **Depends on** P0.3b, P1.9, P1.10, P2.2 · **Requirements** REQ-NET-001, REQ-NET-002, REQ-SIM-006, REQ-PRV-001
+**Budget** ~900 · **Depends on** P0.3b, P1.9, P1.10b, P2.2 · **Requirements** REQ-NET-001, REQ-NET-002, REQ-SIM-006, REQ-PRV-001
 
 **Goal.** The first runnable service, built on teta-wot v0.1.0.
 

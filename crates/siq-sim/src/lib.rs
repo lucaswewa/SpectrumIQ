@@ -7,10 +7,13 @@
 //! - [`camera`]: the simulated camera, a `Camera` that renders into pool slots on a camera's
 //!   schedule.
 //! - [`grbl`]: a GRBL 1.1 emulator, the device end of a serial link, which moves the true stage.
+//! - [`dialect`]: a focus drive made from a `siq-ascii` dialect, the device end of a serial link,
+//!   which moves the true focus.
 //!
-//! The focus and peripheral simulators (P1.10) follow.
+//! The peripheral simulators (P1.10b) follow.
 
 pub mod camera;
+pub mod dialect;
 pub mod grbl;
 pub mod optics;
 pub mod state;

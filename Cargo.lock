@@ -832,6 +832,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "regex"
+version = "1.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
 name = "regex-automata"
 version = "0.4.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1022,6 +1034,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
+name = "siq-ascii"
+version = "0.1.0"
+dependencies = [
+ "proptest",
+ "regex",
+ "serde",
+ "siq-devices",
+ "siq-serial",
+ "siq-types",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
 name = "siq-buffer"
 version = "0.1.0"
 dependencies = [
@@ -1097,6 +1123,7 @@ name = "siq-sim"
 version = "0.1.0"
 dependencies = [
  "png",
+ "siq-ascii",
  "siq-buffer",
  "siq-config",
  "siq-devices",

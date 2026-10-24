@@ -250,7 +250,7 @@ pub struct AsciiFocusConfig {
     /// The baud rate.
     #[serde(default = "ascii_baud")]
     pub baud: u32,
-    /// The dialect file that describes its protocol (P1.10).
+    /// The dialect file that describes its protocol (P1.10a).
     pub dialect: PathBuf,
 }
 

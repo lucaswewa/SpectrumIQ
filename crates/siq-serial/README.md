@@ -25,7 +25,7 @@ The design is in
   - `tracing`, `thiserror`.
 - **Used by:**
   - P1.9's GRBL driver;
-  - P1.10's ASCII driver;
+  - `siq-ascii`'s dialects, for their framing (P1.10a), and its driver (P1.10b);
   - the emulators' tests in `siq-sim`.
 - **Phase:** P1.8.
 

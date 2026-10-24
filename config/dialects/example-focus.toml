@@ -1,0 +1,46 @@
+# The example focus drive's ASCII dialect (P1.10a, ADR-0030).
+#
+# The simulated focus drive speaks it by default, and the driver reads it. The real drive's
+# dialect follows in P10.3, from its protocol document.
+#
+# Templates are text with fields, {name:kind}. The kinds:
+#   steps        a length in whole steps (a speed in steps/s)
+#   um, um.N     a length in µm (a speed in µm/s), with N decimals (3 by default)
+#   mm, mm.N     a length in mm (a speed in mm/s), with N decimals (4 by default)
+#   int          a whole number
+#   flag         1 or 0
+#   text         any text
+# A template is both what is written and what is matched: the driver matches each reply against
+# its template, and the emulator writes it.
+
+name = "Example focus drive"
+step = 0.05                         # µm per step
+
+[terminators]
+write = "\r"                        # after each command
+read = "\r"                         # ends each reply
+
+[timeouts]
+reply = 300.0                       # ms, in real time
+home = 30000.0                      # ms, on the clock
+
+[motion]
+travel = [0.0, 12000.0]             # µm
+speed = 2000.0                      # µm/s, for a move that gives none
+done = "poll"                       # "poll": until the status's {moving} clears; "reply": until `complete`
+poll_hz = 10.0
+overshoot = 10.0                    # µm, below a target that a unidirectional move reaches going down
+
+[replies]
+ok = "OK"
+errors = ["ERR {code:int} {message:text}"]
+complete = "DONE"                   # for done = "reply"
+
+[commands]
+init = ["ECHO 0"]
+identify = { send = "ID?", reply = "ID {model:text} {firmware:text} {serial:text}" }
+move = { send = "MA {target:steps} {speed:steps}" }
+status = { send = "ST?", reply = "ST {position:steps} {moving:flag} {homed:flag}" }
+stop = { send = "HALT" }
+home = { send = "HOME" }
+jog = { send = "JOG {velocity:steps}" }

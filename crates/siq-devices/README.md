@@ -20,7 +20,7 @@ The design is in [ADR-0023](../../docs/adr/0023-device-abstraction.md).
 - **Depends on:** `siq-types`, `siq-buffer` (the camera fills pool slots), `tokio` (`sync`, for
   `watch`), `serde`, `schemars`, `thiserror`.
 - **Used by:**
-  - the drivers, which implement the traits: P1.7's simulated camera, P1.9's GRBL stage, P1.10's
+  - the drivers, which implement the traits: P1.7's simulated camera, P1.9's GRBL stage, P1.10b's
     ASCII focus drive and peripheral simulators, and P10.1's Euresys camera;
   - the engines, which use only the traits: P2.1's acquisition and every workflow;
   - P2.3's server, which picks the drivers.
@@ -74,7 +74,7 @@ None.
 ## Limitations
 
 - **The mocks complete at once.** Timing, motion profiles and protocol behaviour are the
-  simulators' (P1.7, P1.8, P1.10).
+  simulators' (P1.7, P1.8, P1.10a, P1.10b).
 - **A status watch collapses changes** that a reader misses. A reader that needs every sample
   must keep up.
 - **`FrameSink::frame` runs on the camera's thread.** It must be quick.

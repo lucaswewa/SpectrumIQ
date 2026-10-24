@@ -1,0 +1,24 @@
+[package]
+name = "siq-ascii"
+description = "SpectrumIQ's data-driven ASCII dialects: a device's serial protocol, described by a TOML file."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+regex.workspace = true
+serde.workspace = true
+siq-devices = { path = "../siq-devices" }
+siq-serial = { path = "../siq-serial" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+toml.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

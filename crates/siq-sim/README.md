@@ -6,9 +6,10 @@ SpectrumIQ's simulators. So far:
   and focus, through an optics and a sensor model;
 - **the true state** of the simulated instrument;
 - **the simulated camera;**
-- **a GRBL 1.1 emulator,** the device end of a serial link.
+- **a GRBL 1.1 emulator,** the device end of a serial link;
+- **a dialect emulator,** a focus drive made from a `siq-ascii` dialect file.
 
-The focus and peripheral simulators (P1.10) follow.
+The peripheral simulators (P1.10b) follow.
 
 What these give:
 
@@ -29,11 +30,17 @@ What these give:
   - trapezoidal moves within each axis's rate and acceleration;
   - soft limits and homing;
   - the true stage moved with backlash, scale error and random error.
+- **`DialectEmulator`,** the device end of a serial link in any dialect:
+  - its commands answered with their replies, and other lines with its errors;
+  - moves at their speed, jogs to the edge of the travel, and homing;
+  - a completion reply, for dialects that wait for one;
+  - the true focus moved.
 
 The design is in
 [ADR-0026](../../docs/adr/0026-simulated-camera-fidelity-and-the-noiseless-cache.md) and its P1.7
-amendment, and, for the emulator,
-[ADR-0027](../../docs/adr/0027-protocol-level-emulation-and-the-serial-transport.md).
+amendment. For the emulators, it is in
+[ADR-0027](../../docs/adr/0027-protocol-level-emulation-and-the-serial-transport.md) and
+[ADR-0030](../../docs/adr/0030-data-driven-ascii-dialects.md).
 
 ## Place in the architecture
 
@@ -44,13 +51,15 @@ amendment, and, for the emulator,
   - `siq-devices` (the `Camera` trait);
   - `siq-buffer` (the pool);
   - `siq-config` (the sim camera, objectives and `[sim]` sections);
+  - `siq-ascii` (the dialects);
   - `siq-types`;
-  - `tokio` (the emulator's I/O and timer).
+  - `tokio` (the emulators' I/O and timers).
 - **Used by:**
-  - P2.1's acquisition engine and P2.3's server, which choose `SimCamera` for `kind = "sim"`;
-  - P1.8 and P1.10's emulators, which write the `TrueState`;
+  - P2.1's acquisition engine, which runs on `SimCamera`;
+  - P2.3's server, which chooses `SimCamera` and the emulators for `kind = "sim"`;
+  - the drivers' tests, in `siq-grbl` and `siq-ascii`;
   - later `siq-datagen` and the tests of M5, M8 and M11–M13.
-- **Phases:** P1.6 (`optics`), P1.7 (`state`, `camera`), P1.8 (`grbl`).
+- **Phases:** P1.6 (`optics`), P1.7 (`state`, `camera`), P1.8 (`grbl`), P1.10a (`dialect`).
 
 ## API
 
@@ -88,6 +97,12 @@ amendment, and, for the emulator,
 | `GrblSettings` | GRBL 1.1's `$` numbers, with defaults for a 100 × 75 × 20 mm stage; `get`, `set` |
 | `GrblErrors` | Backlash per axis, scale error, random error and reply latency. `From<&SimErrors>` |
 
+### `siq_sim::dialect`
+
+| Item | What |
+|---|---|
+| `DialectEmulator::new(dialect, state, clock)` | A drive at the bottom of its travel, not homed. `run(port)` serves the device's end of a link until it closes. It identifies as `SIM-FOCUS 1.0 0001` |
+
 ```rust
 let setup = SimCameraSetup::from_config(&sim_camera, &config.objectives, &config.sim);
 let world = WorldInfo::from_config(&config.sim.world, config.sim.seed).build()?;
@@ -101,6 +116,7 @@ camera.start(pool, acquisition_sink).await?;  // frames at the model's rate, int
 |---|---|---|
 | `render_frame` | Renders 100 MP frames of cells through a 10× objective: drafts, full detail and noise only, on the sensor and on the `fast` profile, with their times. It writes the last as `frame.raw` (Mono14 in little-endian `u16`) plus a PNG preview. Smoke mode uses a 1 MP sensor | `cargo run --release -p siq-sim --example render_frame [-- <x> <y> <focus> [<folder>]]` |
 | `grbl_emulator_repl` | A scripted session with the emulator in real time: unlock, settings, a move watched by status reports, a dwell, a jog cancelled, a feed hold, a reset in motion, and the true stage's errors. About 3 s | `cargo run -p siq-sim --example grbl_emulator_repl` |
+| `dialect_emulator_repl` | A scripted session with the dialect emulator in real time, in the example dialect: identification, a move watched by status queries, a stop, a jog, homing and errors; then a move that ends with the completion reply. About 3 s | `cargo run -p siq-sim --example dialect_emulator_repl` |
 | `sim_live` | The camera of `config/sim.toml` live, in real time on the `fast` profile, with a new pose every second: frames, rate, lost frames and mean per pose. 5 s; smoke mode 1 s at 512 × 384 | `cargo run --release -p siq-sim --example sim_live` |
 
 ## Features
@@ -109,7 +125,7 @@ None.
 
 ## Testing
 
-`cargo test -p siq-sim` runs three binaries.
+`cargo test -p siq-sim` runs four binaries.
 
 **`optics`:**
 
@@ -138,6 +154,12 @@ None.
 - a diagonal move's timing;
 - the true stage's backlash, scale error and random error.
 
+**`dialect`,** through a `DuplexTransport` on a `ManualClock`, in the example dialect:
+
+- commands, replies and errors;
+- moves, a stop, a jog to the edge of the travel and homing, with the true focus;
+- the completion reply, for a move and homing but not a stop or a jog.
+
 ## Limitations
 
 - **A full-detail frame after a stop takes 1.6 s at 100 MP,** and slips the camera's schedule by
@@ -149,3 +171,5 @@ None.
   is rendered at the pose of its readout.
 - **There is no trigger line:** `trigger()` stands in for an external trigger too.
 - **The emulator's hold and jog cancel stop at once,** and its blocks start and stop at rest.
+- **The dialect emulator moves without acceleration,** replies at once, and has no positioning
+  error.

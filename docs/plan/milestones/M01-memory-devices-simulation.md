@@ -369,28 +369,30 @@ the stage is open-loop.
 
 ---
 
-### P1.10 — ASCII dialect driver and peripheral simulators (`siq-ascii`, `siq-sim::peripherals`)
+> **P1.10 was split into P1.10a and P1.10b during implementation.** The complete phase measured
+> about 1330 counted lines against its estimate of 850. Like P1.8 and P1.9, it splits between the
+> device side and the host side (see `docs/impl-notes/P1.10a.md`). "P1.10" elsewhere means both.
 
-**Budget** ~850 · **Depends on** P1.3, P1.8 · **Requirements** REQ-STG-002, REQ-DEV-001, REQ-SIM-003
+### P1.10a — ASCII dialects and the dialect emulator (`siq-ascii`, `siq-sim::dialect`)
 
-**Goal.** Support the focus drive (and later ASCII peripherals) from a data-driven dialect file, and
-simulate every peripheral.
+**Budget** ~700 · **Depends on** P1.3, P1.8 · **Requirements** REQ-STG-002, REQ-SIM-002
+
+**Goal.** Describe the focus drive's protocol (and later ASCII peripherals') in a data-driven
+dialect file, and emulate a device from that same file.
 
 **Scope**
 
 - **Dialect TOML:**
   - terminators;
   - init sequence;
-  - command templates (`move_abs = "MA {pos:steps}\r"`) with unit conversions;
-  - reply regexes with named groups;
-  - error patterns;
+  - command templates (`move = "MA {target:steps}"`) with unit conversions;
+  - replies, as templates that compile to anchored regexes with named groups;
+  - error replies;
   - timeouts;
   - motion-done detection (poll query or completion reply).
-- **`AsciiFocusDrive<T: LineTransport>`** implements `FocusDrive`.
+- **Validation:** every problem, with its path.
 - **`DialectEmulator`** generates the device side from the same dialect, adds a motion model, and
   updates `TrueState.focus`.
-- **Peripheral simulators** (trait-level, with realistic delays): `SimIllumination`,
-  `SimFilterWheel`, `SimObjectiveTurret`, `SimModalityUnit`.
 - **Example dialect:** `config/dialects/example-focus.toml`. The real device's dialect follows in
   P10.3.
 
@@ -398,10 +400,36 @@ simulate every peripheral.
 
 - Dialect validation errors.
 - Template rendering (proptest units).
-- Driver↔emulator round trips.
-- Timeouts.
+- The emulator's commands, replies, errors, motion and completion reply, on a manual clock.
+
+**Example.** `dialect_emulator_repl`: a scripted session with the emulator.
+
+**ADR.** Data-driven ASCII dialects.
+
+---
+
+### P1.10b — ASCII focus driver and peripheral simulators (`siq-ascii`, `siq-sim::peripherals`)
+
+**Budget** ~650 · **Depends on** P1.10a · **Requirements** REQ-STG-002, REQ-DEV-001, REQ-SIM-003
+
+**Goal.** Drive the focus drive through its dialect, and simulate every peripheral.
+
+**Scope**
+
+- **`AsciiFocusDrive<T: LineTransport>`** implements `FocusDrive`:
+  - one command at a time;
+  - status polling, with timestamps;
+  - the end of a move by the dialect's means;
+  - stop, jog, homing, and a unidirectional approach.
+- **Peripheral simulators** (trait-level, with realistic delays): `SimIllumination`,
+  `SimFilterWheel`, `SimObjectiveTurret`, `SimModalityUnit`.
+
+**Tests**
+
+- Driver↔emulator round trips, by poll and by completion reply.
+- Timeouts, and the device's errors.
 - Peripheral simulators.
 
 **Example.** `focus_dialect_demo`.
 
-**ADR.** Data-driven ASCII dialects.
+**ADR.** None new: ADR-0030 covers the driver's side.

@@ -89,7 +89,7 @@ timestamp mapping.
 
 ### P10.3 — Real stage and focus drive bring-up
 
-**Budget** ~500 · **Depends on** P1.9, P1.10, P5.1 · **Requirements** REQ-STG-001–005
+**Budget** ~500 · **Depends on** P1.9, P1.10b, P5.1 · **Requirements** REQ-STG-001–005
 
 **Goal.** Accurate, safe motion on the real controllers.
 
@@ -137,7 +137,7 @@ timestamp mapping.
 
 ### P10.5 — Peripheral drivers (template, one phase per device when models are chosen)
 
-**Budget** ≤ 900 each · **Depends on** P1.10 · **Requirements** REQ-DEV-001
+**Budget** ≤ 900 each · **Depends on** P1.10b · **Requirements** REQ-DEV-001
 
 **Goal.** Replace a peripheral simulator with its real driver.
 

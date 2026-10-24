@@ -479,7 +479,7 @@ expression: schema
               "default": 9600
             },
             "dialect": {
-              "description": "The dialect file that describes its protocol (P1.10).",
+              "description": "The dialect file that describes its protocol (P1.10a).",
               "type": "string"
             },
             "kind": {

@@ -38,3 +38,4 @@ This register lists every third-party component SpectrumIQ ships or builds with 
 | tokio-serial | 5.5.0 | MIT | Serial ports for tokio | `siq-serial` | P1.8 | Published 2026-06-15. No default features. With `mio-serial` 5.0.7 (MIT) |
 | serialport | 4.10.1 | MPL-2.0 | The serial port underneath `tokio-serial` | `mio-serial` | P1.8 | Used unmodified (ADR-0028). Brings a second `windows-sys`, 0.52.0 (MIT OR Apache-2.0), and `scopeguard` 1.2.0 |
 | mio | 1.2.4 | MIT | tokio's I/O driver, for serial ports and the `net` feature | `tokio`, `mio-serial` | P1.8 | Published 2026-10-03 (21 days). With `socket2` 0.6.5, `bytes` 1.12.1 and `futures-sink` 0.3.34 |
+| regex | 1.13.1 | MIT OR Apache-2.0 | The regexes that dialect templates compile to | `siq-ascii` | P1.10a | Published 2026-07-15. Default features. `regex-automata` 0.4.18, `regex-syntax` 0.8.11, `aho-corasick` 1.1.5 and `memchr` 2.8.3 were already in the lockfile |

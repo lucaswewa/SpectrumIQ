@@ -115,8 +115,8 @@ flowchart LR
   M14 --> M15
 ```
 
-There are 87 phases in total: 86 planned, and P0.3 split in two. The optional, stretch and gated
-phases are P8.6, P10.4, P13.4 and
+There are 88 phases in total: 86 planned, and P0.3 and P1.10 each split in two. The optional,
+stretch and gated phases are P8.6, P10.4, P13.4 and
 P14.4–P14.5. P10.5 repeats once per peripheral.
 
 **Status values:**
@@ -149,8 +149,9 @@ A phase is Done once it is merged.
 | P1.6 | Image formation model | 800 | P1.4, P1.5 | Done |
 | P1.7 | Simulated camera device | 600 | P1.2, P1.3, P1.6 | Done |
 | P1.8 | Serial transport and GRBL emulator | 850 | P1.7 | Done |
-| P1.9 | GRBL stage driver | 800 | P1.3, P1.8 | Review |
-| P1.10 | ASCII dialect driver and peripheral simulators | 850 | P1.3, P1.8 | — |
+| P1.9 | GRBL stage driver | 800 | P1.3, P1.8 | Done |
+| P1.10a | ASCII dialects and the dialect emulator (split from P1.10) | 700 | P1.3, P1.8 | Review |
+| P1.10b | ASCII focus driver and peripheral simulators (split from P1.10) | 650 | P1.10a | — |
 
 ### M2 — Acquisition, live preview and the first server ([brief](milestones/M02-acquisition-preview-server.md))
 
@@ -158,7 +159,7 @@ A phase is Done once it is merged.
 |---|---|---|---|---|
 | P2.1 | Acquisition engine | 800 | P1.2, P1.3, P1.7 | — |
 | P2.2 | Preview pipelines | 700 | P1.5, P2.1 | — |
-| P2.3 | Service core: camera, display, stage, focus Things | 900 | P0.3b, P1.9, P1.10, P2.2 | — |
+| P2.3 | Service core: camera, display, stage, focus Things | 900 | P0.3b, P1.9, P1.10b, P2.2 | — |
 | P2.4 | Peripherals, channels and system routes | 600 | P2.3 | — |
 | P2.5 | Euresys shim and bindings (risk spike) | 700 | P0.1 | — |
 
@@ -243,9 +244,9 @@ A phase is Done once it is merged.
 |---|---|---|---|---|
 | P10.1 | Euresys safe wrapper and `Camera` implementation | 900 | P2.5, P1.1, P1.3 | — |
 | P10.2 | Camera bring-up and performance tuning | 500 | P10.1 | — |
-| P10.3 | Real stage and focus drive bring-up | 500 | P1.9, P1.10, P5.1 | — |
+| P10.3 | Real stage and focus drive bring-up | 500 | P1.9, P1.10b, P5.1 | — |
 | P10.4 | (Optional) Hardware trigger and strobe | 600 | P10.2 | — |
-| P10.5 | Peripheral drivers (one phase per device) | ≤ 900 each | P1.10 | — |
+| P10.5 | Peripheral drivers (one phase per device) | ≤ 900 each | P1.10b | — |
 
 ### M11 — 3D: depth from focus ([brief](milestones/M11-depth-from-focus.md))
 

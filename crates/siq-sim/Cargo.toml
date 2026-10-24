@@ -1,6 +1,6 @@
 [package]
 name = "siq-sim"
-description = "SpectrumIQ's simulators: image formation for the simulated camera, and later the camera, stage, focus and peripheral simulators."
+description = "SpectrumIQ's simulators: the camera and its image formation, and the GRBL and dialect emulators. The peripheral simulators follow."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,6 +9,7 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+siq-ascii = { path = "../siq-ascii" }
 siq-buffer = { path = "../siq-buffer" }
 siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }

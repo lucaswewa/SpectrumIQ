@@ -66,7 +66,7 @@ impl<const N: usize> SeqLock<N> {
 /// No position: stored in an atomic position.
 const NONE: u32 = u32::MAX;
 
-/// The true state: written by the emulators (P1.8, P1.10) and the peripheral simulators, read by
+/// The true state: written by the emulators (P1.8, P1.10a) and the peripheral simulators, read by
 /// the simulated camera.
 #[derive(Debug)]
 pub struct TrueState {
