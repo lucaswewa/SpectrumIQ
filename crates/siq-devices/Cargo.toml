@@ -1,0 +1,23 @@
+[package]
+name = "siq-devices"
+description = "SpectrumIQ's device traits: camera, stage, focus drive and peripherals, with mocks for engine tests."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+schemars.workspace = true
+serde.workspace = true
+siq-buffer = { path = "../siq-buffer" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+tokio = { workspace = true, features = ["sync"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt", "time"] }
+
+[lints]
+workspace = true

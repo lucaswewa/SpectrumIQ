@@ -1,4 +1,4 @@
-//! The metadata every camera frame carries (REQ-ACQ-004).
+//! The metadata every camera frame carries (REQ-ACQ-004), and the modality unit's imaging modes.
 //!
 //! [`FrameMeta`] is `Copy` and holds no heap data, so the frame path can stamp and pass it at the
 //! camera's rate without allocating.
@@ -97,4 +97,18 @@ impl FrameMeta {
     pub const fn image_size(&self) -> (u32, u32) {
         self.binning.image_size(self.roi.width, self.roi.height)
     }
+}
+
+/// An imaging mode of the modality unit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ModalityMode {
+    /// Plain widefield.
+    Widefield,
+    /// Light field, with the microlens array in.
+    LightField,
+    /// Spinning-disk confocal.
+    Confocal,
+    /// Structured illumination (SIM or HiLo).
+    StructuredIllumination,
 }

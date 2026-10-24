@@ -142,8 +142,8 @@ A phase is Done once it is merged.
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
 | P1.1 | Frame pool | 800 | P0.2 | Done |
-| P1.2 | Frame fan-out | 600 | P1.1 | Review |
-| P1.3 | Device traits | 700 | P1.1 | — |
+| P1.2 | Frame fan-out | 600 | P1.1 | Done |
+| P1.3 | Device traits | 700 | P1.1 | Review |
 | P1.4 | Synthetic specimen worlds | 900 | P0.2 | — |
 | P1.5 | CPU image kernels | 850 | P0.2 | — |
 | P1.6 | Image formation model | 800 | P1.4, P1.5 | — |

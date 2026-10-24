@@ -11,6 +11,9 @@ use serde::{Deserialize, Serialize};
 use siq_telemetry::LogConfig;
 use siq_types::{ChannelId, Hertz, Micrometers, Millis, ObjectiveId, PixelFormat};
 
+/// The modality unit's imaging modes, from `siq-types`, where the device traits use them too.
+pub use siq_types::ModalityMode;
+
 /// A SpectrumIQ instrument: its devices, optics and channels, and how the service runs.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -416,20 +419,6 @@ pub struct ModalityConfig {
     pub kind: PeripheralKind,
     /// The modes it offers.
     pub modes: Vec<ModalityMode>,
-}
-
-/// An imaging mode of the modality unit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "snake_case")]
-pub enum ModalityMode {
-    /// Plain widefield.
-    Widefield,
-    /// Light field, with the microlens array in.
-    LightField,
-    /// Spinning-disk confocal.
-    Confocal,
-    /// Structured illumination (SIM or HiLo).
-    StructuredIllumination,
 }
 
 /// The simulation (ADR-0012).

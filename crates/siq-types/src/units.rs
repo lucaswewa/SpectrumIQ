@@ -129,6 +129,11 @@ unit!(
     Hertz,
     "Hz"
 );
+unit!(
+    /// A speed in micrometres per second (µm/s), for the stage and the focus drive.
+    MicrometersPerSecond,
+    "µm/s"
+);
 
 impl From<Millimeters> for Micrometers {
     fn from(length: Millimeters) -> Self {

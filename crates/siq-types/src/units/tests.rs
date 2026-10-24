@@ -30,6 +30,7 @@ fn display_appends_the_symbol_and_honours_precision() {
     assert_eq!(Hertz(9.0).to_string(), "9 Hz");
     assert_eq!(Nanometers(550.0).to_string(), "550 nm");
     assert_eq!(Millimeters::SYMBOL, "mm");
+    assert_eq!(MicrometersPerSecond(250.0).to_string(), "250 µm/s");
 }
 
 #[test]

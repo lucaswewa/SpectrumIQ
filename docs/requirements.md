@@ -17,7 +17,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 |---|---|---|---|---|
 | REQ-ACQ-001 | Acquire ~100 MP 14-bit mono frames (Mono16 container) from a Euresys CoaXPress grabber at the camera's native rate (~9 fps). | G | P2.5, P10.1 | |
 | REQ-ACQ-002 | Frames are DMA'd into pre-allocated, page-locked buffers. The per-frame path makes no heap allocations in steady state. | G | P1.1, P10.1 | The pool, in P1.1. `siq-buffer` tests: `the_steady_state_allocates_nothing` (counting allocator), `locked_slots_are_aligned_and_the_working_set_is_raised_then_restored`, `slots_are_never_shared_with_a_writer` (property test), `frames_cross_threads_intact_and_every_slot_comes_back`, `a_slot_goes_from_free_to_filling_to_leased_and_back`. The DMA follows in P10.1 |
-| REQ-ACQ-003 | ROI and binning modes, with their higher frame rates. | Q | P1.7, P10.1, P10.2 | |
+| REQ-ACQ-003 | ROI and binning modes, with their higher frame rates. | Q | P1.3, P1.7, P10.1, P10.2 | The descriptors, in P1.3: `CameraCapabilities` checks ROI alignment and binning, and its `FrameRateModel` gives the rate for an ROI and binning (`camera_settings_are_checked_against_the_capabilities`, `the_frame_rate_model_rises_for_an_roi_and_binning_and_falls_for_long_exposures`) |
 | REQ-ACQ-004 | Every frame carries metadata: sequence, device and host timestamps, exposure, ROI/binning, pose (XYZ + focus) with quality, channel, objective, and calibration id. | G, D | P0.2, P2.1 | The type, in P0.2: `siq-types` `tests/serde.rs` (`frame_metadata_json_is_stable`, `json_schemas_are_stable`, `frame_metadata_round_trips_through_json`) and the stage↔pixel tests in `affine::tests`. Stamping frames follows in P2.1 |
 | REQ-ACQ-005 | Lost frames, whether at the grabber or from pool exhaustion, are detected, counted and reported. | D | P1.2, P2.1, P10.1 | Drops at a subscriber, in P1.2: each mailbox counts what it received, dropped and gave, and the counts always add up (`two_slow_consumers_lose_frames_counted_while_a_lossless_one_gets_all_it_asked_for`, `latest_only_keeps_the_newest_frame_and_releases_the_others`, `a_full_bounded_mailbox_drops_the_oldest_or_the_newest`). A lossless subscriber turns into pool exhaustion at the producer (`a_lossless_subscriber_keeps_every_frame_so_the_pool_runs_dry`), which P2.1 counts and reports, as P10.1 does at the grabber |
 | REQ-ACQ-006 | Live, snap (software-triggered) and sequence acquisition modes. | D | P1.7, P2.1, P4.7, P10.4 | |
@@ -28,7 +28,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 |---|---|---|---|---|
 | REQ-STG-001 | Control the GRBL/grblHAL XYZ stage asynchronously over serial (tokio). | G, Q | P1.8, P1.9, P10.3 | |
 | REQ-STG-002 | Control the separate focus drive through its documented ASCII serial protocol. | Q | P1.10, P10.3 | |
-| REQ-STG-003 | Detect motion completion, and report positions with timestamps. | G | P1.3, P1.9, P2.1 | |
+| REQ-STG-003 | Detect motion completion, and report positions with timestamps. | G | P1.3, P1.9, P2.1 | The interface, in P1.3: moves resolve once settled, with the settled status, and every axis publishes `AxisStatus { position, state, homed, ts }` on a watch, timestamped on the shared clock (`a_status_watch_starts_at_the_latest_status_and_wakes_for_the_next`, `a_mock_stage_moves_homes_jogs_and_stops_and_refuses_what_a_driver_would`). The GRBL driver fills it in P1.9 |
 | REQ-STG-004 | Homing, limits, stop/feed hold, and alarm recovery. | D | P1.9, P10.3 | |
 | REQ-STG-005 | A backlash-consistent approach for scans. | D | P1.9, P6.2 | |
 
@@ -36,7 +36,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 
 | ID | Requirement | Source | Phases | Verified by |
 |---|---|---|---|---|
-| REQ-DEV-001 | Illumination, filter wheel, objective turret and modality unit (LF/confocal/SIM) behind device traits, simulated until their models are chosen. | Q | P1.3, P1.10, P2.4, P3.4, P10.5 | |
+| REQ-DEV-001 | Illumination, filter wheel, objective turret and modality unit (LF/confocal/SIM) behind device traits, simulated until their models are chosen. | Q | P1.3, P1.10, P2.4, P3.4, P10.5 | The traits, in P1.3: `Illumination`, `FilterWheel` and `ObjectiveTurret` (both `Changer`s), and `ModalityUnit` with structured-illumination patterns, with mocks (`every_trait_is_dyn_compatible_and_its_futures_are_send`, `mock_peripherals_change_at_once_and_refuse_what_they_cannot_do`). The simulators follow in P1.10 |
 
 ## Simulation (SIM)
 

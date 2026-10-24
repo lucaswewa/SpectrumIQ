@@ -11,8 +11,8 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** P1.2, the frame fan-out in [`siq-buffer`](crates/siq-buffer/README.md): every frame
-to many consumers, each with its own policy, and the producer never waits.
+**In review:** P1.3, [`siq-devices`](crates/siq-devices/README.md): the device traits that the
+engines use, with capability descriptors, status watches, and mocks for engine tests.
 
 Done so far:
 
@@ -24,7 +24,9 @@ Done so far:
     [`config/sim.toml`](config/sim.toml) for the simulated instrument.
 - Milestone 1 (frame memory, devices and simulation):
   - P1.1, [`siq-buffer`](crates/siq-buffer/README.md), the frame pool, with slots locked in RAM and
-    frames shared without allocation or copy.
+    frames shared without allocation or copy;
+  - P1.2, the frame fan-out in `siq-buffer`: every frame to many consumers, each with its own
+    policy, and the producer never waits.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

@@ -16,17 +16,18 @@ Every other crate speaks these types. Their conventions are fixed by
 - **Layer:** L0 Foundation.
 - **Depends on:** `serde`, `schemars` (with `uuid1`), `uuid` (v7), `chrono`, `thiserror`.
 - **Used by:** every crate.
-- **Phase:** P0.2. P1.7 adds `Clock::sleep_until`.
+- **Phase:** P0.2. P1.3 adds `MicrometersPerSecond` and `ModalityMode`; P1.7 adds
+  `Clock::sleep_until`.
 
 ## API
 
 | Module | Types | Notes |
 |---|---|---|
-| `units` | `Micrometers`, `Millimeters`, `Nanometers`, `Millis`, `Hertz` | `f64` newtypes. They add and subtract with themselves, scale by `f64`, divide to a ratio, convert, and print with their symbol (`{:.2}` → `1.50 µm`) |
+| `units` | `Micrometers`, `Millimeters`, `Nanometers`, `Millis`, `Hertz`, `MicrometersPerSecond` (P1.3) | `f64` newtypes. They add and subtract with themselves, scale by `f64`, divide to a ratio, convert, and print with their symbol (`{:.2}` → `1.50 µm`) |
 | `geometry` | `Vec2Um`, `PointPx`, `RectUm`, `RectPx`, `StagePose` | Stage-frame µm and image pixels. Pixel centres are at half-integers |
 | `affine` | `Affine2`, `AffineParams`, `StageToPixel`, `PixelToStage` | `compose`, `invert`, `from_params` and `decompose`. `StageToPixel::for_frame` is the calibration convention |
 | `image` | `PixelFormat`, `Roi`, `Binning`, `ImageView`, `ImageViewMut`, `OwnedImage` | Views borrow any memory, with a stride, and never allocate. `OwnedImage` rows are 64-byte aligned |
-| `frame` | `FrameMeta`, `FrameSeq`, `DeviceMicros`, `PoseQuality`, `FrameFlags` | `FrameMeta` is `Copy`, with no heap data |
+| `frame` | `FrameMeta`, `FrameSeq`, `DeviceMicros`, `PoseQuality`, `FrameFlags`, `ModalityMode` | `FrameMeta` is `Copy`, with no heap data. `ModalityMode` moved here from `siq-config` in P1.3, for the device traits |
 | `ids` | `DatasetId`, `CalibrationId`, `ChannelId`, `ObjectiveId` | UUID v7 for run-time things, configured `u16` numbers for channels and objectives |
 | `time` | `Timestamp`, `Clock`, `SystemClock`, `ManualClock` | One shared `Arc<dyn Clock>` per service; `ManualClock` for deterministic tests |
 

@@ -26,6 +26,7 @@ with a ROI and binning, mosaic pixels, and depth. The classic bugs are:
 | Positions, distances | `Micrometers` | µm. `Millimeters` only at boundaries such as G-code; `Nanometers` for wavelengths |
 | Durations (exposure, settle) | `Millis` | ms, with conversion to and from `std::time::Duration` |
 | Rates | `Hertz` | Hz |
+| Speeds (stage, focus) | `MicrometersPerSecond` | µm/s, added in P1.3 |
 | Instants | `Timestamp` | ns since the epoch of the service's single monotonic `Clock` |
 | Device instants | `DeviceMicros` | µs of the camera's or grabber's own clock. Not comparable with `Timestamp` |
 | Angles | `f64` | radians |
