@@ -1,0 +1,37 @@
+<
+< Grbl 1.1h ['$' for help]
+< [MSG:'$H'|'$X' to unlock]
+> $X
+< [MSG:Caution: Unlocked]
+< ok
+# 10 mm at 10 mm/s with 200 mm/s²: 0.05 s up to speed, 0.95 s at it, 0.05 s down: 1.05 s.
+> G1 X-10 F600
+< ok
+@ 0.5
+! ?
+< <Run|MPos:-4.750,0.000,0.000|FS:600,0>
+# G4 P0 answers only when the moves before it have finished.
+> G4 P0
+.
+@ 1.0
+.
+@ 1.1
+< ok
+! ?
+< <Idle|MPos:-10.000,0.000,0.000|FS:0,0>
+# A rapid, relative move: Y's 3000 mm/min, 200 mm/s². 2.5 mm takes 0.224 s.
+> G91 G0 Y-2.5
+< ok
+@ 1.4
+! ?
+< <Idle|MPos:-10.000,-2.500,0.000|FS:0,0>
+# Lines after a G4 wait for it, and are answered in order.
+> G4 P0.5
+> G90 X-2
+.
+@ 1.95
+< ok
+< ok
+@ 3.5
+! ?
+< <Idle|MPos:-2.000,-2.500,0.000|FS:0,0>

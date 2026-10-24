@@ -14,7 +14,7 @@ use siq_synth::World;
 use siq_types::ImageViewMut;
 
 mod models;
-mod noise;
+pub(crate) mod noise;
 mod signal;
 
 pub use models::{OpticsModel, SensorModel, Shot, Vignetting};

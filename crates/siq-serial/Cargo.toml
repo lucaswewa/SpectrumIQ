@@ -1,0 +1,21 @@
+[package]
+name = "siq-serial"
+description = "SpectrumIQ's line-oriented serial transports: a serial port, or an in-memory duplex for emulators."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+tokio = { workspace = true, features = ["io-util", "time"] }
+tokio-serial.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["io-util", "macros", "rt", "time"] }
+
+[lints]
+workspace = true

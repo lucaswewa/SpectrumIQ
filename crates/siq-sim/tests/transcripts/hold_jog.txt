@@ -1,0 +1,37 @@
+<
+< Grbl 1.1h ['$' for help]
+< [MSG:'$H'|'$X' to unlock]
+> $X
+< [MSG:Caution: Unlocked]
+< ok
+# A feed hold stops the move where it is; resume finishes it.
+> G1 X-10 F600
+< ok
+@ 0.5
+! !
+! ?
+< <Hold:0|MPos:-4.750,0.000,0.000|FS:0,0>
+@ 1.0
+! ?
+< <Hold:0|MPos:-4.750,0.000,0.000|FS:0,0>
+! ~
+@ 1.5
+! ?
+< <Run|MPos:-9.500,0.000,0.000|FS:600,0>
+@ 2.0
+! ?
+< <Idle|MPos:-10.000,0.000,0.000|FS:0,0>
+# A jog, cancelled where it is.
+> $J=G91 X-5 F600
+< ok
+@ 2.3
+! ?
+< <Jog|MPos:-12.750,0.000,0.000|FS:600,0>
+! 0x85
+! ?
+< <Idle|MPos:-12.750,0.000,0.000|FS:0,0>
+# A jog past the travel is refused, and a jog needs a feed rate.
+> $J=G90 X5 F600
+< error:15
+> $J=G91 X-1
+< error:22

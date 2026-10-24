@@ -5,9 +5,10 @@ SpectrumIQ's simulators. So far:
 - **image formation:** a realistic 14-bit frame of a `siq-synth` world, for the true stage pose
   and focus, through an optics and a sensor model;
 - **the true state** of the simulated instrument;
-- **the simulated camera.**
+- **the simulated camera;**
+- **a GRBL 1.1 emulator,** the device end of a serial link.
 
-The GRBL emulator (P1.8) and the peripheral simulators (P1.10) follow.
+The focus and peripheral simulators (P1.10) follow.
 
 What these give:
 
@@ -23,10 +24,16 @@ What these give:
   - free-run and software trigger;
   - lost frames when no slot is free;
   - exact timing on a `ManualClock`.
+- **`GrblEmulator`,** the device end of a serial link:
+  - GRBL 1.1's lines, realtime bytes, planner and alarms;
+  - trapezoidal moves within each axis's rate and acceleration;
+  - soft limits and homing;
+  - the true stage moved with backlash, scale error and random error.
 
 The design is in
 [ADR-0026](../../docs/adr/0026-simulated-camera-fidelity-and-the-noiseless-cache.md) and its P1.7
-amendment.
+amendment, and, for the emulator,
+[ADR-0027](../../docs/adr/0027-protocol-level-emulation-and-the-serial-transport.md).
 
 ## Place in the architecture
 
@@ -37,12 +44,13 @@ amendment.
   - `siq-devices` (the `Camera` trait);
   - `siq-buffer` (the pool);
   - `siq-config` (the sim camera, objectives and `[sim]` sections);
-  - `siq-types`.
+  - `siq-types`;
+  - `tokio` (the emulator's I/O and timer).
 - **Used by:**
   - P2.1's acquisition engine and P2.3's server, which choose `SimCamera` for `kind = "sim"`;
   - P1.8 and P1.10's emulators, which write the `TrueState`;
   - later `siq-datagen` and the tests of M5, M8 and M11–M13.
-- **Phases:** P1.6 (`optics`), P1.7 (`state`, `camera`).
+- **Phases:** P1.6 (`optics`), P1.7 (`state`, `camera`), P1.8 (`grbl`).
 
 ## API
 
@@ -72,6 +80,14 @@ amendment.
 | `SimCameraSetup` | Sensor, format, full-frame rate, pixel pitch, `Lens`es by turret position, optics and sensor models, trigger latency. `from_config(&camera, &objectives, &sim)` applies the `fast` profile. `capabilities()` |
 | `SimCamera::new(setup, world, state, clock)` | A `siq_devices::Camera` |
 
+### `siq_sim::grbl`
+
+| Item | What |
+|---|---|
+| `GrblEmulator::new(settings, errors, seed, state, clock)` | `run(port)` serves the device's end of a link until it closes |
+| `GrblSettings` | GRBL 1.1's `$` numbers, with defaults for a 100 × 75 × 20 mm stage; `get`, `set` |
+| `GrblErrors` | Backlash per axis, scale error, random error and reply latency. `From<&SimErrors>` |
+
 ```rust
 let setup = SimCameraSetup::from_config(&sim_camera, &config.objectives, &config.sim);
 let world = WorldInfo::from_config(&config.sim.world, config.sim.seed).build()?;
@@ -84,6 +100,7 @@ camera.start(pool, acquisition_sink).await?;  // frames at the model's rate, int
 | Example | What it shows | Run |
 |---|---|---|
 | `render_frame` | Renders 100 MP frames of cells through a 10× objective: drafts, full detail and noise only, on the sensor and on the `fast` profile, with their times. It writes the last as `frame.raw` (Mono14 in little-endian `u16`) plus a PNG preview. Smoke mode uses a 1 MP sensor | `cargo run --release -p siq-sim --example render_frame [-- <x> <y> <focus> [<folder>]]` |
+| `grbl_emulator_repl` | A scripted session with the emulator in real time: unlock, settings, a move watched by status reports, a dwell, a jog cancelled, a feed hold, a reset in motion, and the true stage's errors. About 3 s | `cargo run -p siq-sim --example grbl_emulator_repl` |
 | `sim_live` | The camera of `config/sim.toml` live, in real time on the `fast` profile, with a new pose every second: frames, rate, lost frames and mean per pose. 5 s; smoke mode 1 s at 512 × 384 | `cargo run --release -p siq-sim --example sim_live` |
 
 ## Features
@@ -92,7 +109,7 @@ None.
 
 ## Testing
 
-`cargo test -p siq-sim` runs two binaries.
+`cargo test -p siq-sim` runs three binaries.
 
 **`optics`:**
 
@@ -114,6 +131,13 @@ None.
 - the camera following the true state's light and pose;
 - the pose's sequence lock under concurrent writes and reads.
 
+**`grbl`,** through a `DuplexTransport` on a `ManualClock`:
+
+- four golden transcripts in `tests/transcripts/`: the protocol, motion and dwells, alarms and
+  homing, and hold, resume and jogs;
+- a diagonal move's timing;
+- the true stage's backlash, scale error and random error.
+
 ## Limitations
 
 - **A full-detail frame after a stop takes 1.6 s at 100 MP,** and slips the camera's schedule by
@@ -124,3 +148,4 @@ None.
 - **The pose is read when a frame is rendered,** not at its mid-exposure. A moving stage's frame
   is rendered at the pose of its readout.
 - **There is no trigger line:** `trigger()` stands in for an external trigger too.
+- **The emulator's hold and jog cancel stop at once,** and its blocks start and stop at rest.

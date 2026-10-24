@@ -15,9 +15,11 @@ siq-devices = { path = "../siq-devices" }
 siq-imgproc = { path = "../siq-imgproc" }
 siq-synth = { path = "../siq-synth" }
 siq-types = { path = "../siq-types" }
+tokio = { workspace = true, features = ["io-util", "macros", "time"] }
 
 [dev-dependencies]
 png.workspace = true
+siq-serial = { path = "../siq-serial" }
 tokio = { workspace = true, features = ["macros", "rt", "time"] }
 
 [lints]

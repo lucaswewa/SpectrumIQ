@@ -1,0 +1,76 @@
+# Booting with homing on: the controller is locked until homed or unlocked.
+<
+< Grbl 1.1h ['$' for help]
+< [MSG:'$H'|'$X' to unlock]
+> G0 X-1
+< error:9
+! ?
+< <Alarm|MPos:0.000,0.000,0.000|FS:0,0>
+> $X
+< [MSG:Caution: Unlocked]
+< ok
+! ?
+< <Idle|MPos:0.000,0.000,0.000|FS:0,0>
+# Help, the settings, and changing one.
+> $
+< [HLP:$$ $# $G $I $N $x=val $Nx=line $J=line $SLP $C $X $H ~ ! ? ctrl-x]
+< ok
+> $$
+< $0=10
+< $1=25
+< $2=0
+< $3=0
+< $4=0
+< $5=0
+< $6=0
+< $10=1
+< $11=0.010
+< $12=0.002
+< $13=0
+< $20=1
+< $21=0
+< $22=1
+< $23=0
+< $24=25.000
+< $25=1000.000
+< $26=250
+< $27=1.000
+< $30=1000
+< $31=0
+< $32=0
+< $100=1600.000
+< $101=1600.000
+< $102=3200.000
+< $110=3000.000
+< $111=3000.000
+< $112=600.000
+< $120=200.000
+< $121=200.000
+< $122=100.000
+< $130=100.000
+< $131=75.000
+< $132=20.000
+< ok
+> $112=500
+< ok
+# Errors: an unknown setting, a bad number, an unsupported command, no feed rate, no letter.
+> $999=1
+< error:3
+> $112=abc
+< error:2
+> G2 X1 Y1
+< error:20
+> G1 X-1
+< error:22
+> 12
+< error:1
+# An empty line, modes, comments, and a move in inches.
+>
+< ok
+> G21 G90 (millimetres, absolute) F600
+< ok
+> G20 G0 X-0.5 ; half an inch
+< ok
+@ 1.0
+! ?
+< <Idle|MPos:-12.700,0.000,0.000|FS:0,0>

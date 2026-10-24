@@ -6,9 +6,11 @@
 //!   camera reads.
 //! - [`camera`]: the simulated camera, a `Camera` that renders into pool slots on a camera's
 //!   schedule.
+//! - [`grbl`]: a GRBL 1.1 emulator, the device end of a serial link, which moves the true stage.
 //!
-//! The GRBL emulator (P1.8) and the peripheral simulators (P1.10) follow.
+//! The focus and peripheral simulators (P1.10) follow.
 
 pub mod camera;
+pub mod grbl;
 pub mod optics;
 pub mod state;

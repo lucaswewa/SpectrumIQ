@@ -35,6 +35,8 @@ thiserror = "2.0"
 tiff = { version = "0.11.3", default-features = false, features = ["deflate", "lzw"] }
 # teta-wot's requirement, with no features: each crate names the ones it uses.
 tokio = "1.47"
+# Serial ports, through serialport (MPL-2.0, used unmodified: ADR-0028).
+tokio-serial = { version = "5.5.0", default-features = false }
 toml = "1.1.6"
 tracing = "0.1.41"
 tracing-appender = "0.2.5"

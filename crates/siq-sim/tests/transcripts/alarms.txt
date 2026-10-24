@@ -1,0 +1,41 @@
+<
+< Grbl 1.1h ['$' for help]
+< [MSG:'$H'|'$X' to unlock]
+> $X
+< [MSG:Caution: Unlocked]
+< ok
+# A move past the travel (0 to -100 mm in X) stops everything: ALARM:2, the position kept.
+> G0 X5
+< ALARM:2
+! ?
+< <Alarm|MPos:0.000,0.000,0.000|FS:0,0>
+> G0 X-1
+< error:9
+> $X
+< [MSG:Caution: Unlocked]
+< ok
+# A soft reset in motion loses the position: ALARM:3, then the banner, locked.
+> G1 X-10 F600
+< ok
+@ 0.5
+! 0x18
+< ALARM:3
+<
+< Grbl 1.1h ['$' for help]
+< [MSG:'$H'|'$X' to unlock]
+! ?
+< <Alarm|MPos:-4.750,0.000,0.000|FS:0,0>
+# Homing seeks machine zero, then answers.
+> $H
+! ?
+< <Home|MPos:-4.750,0.000,0.000|FS:0,0>
+@ 1.0
+< ok
+! ?
+< <Idle|MPos:0.000,0.000,0.000|FS:0,0>
+# A soft reset at rest keeps the position, and a homed controller isn't locked.
+! 0x18
+<
+< Grbl 1.1h ['$' for help]
+! ?
+< <Idle|MPos:0.000,0.000,0.000|FS:0,0>

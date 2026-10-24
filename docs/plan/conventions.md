@@ -208,8 +208,9 @@ verifies a requirement. `cargo xtask trace` builds the traceability matrix from 
 ## 7. Dependency policy
 
 - **Licenses** must be permissive: MIT, Apache-2.0, BSD-2/3-Clause, ISC, Zlib, Unicode, BSL-1.0.
-  MPL-2.0 and anything copyleft need an ADR. `cargo deny check licenses` runs in `xtask ci` when
-  installed, and the npm side uses `license-checker`.
+  Anything else needs an ADR. ADR-0028 accepts MPL-2.0 for unmodified dependencies (`serialport`)
+  and IJG with its attribution (`jpeg-encoder`). `cargo deny check licenses` runs in `xtask ci`
+  when installed, and the npm side uses `license-checker`.
 - **Native code** is limited to the allow-list in ADR-0007 (Euresys shim, OS APIs via
   `windows`/`windows-sys`, and the specific C libraries an ADR accepts).
 - **Euresys SDK** files are never committed (EULA). The shim compiles against the installed SDK.
