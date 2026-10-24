@@ -11,9 +11,9 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** P2.1, [`siq-acquire`](crates/siq-acquire/README.md), the acquisition engine: live
-view, settle-aware snaps and sequences, with every frame numbered and stamped with its pose and
-context.
+**In progress:** Milestone 2, acquisition, live preview and the first server. P2.2,
+[`siq-preview`](crates/siq-preview/README.md)'s live previews, is the latest: overview and ROI JPEG
+streams and statistics, with the display mapping on the server.
 
 Done so far:
 
@@ -50,6 +50,10 @@ Done so far:
   - P1.10a, [`siq-ascii`](crates/siq-ascii/README.md)'s data-driven dialects: a device's ASCII
     protocol described by a TOML file, and `siq-sim`'s emulator of any dialect;
   - P1.10b, the ASCII focus driver in `siq-ascii`, and the peripheral simulators in `siq-sim`.
+- Milestone 2 (acquisition, live preview and the first server), under way:
+  - P2.1, [`siq-acquire`](crates/siq-acquire/README.md), the acquisition engine: live view,
+    settle-aware snaps and sequences, with every frame numbered and stamped with its pose and
+    context.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 
@@ -98,3 +102,7 @@ cargo xtask layers             # the crate layering
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
+
+Third-party components and their licences are in [docs/soup.md](docs/soup.md). The live previews'
+JPEG encoder, `jpeg-encoder`, derives from the Independent JPEG Group's code: this software is based
+in part on the work of the Independent JPEG Group.

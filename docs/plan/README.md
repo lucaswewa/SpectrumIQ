@@ -157,8 +157,8 @@ A phase is Done once it is merged.
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P2.1 | Acquisition engine | 800 | P1.2, P1.3, P1.7 | Review |
-| P2.2 | Preview pipelines | 700 | P1.5, P2.1 | — |
+| P2.1 | Acquisition engine | 800 | P1.2, P1.3, P1.7 | Done |
+| P2.2 | Preview pipelines | 700 | P1.5, P2.1 | Review |
 | P2.3 | Service core: camera, display, stage, focus Things | 900 | P0.3b, P1.9, P1.10b, P2.2 | — |
 | P2.4 | Peripherals, channels and system routes | 600 | P2.3 | — |
 | P2.5 | Euresys shim and bindings (risk spike) | 700 | P0.1 | — |

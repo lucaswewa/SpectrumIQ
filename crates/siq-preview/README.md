@@ -1,0 +1,86 @@
+# siq-preview
+
+SpectrumIQ's live previews. The acquisition's frames become two JPEG streams and statistics:
+
+- **Overview:** the whole frame, area-averaged to fit 1920 × 1080.
+- **ROI:** a region in sensor pixels, at 1:1 or 2:1, clamped to the frame.
+- **Statistics:** the ROI's histogram, its window and its focus measure.
+
+How it works:
+
+- **Each stream is a latest-only consumer,** on its own thread, with its kernels on a shared
+  frame-path rayon pool, and its own rate cap. A slow stream skips frames, and never holds up the
+  camera.
+- **Display mapping is the server's:** a fixed window and gamma, or auto-contrast from the frame's
+  percentiles, with a grey, inverted or colour map. Only 8-bit JPEGs and statistics leave, never
+  raw frames.
+- **Two latency histograms per stream:** from mid-exposure, and of the pipeline's own work.
+
+The design is in [ADR-0032](../../docs/adr/0032-preview-stream-design.md).
+
+## Place in the architecture
+
+- **Layer:** L4 Engines.
+- **Depends on:**
+  - `siq-acquire`, for the frames;
+  - `siq-imgproc`, for the kernels;
+  - `siq-buffer`, `siq-devices` (the watch), `siq-telemetry` (the histograms), `siq-types`;
+  - `jpeg-encoder`, with `simd`. Its licence includes IJG, with the attribution in the README
+    (ADR-0028);
+  - `rayon`, `thiserror`, `tracing`.
+- **Used by:** P2.3's server, whose camera Thing feeds its MJPEG streams from a `PreviewSink`, and
+  whose display Thing sets the `DisplaySettings`.
+- **Phase:** P2.2.
+
+## API
+
+| Item | What |
+|---|---|
+| `Previews::start(&acquisition, &config, preview_sink, stats_sink, clock, registry)` | Starts the three streams. Dropping it stops them |
+| `set_display(DisplaySettings)`, `display()` | `Contrast::Manual { min, max, gamma }` or `Contrast::Auto { low_pct, high_pct }`, and a `Colormap`. The default is auto from 0.1 to 99.9 %, in grey |
+| `set_roi(RoiSettings)`, `roi()` | `RoiSettings { region: Option<RectPx> in sensor pixels, zoom: Zoom::Native or Zoom::Half }`. `None` shows the frame's middle |
+| `PreviewConfig` | Largest sizes (1920 × 1080 each), JPEG quality (85), the rates `[overview, roi, stats]` (10, 10, 5), pool threads (half the cores) |
+| `PreviewSink::push_jpeg(StreamKind, Vec<u8>, &FrameMeta)` | Where each JPEG goes |
+| `StatsSink::push_stats(&FrameStats)` | `FrameStats { meta, region, histogram: [u32; 256], window, focus }` |
+| `Renderer`, `fit`, `roi_region`, `measure` | The pipelines' steps, for tests and other consumers |
+
+**Metrics,** with a registry:
+
+- `preview.overview.latency_ms` and `preview.roi.latency_ms`: from the frame's mid-exposure to its
+  JPEG;
+- `preview.overview.work_ms` and `preview.roi.work_ms`: from taking the frame to its JPEG.
+
+```rust
+let previews = Previews::start(&acquisition, &PreviewConfig::default(), mjpeg_sink, stats_sink, clock, Some(&registry))?;
+previews.set_roi(RoiSettings { region: Some(RectPx::new(5000, 4000, 1920, 1080)), zoom: Zoom::Native });
+previews.set_display(DisplaySettings { contrast: Contrast::Manual { min: 500, max: 9000, gamma: 1.2 }, colormap: Colormap::Grey });
+```
+
+## Examples
+
+| Example | What | Command |
+|---|---|---|
+| `preview_to_files` | 3 s of simulated live view from `config/sim.toml`, at 100 MP. It writes the last overview and 2:1 ROI JPEGs, and prints how many each stream made and their mean work and latency. Smoke mode uses a 1024 × 768 sensor | `cargo run --release -p siq-preview --example preview_to_files [-- <folder>]` |
+
+## Features
+
+None.
+
+## Testing
+
+`cargo test -p siq-preview` runs `preview`:
+
+- the overview's size and aspect, checked in the JPEG itself;
+- the ROI through the frame's region and binning, clamped, cut and aligned. A proptest covers any
+  frame and region;
+- the LUT, through its window, gamma and colormaps;
+- auto-contrast percentiles;
+- statistics: the histogram's counts, the window and the focus measure;
+- the running streams on the simulated camera: their rate caps, and the latency histogram.
+
+## Limitations
+
+- **16-bit formats only:** an 8-bit frame is skipped.
+- **Each stream computes the frame's auto-contrast histogram,** about 1 ms each at 100 MP.
+- **The ROI's 15 ms budget is missed in simulation** (24–31 ms at 2:1 of 1080p, beside the
+  simulator). P10.x measures on the target PC.

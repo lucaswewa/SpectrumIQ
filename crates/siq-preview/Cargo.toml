@@ -1,0 +1,31 @@
+[package]
+name = "siq-preview"
+description = "SpectrumIQ's live previews: overview and ROI JPEG streams, and statistics, from the acquisition's frames."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+jpeg-encoder = { workspace = true, features = ["simd"] }
+rayon.workspace = true
+siq-acquire = { path = "../siq-acquire" }
+siq-buffer = { path = "../siq-buffer" }
+siq-devices = { path = "../siq-devices" }
+siq-imgproc = { path = "../siq-imgproc" }
+siq-telemetry = { path = "../siq-telemetry" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+siq-config = { path = "../siq-config" }
+siq-sim = { path = "../siq-sim" }
+siq-synth = { path = "../siq-synth" }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
+
+[lints]
+workspace = true
