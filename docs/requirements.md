@@ -45,8 +45,8 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 | REQ-SIM-001 | A simulated camera producing realistic 14-bit frames (up to 100 MP) from a virtual specimen, depending on the stage pose and focus. | G | P1.6, P1.7 | |
 | REQ-SIM-002 | A simulated stage (GRBL emulator) and focus drive (dialect emulator) that exercise the real drivers. | G | P1.8, P1.10 | |
 | REQ-SIM-003 | Simulated peripherals. | Q | P1.10, P2.4 | |
-| REQ-SIM-004 | Synthetic datasets with ground truth for stitching, DFF, deconvolution, sectioning and light field. | G | P1.4, P4.9, P12.4, P13.1 | |
-| REQ-SIM-005 | Real images can serve as the virtual specimen. | Q | P1.4 | |
+| REQ-SIM-004 | Synthetic datasets with ground truth for stitching, DFF, deconvolution, sectioning and light field. | G | P1.4, P4.9, P12.4, P13.1 | The worlds and their ground truth, in P1.4: cells, grains, a height field and beads, deterministic by seed and seamless, with height maps and bead lists written as JSON plus raw `f32` (`siq-synth`: `every_world_is_the_same_for_a_seed_and_different_for_another`, `regions_sampled_apart_agree_wherever_they_meet`, `every_world_stays_within_its_expected_statistics`, `ground_truth_is_written_beside_a_dataset_and_reads_back`). The datasets follow in P4.9, P12.4 and P13.1 |
+| REQ-SIM-005 | Real images can serve as the virtual specimen. | Q | P1.4 | `ImageWorld`, in P1.4: 8- and 16-bit PNG and TIFF, grey or colour, at a pixel size, with a pyramid for coarse samplings (`an_image_world_reads_png_and_tiff_and_lays_them_out_at_their_pixel_size`, `a_coarse_sampling_sees_the_mean_of_each_block`, `a_missing_or_foreign_file_is_an_error_naming_it`) |
 | REQ-SIM-006 | The whole application runs end to end on simulation, with no hardware. | G | P0.3b, P2.3 | The configuration, in P0.3b: `siq-config` `the_simulated_instrument_is_valid` (`config/sim.toml`, every device `kind = "sim"`). Running end to end follows in P2.3 |
 
 ## Preview and streaming (PRV)

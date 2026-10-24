@@ -11,8 +11,8 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** P1.3, [`siq-devices`](crates/siq-devices/README.md): the device traits that the
-engines use, with capability descriptors, status watches, and mocks for engine tests.
+**In review:** P1.4, [`siq-synth`](crates/siq-synth/README.md): deterministic synthetic specimens
+with exact ground truth, and real images as specimens.
 
 Done so far:
 
@@ -26,7 +26,9 @@ Done so far:
   - P1.1, [`siq-buffer`](crates/siq-buffer/README.md), the frame pool, with slots locked in RAM and
     frames shared without allocation or copy;
   - P1.2, the frame fan-out in `siq-buffer`: every frame to many consumers, each with its own
-    policy, and the producer never waits.
+    policy, and the producer never waits;
+  - P1.3, [`siq-devices`](crates/siq-devices/README.md), the device traits that the engines use,
+    with capability descriptors, status watches, and mocks for engine tests.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

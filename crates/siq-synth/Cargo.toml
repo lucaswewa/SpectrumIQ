@@ -1,0 +1,26 @@
+[package]
+name = "siq-synth"
+description = "SpectrumIQ's synthetic specimens: deterministic worlds with exact ground truth, and real images as worlds."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+png.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+siq-config = { path = "../siq-config" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+tiff.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+tempfile.workspace = true
+
+[lints]
+workspace = true
