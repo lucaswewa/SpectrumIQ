@@ -1,6 +1,6 @@
 [package]
 name = "siq-sim"
-description = "SpectrumIQ's simulators: the camera and its image formation, and the GRBL and dialect emulators. The peripheral simulators follow."
+description = "SpectrumIQ's simulators: the camera and its image formation, the GRBL and dialect emulators, and the peripheral simulators."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -16,10 +16,11 @@ siq-devices = { path = "../siq-devices" }
 siq-imgproc = { path = "../siq-imgproc" }
 siq-synth = { path = "../siq-synth" }
 siq-types = { path = "../siq-types" }
-tokio = { workspace = true, features = ["io-util", "macros", "time"] }
+tokio = { workspace = true, features = ["io-util", "macros", "sync", "time"] }
 
 [dev-dependencies]
 png.workspace = true
+siq-grbl = { path = "../siq-grbl" }
 siq-serial = { path = "../siq-serial" }
 tokio = { workspace = true, features = ["macros", "rt", "time"] }
 

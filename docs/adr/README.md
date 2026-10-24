@@ -20,7 +20,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0009](0009-visualization-stack.md) | Visualization: OpenSeadragon first, WebGL2 16-bit later; VTK.js; optional native viewer | Accepted | planning |
 | [0010](0010-streaming-tiers.md) | Streaming tiers, browser connection budget, and staged local fast paths | Accepted | planning |
 | [0011](0011-security-model.md) | Security: local accounts, roles, Hardware Control Token, audit; LAN only | Accepted | planning |
-| [0012](0012-simulation-strategy.md) | Simulation: protocol emulators, image-formation camera, ground-truth worlds | Accepted | planning |
+| [0012](0012-simulation-strategy.md) | Simulation: protocol emulators, image-formation camera, ground-truth worlds (amended in P1.10b: the peripheral simulators, and the rig) | Accepted | planning |
 | [0013](0013-2d-acquisition-and-stitching-strategy.md) | 2D acquisition and stitching strategy | Accepted | planning |
 | [0014](0014-3d-scope-and-pluggability.md) | 3D reconstruction scope and pluggability | Accepted | planning |
 | [0015](0015-phase-sizing-and-deliverables.md) | Phase sizing and per-phase deliverables (amended in P0.1: exact counting rules) | Accepted | planning |
@@ -38,4 +38,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0027](0027-protocol-level-emulation-and-the-serial-transport.md) | Protocol-level emulation, and the serial transport abstraction (amended in P1.9: resets as GRBL's) | Accepted | P1.8 |
 | [0028](0028-licence-exceptions-mpl-and-ijg.md) | Licence exceptions: MPL-2.0 for unmodified dependencies, and IJG with attribution | Accepted | P1.8 |
 | [0029](0029-grbl-motion-completion-polling-stop-and-recovery.md) | GRBL motion completion, status polling, and stop and recovery | Accepted | P1.9 |
-| [0030](0030-data-driven-ascii-dialects.md) | Data-driven ASCII dialects: templates for both directions, and the dialect emulator | Accepted | P1.10a |
+| [0030](0030-data-driven-ascii-dialects.md) | Data-driven ASCII dialects: templates for both directions, and the dialect emulator (amended in P1.10b: the focus driver) | Accepted | P1.10a |

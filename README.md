@@ -11,9 +11,9 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** P1.10a, [`siq-ascii`](crates/siq-ascii/README.md)'s data-driven dialects: a
-device's ASCII protocol described by a TOML file, and `siq-sim`'s emulator of any dialect. The focus
-driver and the peripheral simulators follow in P1.10b.
+**In review:** P1.10b, the ASCII focus driver in `siq-ascii` and the peripheral simulators in
+`siq-sim`. It completes Milestone 1: the simulated rig of `config/sim.toml` runs with the real
+drivers against their emulators (`cargo run --release -p siq-sim --example sim_rig`).
 
 Done so far:
 
@@ -44,7 +44,9 @@ Done so far:
     in `siq-sim`: a stage controller to drive, whose true position carries realistic errors;
   - P1.9, [`siq-grbl`](crates/siq-grbl/README.md), the GRBL and grblHAL stage driver: moves that
     resolve once the stage is still, a backlash-consistent approach, jogs, homing, and a stop that
-    keeps the position.
+    keeps the position;
+  - P1.10a, [`siq-ascii`](crates/siq-ascii/README.md)'s data-driven dialects: a device's ASCII
+    protocol described by a TOML file, and `siq-sim`'s emulator of any dialect.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

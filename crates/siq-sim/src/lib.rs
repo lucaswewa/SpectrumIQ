@@ -9,11 +9,12 @@
 //! - [`grbl`]: a GRBL 1.1 emulator, the device end of a serial link, which moves the true stage.
 //! - [`dialect`]: a focus drive made from a `siq-ascii` dialect, the device end of a serial link,
 //!   which moves the true focus.
-//!
-//! The peripheral simulators (P1.10b) follow.
+//! - [`peripherals`]: the illumination, filter wheel, objective turret and modality unit, behind
+//!   their device traits, which set the true state.
 
 pub mod camera;
 pub mod dialect;
 pub mod grbl;
 pub mod optics;
+pub mod peripherals;
 pub mod state;

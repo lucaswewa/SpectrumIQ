@@ -14,9 +14,13 @@ What it provides:
   - the commands.
 - **`Template`:** a line with fields, such as `MA {target:steps}`. It renders a line from values,
   and matches a line back into values, so one description serves the driver and the emulator.
+- **`AsciiFocusDrive`:** a `siq-devices` `FocusDrive` over a dialect:
+  - one command at a time, with polled, timestamped status;
+  - moves that end by the dialect's means, polling or a completion reply;
+  - stop, jog, homing, and a unidirectional approach.
 
-`siq-sim`'s `DialectEmulator` is the device side of any dialect. The focus-drive driver follows in
-P1.10b. The design is in [ADR-0030](../../docs/adr/0030-data-driven-ascii-dialects.md).
+`siq-sim`'s `DialectEmulator` is the device side of any dialect. The design is in
+[ADR-0030](../../docs/adr/0030-data-driven-ascii-dialects.md) and its P1.10b amendment.
 
 ## Place in the architecture
 
@@ -24,13 +28,15 @@ P1.10b. The design is in [ADR-0030](../../docs/adr/0030-data-driven-ascii-dialec
 - **Depends on:**
   - `regex`, which the templates compile to;
   - `toml` and `serde`, for the file;
-  - `siq-serial`, for the link's `Framing`;
-  - `siq-devices`, for `DeviceError`;
+  - `siq-serial`, for the link;
+  - `siq-devices`, for the `FocusDrive` trait;
+  - `tokio` (`rt`, `sync`, `time`), `tracing`;
   - `siq-types`, `thiserror`.
 - **Used by:**
   - `siq-sim`'s dialect emulator;
-  - P1.10b's `AsciiFocusDrive`;
-  - P2.3's server, which loads `[focus] dialect`, or the example.
+  - P2.3's server, which loads `[focus] dialect`, or the example, and drives the focus with
+    `AsciiFocusDrive`.
+- **Tested against** `siq-sim`'s dialect emulator, a dev-dependency.
 - **Phases:** P1.10a (dialects), P1.10b (the driver).
 
 ## API
@@ -46,6 +52,29 @@ P1.10b. The design is in [ADR-0030](../../docs/adr/0030-data-driven-ascii-dialec
 | `Template::parse(text)` | Text with fields `{name:kind}`. `render(&values, step)`, `matches(line, step)`, `fields()`, `has(name)` |
 | `Value::{Length, Int, Flag, Text}`, `Values` | Fields' values by name. Lengths are µm, and speeds µm/s |
 | `lengths([(name, µm)])` | `Values` of lengths |
+| `AsciiFocusDrive::connect(transport, dialect, clock)` | Connects over any `LineTransport` in the dialect's framing: `init`, `identify`, then the status. It spawns the status poll. Its timing, and the status's timestamps, are on `clock` |
+| `AsciiFocusDrive` | A `siq_devices::FocusDrive` and `Device`. Its vendor is the dialect's name, and its model, firmware and serial come from `identify`. `limits()` is `motion.travel` |
+
+```rust
+let dialect = Arc::new(Dialect::load(&focus.dialect)?);
+let transport = siq_serial::open(&focus.port, &PortSettings { baud: focus.baud, ..Default::default() }, dialect.framing())?;
+let drive = AsciiFocusDrive::connect(transport, dialect, clock).await?;
+drive.home().await?;
+let status = drive.move_to(Micrometers(1_250.0), MoveOpts::default()).await?;
+```
+
+### The driver's behaviour
+
+- **Replies:** each command waits up to `timeouts.reply` for its reply. An error fails it, a
+  completion reply is noted, and other lines are skipped.
+- **The end of a move:** with `done = "poll"`, the status's `{moving}` clears. With `"reply"`,
+  `complete` comes, then a fresh status. The deadline is twice the move's time at its speed, plus
+  2 s, on the clock.
+- **The status:** polled at `motion.poll_hz`, and timestamped at its arrival less half the round
+  trip. The state is the device's `{moving}` flag, or the driver's word if it has none.
+- **A unidirectional move** arrives going up, overshooting by `motion.overshoot` when it would go
+  down.
+- **`stop`:** a move or a command still queued fails `Stopped`.
 
 ### The file
 
@@ -109,8 +138,12 @@ A command without `reply` is answered with `replies.ok`.
 
 ## Examples
 
-None in this crate yet: P1.10b adds `focus_dialect_demo`. `siq-sim`'s `dialect_emulator_repl`
-plays a session in the example dialect.
+| Example | What | Command |
+|---|---|---|
+| `focus_dialect_demo` | Reads a dialect (the example by default), shows what its commands send and what a broken one reports, then drives the dialect emulator in real time. It homes, moves, moves down unidirectionally, jogs and stops, first by polling and then waiting for the completion reply, and prints the drive's status and the true focus. About 2 s | `cargo run -p siq-ascii --example focus_dialect_demo [-- dialect.toml]` |
+
+`siq-sim`'s `dialect_emulator_repl` plays a session in the example dialect, and its `sim_rig` runs
+the whole simulated rig.
 
 ## Features
 
@@ -118,15 +151,29 @@ None.
 
 ## Testing
 
-`cargo test -p siq-ascii` runs `dialect`:
+`cargo test -p siq-ascii` runs two binaries.
+
+**`dialect`:**
 
 - templates rendered and matched back, for every kind, as proptests;
 - template errors;
 - the example dialect, against the file in `config/dialects/`;
 - a broken dialect, with every problem and its path.
 
+**`driver`,** against the dialect emulator, on a clock that runs ten times faster than real time:
+
+- connecting and identifying;
+- moves, by poll and by completion reply, timed, and outside the travel;
+- the unidirectional approach;
+- stop mid-move, two stops at once, and a jog;
+- homing, by poll and by reply;
+- the device's errors, a completion reply that never comes, and a device that never answers.
+
 ## Limitations
 
 - **Templates are small.** Literal whitespace matches exactly, and fields can't be optional. A
   raw-regex reply, which couldn't be emulated, is left for a device that needs it.
 - **A device's fields are fixed by command:** a new kind of command needs code here.
+- **`move_by` is relative to the latest status,** which may be up to a polling period old.
+- **The status is polled during a move as well as by the polling task,** so twice as often then.
+- **The real drive is tested only by hand,** in P10.3, with its own dialect.

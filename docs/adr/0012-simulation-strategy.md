@@ -45,3 +45,33 @@ ASCII focus drive) should be tested even without hardware.
 
 - P1.7–P1.10: the drivers pass against the emulators.
 - M5, M8 and M11–M13: ground-truth accuracy tests.
+
+## Amendment (P1.10b, 2026-10-24): the peripheral simulators, and the rig
+
+- **The peripherals are simulated at the trait level,** not by protocol. Their models, and so
+  their protocols, aren't chosen yet (ADR-0016). `siq_sim::peripherals` holds `SimIllumination`,
+  `SimChanger::filter_wheel`, `SimChanger::objective_turret` and `SimModalityUnit`.
+- **Each change takes a realistic time on the clock, then sets `TrueState`,** which the camera
+  sees:
+
+  | Change | Time |
+  |---|---|
+  | A light's level | 5 ms to settle |
+  | The filter wheel | 60 ms a position, the shorter way round |
+  | The objective turret | 400 ms a position, the shorter way round |
+  | The modality unit's mode | 300 ms |
+  | The modality unit's pattern | 20 ms |
+
+- **Details:**
+  - while a changer moves, no position is in the light path;
+  - from an unknown position, a changer goes half way round;
+  - changes to one device wait their turn.
+- **The real drivers replace them one device at a time,** in P10.5, behind the same traits.
+- **M1's simulated rig** is the `siq-sim` example `sim_rig`, from `config/sim.toml`:
+  - the camera;
+  - the GRBL driver against its emulator;
+  - the ASCII focus driver against the dialect emulator;
+  - the peripheral simulators.
+
+  Its frames follow the true stage, and blur as the focus leaves the specimen.
+- **Verified by** `siq-sim`'s `peripherals` tests and the `sim_rig` example.

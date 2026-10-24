@@ -136,3 +136,43 @@ A template is text with fields, `{name:kind}`:
   - `moves_jogs_and_homing_run_at_their_speeds_and_the_true_focus_follows`;
   - `with_done_by_reply_a_move_or_homing_that_ends_sends_its_completion`.
 - **The `dialect_emulator_repl` example.**
+
+## Amendment (P1.10b, 2026-10-24): the focus driver
+
+`siq_ascii::AsciiFocusDrive<T: LineTransport>` is a `siq-devices` `FocusDrive` over a dialect.
+
+- **One command at a time.** A `tokio` mutex holds the transport, and each command waits up to
+  `timeouts.reply`, in real time, for its reply. Every line received is matched, in this order:
+  1. the reply, which answers;
+  2. an error, which fails the command, through `Dialect::error`;
+  3. the completion reply, which is noted for the move that waits;
+  4. anything else, such as an echo, which is skipped.
+- **Connecting** sends `init`, then `identify` if the dialect has it, for `DeviceInfo`'s model,
+  firmware and serial. Then it reads the status.
+- **The status:**
+  - it is polled at `motion.poll_hz` by a task that ends when the drive is dropped;
+  - each reply is timestamped at its arrival less half the round trip;
+  - a disconnected link sets the state to `Disconnected`.
+- **The state:**
+  - the device's `{moving}` flag says whether the drive moves;
+  - what the driver last asked says which kind of motion: `Moving`, `Jogging` or `Homing`;
+  - a status without the flag takes the driver's word;
+  - `homed` is the device's `{homed}` flag, or the driver's knowledge from `home()`.
+- **A move:**
+  - it sends `move` with `{target}` and `{speed}` (the dialect's default speed if none);
+  - with `done = "poll"`, it polls until the flag clears;
+  - with `done = "reply"`, it waits for `complete`, between commands, with the link held 20 ms at
+    a time, then reads a fresh status;
+  - the deadline, on the clock, is twice the time at the speed, plus 2 s;
+  - a target outside `motion.travel` is refused before anything is sent.
+- **The unidirectional approach** arrives going up. A move that would go down, or stay, first
+  goes `motion.overshoot` below the target, clamped to the travel.
+- **`stop`:**
+  - it counts the stops, so that a move or a queued command that sees a new one fails `Stopped`;
+  - it sends `stop`, then waits for a still status, for up to 5 s;
+  - a stop that another overtakes still succeeds.
+- **`jog(v)`** sends `jog` with `{velocity}`, and `jog(0)` stops. **`home`** sends `home` and waits
+  up to `timeouts.home`.
+- **`move_by`** is relative to the latest status.
+- **Verified by** `siq-ascii`'s `driver` tests, against the emulator by poll and by reply, with
+  pairs of dialects that disagree for the errors and timeouts.

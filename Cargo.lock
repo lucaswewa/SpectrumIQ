@@ -1042,9 +1042,12 @@ dependencies = [
  "serde",
  "siq-devices",
  "siq-serial",
+ "siq-sim",
  "siq-types",
  "thiserror",
+ "tokio",
  "toml",
+ "tracing",
 ]
 
 [[package]]
@@ -1127,6 +1130,7 @@ dependencies = [
  "siq-buffer",
  "siq-config",
  "siq-devices",
+ "siq-grbl",
  "siq-imgproc",
  "siq-serial",
  "siq-synth",

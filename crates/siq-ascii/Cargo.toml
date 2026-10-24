@@ -1,6 +1,6 @@
 [package]
 name = "siq-ascii"
-description = "SpectrumIQ's data-driven ASCII dialects: a device's serial protocol, described by a TOML file."
+description = "SpectrumIQ's data-driven ASCII dialects, and a siq-devices FocusDrive that speaks one."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -15,10 +15,14 @@ siq-devices = { path = "../siq-devices" }
 siq-serial = { path = "../siq-serial" }
 siq-types = { path = "../siq-types" }
 thiserror.workspace = true
+tokio = { workspace = true, features = ["rt", "sync", "time"] }
 toml.workspace = true
+tracing.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true
+siq-sim = { path = "../siq-sim" }
+tokio = { workspace = true, features = ["io-util", "macros", "rt", "sync", "time"] }
 
 [lints]
 workspace = true

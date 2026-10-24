@@ -1,15 +1,18 @@
 # siq-sim
 
-SpectrumIQ's simulators. So far:
+SpectrumIQ's simulators:
 
 - **image formation:** a realistic 14-bit frame of a `siq-synth` world, for the true stage pose
   and focus, through an optics and a sensor model;
 - **the true state** of the simulated instrument;
 - **the simulated camera;**
 - **a GRBL 1.1 emulator,** the device end of a serial link;
-- **a dialect emulator,** a focus drive made from a `siq-ascii` dialect file.
+- **a dialect emulator,** a focus drive made from a `siq-ascii` dialect file;
+- **the peripheral simulators:** illumination, the filter wheel, the objective turret and the
+  modality unit.
 
-The peripheral simulators (P1.10b) follow.
+Together, with the real drivers, they make the simulated rig of `config/sim.toml` (the `sim_rig`
+example).
 
 What these give:
 
@@ -35,12 +38,15 @@ What these give:
   - moves at their speed, jogs to the edge of the travel, and homing;
   - a completion reply, for dialects that wait for one;
   - the true focus moved.
+- **The peripheral simulators,** behind their `siq-devices` traits: each change takes a realistic
+  time on the clock, then sets the true state.
 
 The design is in
 [ADR-0026](../../docs/adr/0026-simulated-camera-fidelity-and-the-noiseless-cache.md) and its P1.7
 amendment. For the emulators, it is in
 [ADR-0027](../../docs/adr/0027-protocol-level-emulation-and-the-serial-transport.md) and
-[ADR-0030](../../docs/adr/0030-data-driven-ascii-dialects.md).
+[ADR-0030](../../docs/adr/0030-data-driven-ascii-dialects.md). For the peripherals and the rig, it is
+in [ADR-0012](../../docs/adr/0012-simulation-strategy.md)'s P1.10b amendment.
 
 ## Place in the architecture
 
@@ -48,18 +54,21 @@ amendment. For the emulators, it is in
 - **Depends on:**
   - `siq-synth` (worlds);
   - `siq-imgproc` (blur, enlarging, row bands);
-  - `siq-devices` (the `Camera` trait);
+  - `siq-devices` (the `Camera` and peripheral traits);
   - `siq-buffer` (the pool);
   - `siq-config` (the sim camera, objectives and `[sim]` sections);
   - `siq-ascii` (the dialects);
   - `siq-types`;
-  - `tokio` (the emulators' I/O and timers).
+  - `tokio` (the emulators' I/O and timers, and the peripherals' turns).
+- **Dev-dependencies:** `siq-grbl` and `siq-serial`, for the tests and `sim_rig`.
 - **Used by:**
   - P2.1's acquisition engine, which runs on `SimCamera`;
-  - P2.3's server, which chooses `SimCamera` and the emulators for `kind = "sim"`;
+  - P2.3's server, which chooses `SimCamera`, the emulators and the peripheral simulators for
+    `kind = "sim"`;
   - the drivers' tests, in `siq-grbl` and `siq-ascii`;
   - later `siq-datagen` and the tests of M5, M8 and M11–M13.
-- **Phases:** P1.6 (`optics`), P1.7 (`state`, `camera`), P1.8 (`grbl`), P1.10a (`dialect`).
+- **Phases:** P1.6 (`optics`), P1.7 (`state`, `camera`), P1.8 (`grbl`), P1.10a (`dialect`),
+  P1.10b (`peripherals`).
 
 ## API
 
@@ -103,6 +112,15 @@ amendment. For the emulators, it is in
 |---|---|
 | `DialectEmulator::new(dialect, state, clock)` | A drive at the bottom of its travel, not homed. `run(port)` serves the device's end of a link until it closes. It identifies as `SIM-FOCUS 1.0 0001` |
 
+### `siq_sim::peripherals`
+
+| Item | What | Time per change |
+|---|---|---|
+| `SimIllumination::new(sources, state, clock)` | An `Illumination`, at the true state's levels | 5 ms |
+| `SimChanger::filter_wheel(filters, state, clock)` | A `FilterWheel` that moves the true filter. Nothing is in the path while it moves | 60 ms a position, the shorter way round |
+| `SimChanger::objective_turret(positions, state, clock)` | An `ObjectiveTurret` of positions named `position 0` and on, which moves the true objective | 400 ms a position, the shorter way round |
+| `SimModalityUnit::new(modes, patterns, state, clock)` | A `ModalityUnit`, starting in its first mode, which sets the true modality | 300 ms a mode, 20 ms a pattern |
+
 ```rust
 let setup = SimCameraSetup::from_config(&sim_camera, &config.objectives, &config.sim);
 let world = WorldInfo::from_config(&config.sim.world, config.sim.seed).build()?;
@@ -117,6 +135,7 @@ camera.start(pool, acquisition_sink).await?;  // frames at the model's rate, int
 | `render_frame` | Renders 100 MP frames of cells through a 10× objective: drafts, full detail and noise only, on the sensor and on the `fast` profile, with their times. It writes the last as `frame.raw` (Mono14 in little-endian `u16`) plus a PNG preview. Smoke mode uses a 1 MP sensor | `cargo run --release -p siq-sim --example render_frame [-- <x> <y> <focus> [<folder>]]` |
 | `grbl_emulator_repl` | A scripted session with the emulator in real time: unlock, settings, a move watched by status reports, a dwell, a jog cancelled, a feed hold, a reset in motion, and the true stage's errors. About 3 s | `cargo run -p siq-sim --example grbl_emulator_repl` |
 | `dialect_emulator_repl` | A scripted session with the dialect emulator in real time, in the example dialect: identification, a move watched by status queries, a stop, a jog, homing and errors; then a move that ends with the completion reply. About 3 s | `cargo run -p siq-sim --example dialect_emulator_repl` |
+| `sim_rig` | M1's simulated rig, from `config/sim.toml`: the camera on the `fast` profile, the GRBL driver and the ASCII focus driver against their emulators, and the peripheral simulators. It sets up the first channel, homes, moves the stage and focus, and prints each frame's mean and sharpness with the reported and true poses. About 3 s; smoke mode uses a 1024 × 768 sensor | `cargo run --release -p siq-sim --example sim_rig` |
 | `sim_live` | The camera of `config/sim.toml` live, in real time on the `fast` profile, with a new pose every second: frames, rate, lost frames and mean per pose. 5 s; smoke mode 1 s at 512 × 384 | `cargo run --release -p siq-sim --example sim_live` |
 
 ## Features
@@ -125,7 +144,7 @@ None.
 
 ## Testing
 
-`cargo test -p siq-sim` runs four binaries.
+`cargo test -p siq-sim` runs five binaries.
 
 **`optics`:**
 
@@ -159,6 +178,13 @@ None.
 - commands, replies and errors;
 - moves, a stop, a jog to the edge of the travel and homing, with the true focus;
 - the completion reply, for a move and homing but not a stop or a jog.
+
+**`peripherals`,** on a `ManualClock` that the test moves, so each change takes exactly its time:
+
+- a light settling;
+- the filter wheel the shorter way round, with nothing in the path meanwhile;
+- the turret's 400 ms a position;
+- the modality unit's mode and pattern times, and what it refuses.
 
 ## Limitations
 
