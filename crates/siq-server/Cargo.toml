@@ -1,0 +1,42 @@
+[package]
+name = "siq-server"
+description = "SpectrumIQ's service core: the instrument's Things on teta-wot, its routes, and the devices chosen from the configuration."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+siq-acquire = { path = "../siq-acquire" }
+siq-ascii = { path = "../siq-ascii" }
+siq-buffer = { path = "../siq-buffer" }
+siq-config = { path = "../siq-config" }
+siq-devices = { path = "../siq-devices" }
+siq-grbl = { path = "../siq-grbl" }
+siq-imgproc = { path = "../siq-imgproc" }
+siq-preview = { path = "../siq-preview" }
+siq-serial = { path = "../siq-serial" }
+siq-sim = { path = "../siq-sim" }
+siq-synth = { path = "../siq-synth" }
+siq-telemetry = { path = "../siq-telemetry" }
+siq-types = { path = "../siq-types" }
+teta-wot.workspace = true
+tokio = { workspace = true, features = ["macros", "net", "rt", "signal", "sync", "time"] }
+tower.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+http-body-util.workspace = true
+insta.workspace = true
+siq-acquire = { path = "../siq-acquire" }
+teta-wot = { workspace = true, features = ["testing"] }
+tokio = { workspace = true, features = ["io-util", "macros", "net", "rt", "sync", "time"] }
+
+[lints]
+workspace = true

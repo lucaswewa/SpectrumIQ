@@ -11,7 +11,7 @@ ADRs follow [0000-template.md](0000-template.md).
 |---|---|---|---|
 | [0001](0001-record-decisions-and-traceability.md) | Record decisions and keep traceability (IVD-ready) | Accepted | planning |
 | [0002](0002-core-as-separate-service.md) | The core runs as a separate service; desktop and browsers are clients | Accepted | planning |
-| [0003](0003-teta-wot-as-service-framework.md) | teta-wot v0.1.0 as the service framework, extended inside SpectrumIQ | Accepted | planning |
+| [0003](0003-teta-wot-as-service-framework.md) | teta-wot v0.1.0 as the service framework, extended inside SpectrumIQ (amended in P2.3: the route layout and merge order) | Accepted | planning |
 | [0004](0004-euresys-via-cpp-shim-and-bindgen.md) | Euresys eGrabber through a C++ shim and bindgen | Accepted | planning |
 | [0005](0005-memory-model-and-out-of-core.md) | Memory model: pinned frame pool, streaming and out-of-core processing | Accepted | planning |
 | [0006](0006-data-formats.md) | Data formats: OME-Zarr master, raw scratch, OME-TIFF and DZI derived (amended in P0.2: exact float round trips) | Accepted | planning |
@@ -41,3 +41,5 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0030](0030-data-driven-ascii-dialects.md) | Data-driven ASCII dialects: templates for both directions, and the dialect emulator (amended in P1.10b: the focus driver) | Accepted | P1.10a |
 | [0031](0031-frame-pose-association-and-context-stamping.md) | Frame↔pose time association, and context stamping | Accepted | P2.1 |
 | [0032](0032-preview-stream-design.md) | Preview stream design: two streams, server-side display mapping, latest-only, and rate caps | Accepted | P2.2 |
+| [0033](0033-thing-decomposition-and-naming.md) | Thing decomposition and naming: camera, display, stage and focus | Accepted | P2.3 |
+| [0034](0034-sim-and-real-device-selection.md) | Simulated or real devices, chosen per device by the configuration | Accepted | P2.3 |

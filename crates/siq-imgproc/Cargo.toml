@@ -10,6 +10,8 @@ publish.workspace = true
 
 [dependencies]
 rayon.workspace = true
+schemars.workspace = true
+serde.workspace = true
 siq-types = { path = "../siq-types" }
 thiserror.workspace = true
 

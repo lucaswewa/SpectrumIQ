@@ -22,6 +22,8 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 clap = { version = "4.6", features = ["derive"] }
 criterion = "0.8.2"
 insta = { version = "1.48", features = ["json"] }
+# Reading streamed bodies in the server's tests: teta-wot's version.
+http-body-util = "0.1.5"
 # Preview JPEGs. Its licence includes IJG, allowed with its attribution (ADR-0028).
 jpeg-encoder = "0.7.1"
 proptest = "1.11"
@@ -42,6 +44,8 @@ tokio = "1.47"
 # Serial ports, through serialport (MPL-2.0, used unmodified: ADR-0028).
 tokio-serial = { version = "5.5.0", default-features = false }
 toml = "1.1.6"
+# `oneshot`, to read the OpenAPI document without serving: teta-wot's version.
+tower = { version = "0.5.3", features = ["util"] }
 tracing = "0.1.41"
 tracing-appender = "0.2.5"
 tracing-subscriber = { version = "0.3.20", default-features = false, features = ["std", "registry", "fmt", "ansi", "env-filter"] }

@@ -1,0 +1,77 @@
+---
+source: crates/siq-server/tests/server.rs
+expression: descriptions
+---
+{
+  "camera": {
+    "title": "Camera",
+    "properties": [
+      "binning",
+      "exposure_ms",
+      "frame_rate",
+      "pixel_format",
+      "region",
+      "sensor",
+      "stats"
+    ],
+    "actions": [
+      "snap",
+      "start_live",
+      "stop_live"
+    ],
+    "events": [
+      "frames_lost"
+    ]
+  },
+  "display": {
+    "title": "Display",
+    "properties": [
+      "focus_measure",
+      "histogram",
+      "lut",
+      "roi_region"
+    ],
+    "actions": [
+      "auto_contrast_once"
+    ],
+    "events": []
+  },
+  "focus": {
+    "title": "Focus",
+    "properties": [
+      "homed",
+      "limits",
+      "position",
+      "state"
+    ],
+    "actions": [
+      "halt",
+      "move_by",
+      "move_to"
+    ],
+    "events": [
+      "arrived"
+    ]
+  },
+  "stage": {
+    "title": "Stage",
+    "properties": [
+      "homed",
+      "limits",
+      "position",
+      "speed",
+      "state"
+    ],
+    "actions": [
+      "halt",
+      "home",
+      "jog",
+      "move_by",
+      "move_to"
+    ],
+    "events": [
+      "alarm",
+      "arrived"
+    ]
+  }
+}

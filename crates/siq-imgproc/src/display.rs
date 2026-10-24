@@ -3,6 +3,8 @@
 
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use siq_types::{ImageView, ImageViewMut};
 
 use crate::bands::{band_rows, for_bands, reduce};
@@ -111,7 +113,8 @@ pub fn histogram(
 }
 
 /// How display levels become colours.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum Colormap {
     /// Black to white.
     Grey,

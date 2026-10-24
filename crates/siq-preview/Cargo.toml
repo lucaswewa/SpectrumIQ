@@ -11,6 +11,8 @@ publish.workspace = true
 [dependencies]
 jpeg-encoder = { workspace = true, features = ["simd"] }
 rayon.workspace = true
+schemars.workspace = true
+serde.workspace = true
 siq-acquire = { path = "../siq-acquire" }
 siq-buffer = { path = "../siq-buffer" }
 siq-devices = { path = "../siq-devices" }

@@ -9,7 +9,7 @@ This register lists every third-party component SpectrumIQ ships or builds with 
 
 | Component | Version | Licence | Purpose | Used by | Introduced in | Notes |
 |---|---|---|---|---|---|---|
-| teta-wot | v0.1.0 (`135f9ff`) | MIT | Web of Things server framework | `siq-server` | P2.3 | Git dependency (ADR-0003) |
+| teta-wot | v0.1.0 (`135f9ff`) | MIT | Web of Things server framework | `siq-server` | P2.3 | Git dependency (ADR-0003), with no features but `testing` in the tests. Its crates' manifests have no `license` field; the repository's LICENSE is MIT. cargo-deny will need a `[[licenses.clarify]]` for them |
 | Euresys eGrabber | 25.02.0.40 | Proprietary (Euresys EULA) | Coaxlink frame grabber SDK | `siq-euresys-sys` | P2.5 | Build-time and runtime prerequisite. Never vendored (ADR-0004) |
 | microscope web app | `0640f99` | MIT | Starting point of the frontend (theme, ui, host, api/wot, app shell) | `web/` | P3.1 | Copied and adapted (ADR-0008) |
 | Rust toolchain | 1.99.1 | MIT OR Apache-2.0 | Compiler, rustfmt, clippy | everything | P0.1 | Pinned in `rust-toolchain.toml` (ADR-0017) |
@@ -40,3 +40,7 @@ This register lists every third-party component SpectrumIQ ships or builds with 
 | mio | 1.2.4 | MIT | tokio's I/O driver, for serial ports and the `net` feature | `tokio`, `mio-serial` | P1.8 | Published 2026-10-03 (21 days). With `socket2` 0.6.5, `bytes` 1.12.1 and `futures-sink` 0.3.34 |
 | regex | 1.13.1 | MIT OR Apache-2.0 | The regexes that dialect templates compile to | `siq-ascii` | P1.10a | Published 2026-07-15. Default features. `regex-automata` 0.4.18, `regex-syntax` 0.8.11, `aho-corasick` 1.1.5 and `memchr` 2.8.3 were already in the lockfile |
 | jpeg-encoder | 0.7.1 | (MIT OR Apache-2.0) AND IJG | JPEG encoding of the live previews | `siq-preview` | P2.2 | Published 2026-07-27. Feature `simd` (AVX2, no dependencies). IJG allowed with its attribution (ADR-0028), which is in the README; the About page follows with the frontend |
+| axum | 0.8.9 | MIT | The HTTP server under teta-wot, and SpectrumIQ's routes (through teta-wot's re-export) | teta-wot, `siq-server` | P2.3 | teta-wot's version and features. With `hyper` 1.11.1 (pinned back from 1.12.0 to teta-wot's), `hyper-util` 0.1.21, `http` 1.5.0, `matchit` 0.8.4 (MIT AND BSD-3-Clause), `tokio-tungstenite` and `tungstenite` 0.29.0, `sha1_smol` 1.0.1 (BSD-3-Clause), `ryu` 1.0.23 (Apache-2.0 OR BSL-1.0): every new package at teta-wot's locked version |
+| tower | 0.5.3 | MIT | `ServiceExt::oneshot`, to read the OpenAPI document without serving | `siq-server` | P2.3 | teta-wot's version. Feature `util` |
+| smallvec | 1.16.2 | MIT OR Apache-2.0 | Small vectors, inside `hyper` | `hyper` | P2.3 | Pinned back from 1.16.4, a day old, to teta-wot's |
+| http-body-util | 0.1.5 | MIT | Reading the MJPEG stream's parts in the server's tests | `siq-server` (dev) | P2.3 | teta-wot's version |

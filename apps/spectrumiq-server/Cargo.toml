@@ -1,0 +1,20 @@
+[package]
+name = "spectrumiq-server"
+description = "The SpectrumIQ service: the instrument's Things and routes, served over HTTP."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+siq-config = { path = "../../crates/siq-config" }
+siq-server = { path = "../../crates/siq-server" }
+siq-telemetry = { path = "../../crates/siq-telemetry" }
+tokio = { workspace = true, features = ["macros", "net", "rt-multi-thread"] }
+
+[lints]
+workspace = true

@@ -2,6 +2,8 @@
 //! so a steady stream allocates only its JPEGs.
 
 use jpeg_encoder::{ColorType, Encoder};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use siq_imgproc::{
     Colormap, DisplayMapping, FocusMeasure, Histogram, Lut, downsample_area, focus, histogram,
 };
@@ -10,7 +12,8 @@ use siq_types::{FrameMeta, ImageView, ImageViewMut, RectPx};
 use crate::PreviewError;
 
 /// How raw values show.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Contrast {
     /// A fixed window, and a gamma.
     Manual {
@@ -31,7 +34,7 @@ pub enum Contrast {
 }
 
 /// How the previews show a frame: the contrast and the colours.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct DisplaySettings {
     /// The window, fixed or automatic.
     pub contrast: Contrast,
@@ -53,7 +56,8 @@ impl Default for DisplaySettings {
 }
 
 /// How much of the sensor one ROI preview pixel shows.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum Zoom {
     /// One frame pixel per preview pixel.
     #[default]
@@ -72,7 +76,7 @@ impl Zoom {
 }
 
 /// The ROI stream's region and zoom.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct RoiSettings {
     /// The region, in sensor pixels; the middle of the frame if `None`.
     pub region: Option<RectPx>,
