@@ -11,9 +11,9 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** P1.8, [`siq-serial`](crates/siq-serial/README.md)'s line transports and the GRBL 1.1
-emulator in [`siq-sim`](crates/siq-sim/README.md): a stage controller to drive, whose true position
-carries realistic errors.
+**In review:** P1.9, [`siq-grbl`](crates/siq-grbl/README.md), the GRBL and grblHAL stage driver:
+moves that resolve once the stage is still, a backlash-consistent approach, jogs, homing, and a
+stop that keeps the position.
 
 Done so far:
 
@@ -39,7 +39,9 @@ Done so far:
     synthetic specimen for the stage pose and focus, with optics, sensor noise and a noiseless
     cache;
   - P1.7, the simulated camera in `siq-sim`: a `Camera` that renders the true state into pool slots
-    at the model's frame rates, free-running or triggered.
+    at the model's frame rates, free-running or triggered;
+  - P1.8, [`siq-serial`](crates/siq-serial/README.md)'s line transports and the GRBL 1.1 emulator
+    in `siq-sim`: a stage controller to drive, whose true position carries realistic errors.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

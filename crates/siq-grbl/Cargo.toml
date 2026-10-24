@@ -1,0 +1,25 @@
+[package]
+name = "siq-grbl"
+description = "SpectrumIQ's GRBL and grblHAL stage driver: a siq-devices Stage over a serial line transport."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+siq-config = { path = "../siq-config" }
+siq-devices = { path = "../siq-devices" }
+siq-serial = { path = "../siq-serial" }
+siq-types = { path = "../siq-types" }
+tokio = { workspace = true, features = ["rt", "sync", "time"] }
+tracing.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+siq-sim = { path = "../siq-sim" }
+tokio = { workspace = true, features = ["io-util", "macros", "rt", "sync", "time"] }
+
+[lints]
+workspace = true

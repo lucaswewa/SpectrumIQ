@@ -1059,6 +1059,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "siq-grbl"
+version = "0.1.0"
+dependencies = [
+ "proptest",
+ "siq-config",
+ "siq-devices",
+ "siq-serial",
+ "siq-sim",
+ "siq-types",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "siq-imgproc"
 version = "0.1.0"
 dependencies = [

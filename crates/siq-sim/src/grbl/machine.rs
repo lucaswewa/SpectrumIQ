@@ -171,6 +171,11 @@ impl Machine {
         seed: u64,
         truth: Arc<TrueState>,
     ) -> Self {
+        // GRBL starts locked when homing is on, until it is homed or unlocked.
+        let mode = match settings.on(22) {
+            true => Mode::Alarm(None),
+            false => Mode::Idle,
+        };
         Self {
             settings,
             errors,
@@ -178,7 +183,7 @@ impl Machine {
             noise_key: key(seed, 7),
             line: Vec::new(),
             waiting: VecDeque::new(),
-            mode: Mode::Idle,
+            mode,
             inches: false,
             relative: false,
             rapid: true,
@@ -196,15 +201,16 @@ impl Machine {
         }
     }
 
-    /// What the controller prints when it starts, or after a reset with `alarm`.
+    /// What the controller prints when it starts, or after a reset with `alarm`. As GRBL does, it
+    /// is locked at power-up when homing is on, and a reset keeps a lock.
     pub(crate) fn boot(&mut self, alarm: Option<u8>) -> Vec<String> {
+        let locked = alarm.is_some() || matches!(self.mode, Mode::Alarm(_));
         self.line.clear();
         self.waiting.clear();
         self.queue.clear();
         (self.running, self.held, self.feed) = (None, None, None);
         (self.inches, self.relative, self.rapid) = (false, false, true);
         self.planned = self.position;
-        let locked = alarm.is_some() || (self.settings.on(22) && !self.homed);
         self.mode = if locked {
             Mode::Alarm(alarm)
         } else {
@@ -229,7 +235,8 @@ impl Machine {
             b'~' => self.resume(now),
             0x85 => self.cancel_jog(now),
             0x18 => {
-                let moving = matches!(self.mode, Mode::Run | Mode::Jog | Mode::Home | Mode::Hold);
+                // A reset once held has stopped the steppers, so the position holds.
+                let moving = matches!(self.mode, Mode::Run | Mode::Jog | Mode::Home);
                 self.stop(now);
                 // A reset in motion loses the position, which homing must find again.
                 self.homed &= !moving;

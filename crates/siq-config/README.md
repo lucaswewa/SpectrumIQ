@@ -44,7 +44,7 @@ The shipped files are the reference:
 | `[memory]` | `pool_slots` (12), `job_ram_gb` (14), `job_vram_gb` (4), `tile_cache_mb` (1024) |
 | `[log]` | `filter` (`info`), `console` (true), `directory` (none), `keep_days` (30) |
 | `[camera]` | `kind = "sim"`: `width` (11648), `height` (8742), `pixel_format` (`Mono14`), `frame_rate` (9), `pixel_size` (3.76 µm). `kind = "euresys"`: `interface` (0), `device` (0), `features` |
-| `[stage]` | `kind = "sim"`: `poll_hz` (5). `kind = "grbl"`: `port`, `baud` (115200), `poll_hz` (5) |
+| `[stage]` | `kind = "sim"`: `poll_hz` (5). `kind = "grbl"`: `port`, `baud` (115200), `poll_hz` (5). Both: `[stage.motion]`, with `unlock` (true), `approach` (`[1, 1, 1]`, each 1 or −1) and `overshoot` (50 µm) |
 | `[focus]` | `kind = "sim"`: `dialect`. `kind = "ascii"`: `port`, `baud` (9600), `dialect` |
 | `[[objectives]]` | `id`, `name`, `magnification`, `numerical_aperture`, `immersion` (`air`), `turret_position`, `parfocal_offset` (0 µm) |
 | `[[channels]]` | `id`, `name`, `exposure` (ms), `illumination = { source, intensity }`, `filter`, `colour` (`#ffffff`) |

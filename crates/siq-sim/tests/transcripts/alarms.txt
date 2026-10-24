@@ -33,7 +33,7 @@
 < ok
 ! ?
 < <Idle|MPos:0.000,0.000,0.000|FS:0,0>
-# A soft reset at rest keeps the position, and a homed controller isn't locked.
+# A soft reset at rest keeps the position, and only a lock survives it.
 ! 0x18
 <
 < Grbl 1.1h ['$' for help]

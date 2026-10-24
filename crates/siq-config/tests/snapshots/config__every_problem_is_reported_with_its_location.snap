@@ -13,6 +13,8 @@ colour.toml:18:10: "#33ff6" is not a colour: write "#rrggbb"
 missing key.toml:5:1: missing field `port`
 stage rules.toml:7:8: stage.port: must name the serial port, such as "COM5"
 stage rules.toml:8:11: stage.poll_hz: must be above 0 and at most 100 Hz, not 500 Hz
+stage rules.toml:9:23: stage.motion.approach: must be 1 or -1 for each axis, not [1, 0, -1]
+stage rules.toml:9:47: stage.motion.overshoot: must be 0 or more
 rules.toml:2:14: memory.pool_slots: must be 2 to 64 frames, not 1
 rules.toml:4:20: peripherals.filter_wheel.filters[1]: peripherals.filter_wheel.filters[0] has it too
 rules.toml:8:12: channels[0].exposure: must be positive

@@ -162,12 +162,15 @@ pub enum StageConfig {
 pub struct SimStageConfig {
     /// How often the driver asks for the position.
     pub poll_hz: Hertz,
+    /// How the driver moves the stage.
+    pub motion: GrblMotion,
 }
 
 impl Default for SimStageConfig {
     fn default() -> Self {
         Self {
             poll_hz: poll_rate(),
+            motion: GrblMotion::default(),
         }
     }
 }
@@ -184,6 +187,32 @@ pub struct GrblStageConfig {
     /// How often the driver asks for the position. GRBL suggests at most 5 Hz.
     #[serde(default = "poll_rate")]
     pub poll_hz: Hertz,
+    /// How the driver moves the stage.
+    #[serde(default)]
+    pub motion: GrblMotion,
+}
+
+/// How the GRBL driver moves the stage (P1.9).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct GrblMotion {
+    /// Unlock with `$X` when the controller starts locked, rather than wait for homing.
+    pub unlock: bool,
+    /// The direction each axis, x, y and z, arrives from in a backlash-consistent move: 1 or -1.
+    pub approach: [i8; 3],
+    /// How far a backlash-consistent move overshoots a target it would otherwise reach the wrong
+    /// way.
+    pub overshoot: Micrometers,
+}
+
+impl Default for GrblMotion {
+    fn default() -> Self {
+        Self {
+            unlock: true,
+            approach: [1, 1, 1],
+            overshoot: Micrometers(50.0),
+        }
+    }
 }
 
 fn grbl_baud() -> u32 {

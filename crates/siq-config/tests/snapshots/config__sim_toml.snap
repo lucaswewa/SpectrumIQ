@@ -31,7 +31,16 @@ expression: config
   },
   "stage": {
     "kind": "sim",
-    "poll_hz": 5.0
+    "poll_hz": 5.0,
+    "motion": {
+      "unlock": true,
+      "approach": [
+        1,
+        1,
+        1
+      ],
+      "overshoot": 50.0
+    }
   },
   "focus": {
     "kind": "sim",

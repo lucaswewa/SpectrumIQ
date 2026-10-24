@@ -125,3 +125,20 @@ true = commanded × (1 + scale error) − direction × backlash / 2 + the last m
   - `a_diagonal_move_takes_its_limiting_axis_s_time_and_the_true_stage_follows`;
   - `the_true_stage_carries_backlash_scale_error_and_random_error`.
 - The `grbl_emulator_repl` example.
+
+## Amendment (P1.9, 2026-10-24): resets as GRBL's
+
+The GRBL driver's stop, a feed hold and then a reset, showed two places where the emulator
+differed from GRBL 1.1:
+
+- **A reset once held no longer alarms.** A completed hold (`Hold:0`) has stopped the steppers, so
+  GRBL keeps the position. Only a reset in `Run`, `Jog` or `Home` raises ALARM:3.
+- **A reset keeps the state it found:**
+  - the controller starts locked at power-up when homing is on;
+  - after a reset, it is locked only if it was locked before, or if the reset alarmed;
+  - before, an unhomed controller was locked again by any reset, even after `$X`.
+- **The drivers' generic transport:** `GrblStage` isn't generic over `LineTransport`, as the
+  Decision sketched. Its link task owns the transport, and only `GrblStage::connect` is generic
+  (ADR-0029).
+- **Verified by** the `alarms.txt` transcript, which is unchanged except for a comment, and by
+  `siq-grbl`'s `stop_halts_a_move_and_keeps_the_position`.

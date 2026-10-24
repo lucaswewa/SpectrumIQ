@@ -123,7 +123,8 @@ const CASES: &[(&str, &str, &str, &str)] = &[
         "stage rules",
         "",
         "[stage]\nkind = \"sim\"",
-        "[stage]\nkind = \"grbl\"\nport = \"\"\npoll_hz = 500",
+        "[stage]\nkind = \"grbl\"\nport = \"\"\npoll_hz = 500\n\
+         motion = { approach = [1, 0, -1], overshoot = -5 }",
     ),
     (
         "rules",

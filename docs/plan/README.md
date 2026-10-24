@@ -148,8 +148,8 @@ A phase is Done once it is merged.
 | P1.5 | CPU image kernels | 850 | P0.2 | Done |
 | P1.6 | Image formation model | 800 | P1.4, P1.5 | Done |
 | P1.7 | Simulated camera device | 600 | P1.2, P1.3, P1.6 | Done |
-| P1.8 | Serial transport and GRBL emulator | 850 | P1.7 | Review |
-| P1.9 | GRBL stage driver | 800 | P1.3, P1.8 | — |
+| P1.8 | Serial transport and GRBL emulator | 850 | P1.7 | Done |
+| P1.9 | GRBL stage driver | 800 | P1.3, P1.8 | Review |
 | P1.10 | ASCII dialect driver and peripheral simulators | 850 | P1.3, P1.8 | — |
 
 ### M2 — Acquisition, live preview and the first server ([brief](milestones/M02-acquisition-preview-server.md))

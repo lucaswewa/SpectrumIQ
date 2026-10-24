@@ -153,8 +153,8 @@ fn devices(p: &mut Problems, config: &InstrumentConfig) {
             "must be positive",
         );
     }
-    let poll_hz = match &config.stage {
-        StageConfig::Sim(stage) => stage.poll_hz,
+    let (poll_hz, motion) = match &config.stage {
+        StageConfig::Sim(stage) => (stage.poll_hz, &stage.motion),
         StageConfig::Grbl(stage) => {
             let named = !stage.port.is_empty();
             p.check(
@@ -163,12 +163,20 @@ fn devices(p: &mut Problems, config: &InstrumentConfig) {
                 "must name the serial port, such as \"COM5\"",
             );
             p.check(stage.baud > 0, at!["stage", "baud"], "can't be 0");
-            stage.poll_hz
+            (stage.poll_hz, &stage.motion)
         }
     };
     let polling = poll_hz.0 > 0.0 && poll_hz.0 <= 100.0;
     let message = format!("must be above 0 and at most 100 Hz, not {poll_hz}");
     p.check(polling, at!["stage", "poll_hz"], message);
+    let sides = motion.approach.iter().all(|side| side.abs() == 1);
+    let message = format!("must be 1 or -1 for each axis, not {:?}", motion.approach);
+    p.check(sides, at!["stage", "motion", "approach"], message);
+    p.check(
+        not_negative(motion.overshoot.0),
+        at!["stage", "motion", "overshoot"],
+        "must be 0 or more",
+    );
     if let FocusConfig::Ascii(focus) = &config.focus {
         let named = !focus.port.is_empty();
         p.check(

@@ -35,5 +35,6 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0024](0024-synthetic-worlds-and-ground-truth.md) | Synthetic world model and ground-truth conventions | Accepted | P1.4 |
 | [0025](0025-cpu-kernel-strategy.md) | CPU kernel strategy: rayon row bands, plain loops first, caller-owned buffers | Accepted | P1.5 |
 | [0026](0026-simulated-camera-fidelity-and-the-noiseless-cache.md) | Simulated-camera fidelity versus performance, and the noiseless cache (amended in P1.7: timing, triggering and `TrueState`) | Accepted | P1.6 |
-| [0027](0027-protocol-level-emulation-and-the-serial-transport.md) | Protocol-level emulation, and the serial transport abstraction | Accepted | P1.8 |
+| [0027](0027-protocol-level-emulation-and-the-serial-transport.md) | Protocol-level emulation, and the serial transport abstraction (amended in P1.9: resets as GRBL's) | Accepted | P1.8 |
 | [0028](0028-licence-exceptions-mpl-and-ijg.md) | Licence exceptions: MPL-2.0 for unmodified dependencies, and IJG with attribution | Accepted | P1.8 |
+| [0029](0029-grbl-motion-completion-polling-stop-and-recovery.md) | GRBL motion completion, status polling, and stop and recovery | Accepted | P1.9 |
