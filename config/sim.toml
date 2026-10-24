@@ -1,0 +1,111 @@
+# The simulated instrument: every device is simulated, so the whole application runs without
+# hardware (REQ-SIM-006). The format is described in crates/siq-config/README.md, and by
+# `spectrumiq-server --print-config-schema`. Relative paths are relative to this file.
+
+[server]
+bind = "127.0.0.1"         # this computer only; "0.0.0.0" for the LAN
+port = 5000
+data_root = "../data"
+scratch = "../scratch"
+
+[memory]                    # the 32 GB / 8 GB workstation (ADR-0005)
+pool_slots = 12             # 12 × 200 MB, locked
+job_ram_gb = 14.0
+job_vram_gb = 4.0
+tile_cache_mb = 1024
+
+[log]
+filter = "info"
+directory = "../logs"
+
+[camera]
+kind = "sim"
+width = 11648
+height = 8742
+pixel_format = "Mono14"
+frame_rate = 9.0            # Hz, full frame
+pixel_size = 3.76           # µm, the sensor's pixel pitch
+
+[stage]
+kind = "sim"                # the GRBL driver, against the GRBL emulator
+poll_hz = 5.0
+
+[focus]
+kind = "sim"                # the ASCII driver, against an emulator of the example dialect
+
+[[objectives]]
+id = 1
+name = "10x/0.30"
+magnification = 10.0
+numerical_aperture = 0.30
+turret_position = 0
+
+[[objectives]]
+id = 2
+name = "20x/0.75"
+magnification = 20.0
+numerical_aperture = 0.75
+turret_position = 1
+parfocal_offset = 12.5      # µm
+
+[[objectives]]
+id = 3
+name = "60x/1.40 oil"
+magnification = 60.0
+numerical_aperture = 1.40
+immersion = "oil"
+turret_position = 2
+parfocal_offset = -8.0
+
+[[channels]]
+id = 1
+name = "Brightfield"
+illumination = { source = "white", intensity = 0.4 }
+filter = "empty"
+exposure = 10.0             # ms
+colour = "#ffffff"
+
+[[channels]]
+id = 2
+name = "DAPI"
+illumination = { source = "365nm", intensity = 0.8 }
+filter = "DAPI"
+exposure = 50.0
+colour = "#3f6fff"
+
+[[channels]]
+id = 3
+name = "GFP"
+illumination = { source = "470nm", intensity = 0.6 }
+filter = "GFP"
+exposure = 80.0
+colour = "#3fff6f"
+
+[peripherals.illumination]
+kind = "sim"
+sources = ["white", "365nm", "470nm", "565nm"]
+
+[peripherals.filter_wheel]
+kind = "sim"
+filters = ["empty", "DAPI", "GFP", "TRITC"]
+
+[peripherals.objective_turret]
+kind = "sim"
+positions = 4
+
+[peripherals.modality]
+kind = "sim"
+modes = ["widefield", "light_field", "confocal", "structured_illumination"]
+
+[sim]
+seed = 1
+profile = "full"            # "fast" renders a quarter of the pixels
+
+[sim.world]
+kind = "cells"              # cells, grains, height_field, beads, or image (with path, pixel_size)
+
+[sim.errors]                # injected into the simulated stage
+backlash = 2.0              # µm
+scale_error = 0.0005
+position_noise = 0.5        # µm, standard deviation
+reply_latency = 5.0         # ms

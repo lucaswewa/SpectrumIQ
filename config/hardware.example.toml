@@ -1,0 +1,43 @@
+# An example for the real instrument: copy it, then set the ports, the paths, and the optics and
+# channels of the instrument. The format is described in crates/siq-config/README.md, and by
+# `spectrumiq-server --print-config-schema`. Relative paths are relative to this file.
+
+[server]
+bind = "0.0.0.0"            # the lab LAN (ADR-0011)
+port = 5000
+data_root = "D:/SpectrumIQ/data"
+scratch = "D:/SpectrumIQ/scratch"
+
+[log]
+filter = "info"
+directory = "C:/ProgramData/SpectrumIQ/logs"
+keep_days = 90
+
+[camera]
+kind = "euresys"
+interface = 0
+device = 0
+# features = "cameras/my-camera.toml"   # if its feature names differ from GenICam SFNC (P10.2)
+
+[stage]
+kind = "grbl"
+port = "COM5"
+baud = 115200
+poll_hz = 5.0
+
+[focus]
+kind = "ascii"
+port = "COM6"
+baud = 9600
+dialect = "dialects/focus-drive.toml"   # written from the drive's protocol document (P10.3)
+
+[[objectives]]
+id = 1
+name = "10x/0.30"
+magnification = 10.0
+numerical_aperture = 0.30
+
+[[channels]]
+id = 1
+name = "Brightfield"
+exposure = 10.0

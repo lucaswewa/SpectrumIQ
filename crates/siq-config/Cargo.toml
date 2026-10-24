@@ -1,0 +1,24 @@
+[package]
+name = "siq-config"
+description = "SpectrumIQ's instrument configuration: one validated TOML file, with source-located errors and a JSON Schema."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+siq-telemetry = { path = "../siq-telemetry" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+toml.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+
+[lints]
+workspace = true

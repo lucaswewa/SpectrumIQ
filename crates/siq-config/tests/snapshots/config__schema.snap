@@ -1,0 +1,952 @@
+---
+source: crates/siq-config/tests/config.rs
+expression: schema
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "InstrumentConfig",
+  "description": "A SpectrumIQ instrument: its devices, optics and channels, and how the service runs.",
+  "type": "object",
+  "properties": {
+    "server": {
+      "description": "Where the service listens and keeps its data.",
+      "$ref": "#/$defs/ServerConfig",
+      "default": {
+        "bind": "127.0.0.1",
+        "port": 5000,
+        "data_root": "data",
+        "scratch": "scratch"
+      }
+    },
+    "memory": {
+      "description": "The memory budget (architecture §5).",
+      "$ref": "#/$defs/MemoryConfig",
+      "default": {
+        "pool_slots": 12,
+        "job_ram_gb": 14.0,
+        "job_vram_gb": 4.0,
+        "tile_cache_mb": 1024
+      }
+    },
+    "log": {
+      "description": "Where logs go.",
+      "$ref": "#/$defs/LogConfig",
+      "default": {
+        "filter": "info",
+        "console": true,
+        "directory": null,
+        "keep_days": 30
+      }
+    },
+    "camera": {
+      "description": "The camera.",
+      "$ref": "#/$defs/CameraConfig"
+    },
+    "stage": {
+      "description": "The XYZ stage.",
+      "$ref": "#/$defs/StageConfig"
+    },
+    "focus": {
+      "description": "The focus drive: the fine z axis.",
+      "$ref": "#/$defs/FocusConfig"
+    },
+    "objectives": {
+      "description": "The objectives. There is at least one.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ObjectiveConfig"
+      }
+    },
+    "channels": {
+      "description": "The channels. There is at least one.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ChannelConfig"
+      }
+    },
+    "peripherals": {
+      "description": "The illumination, filter wheel, objective turret and modality unit, where fitted.",
+      "$ref": "#/$defs/PeripheralsConfig",
+      "default": {
+        "illumination": null,
+        "filter_wheel": null,
+        "objective_turret": null,
+        "modality": null
+      }
+    },
+    "sim": {
+      "description": "The simulation, for the devices of kind `sim`.",
+      "$ref": "#/$defs/SimConfig",
+      "default": {
+        "seed": 0,
+        "profile": "full",
+        "world": {
+          "kind": "cells"
+        },
+        "errors": {
+          "backlash": 2.0,
+          "scale_error": 0.0005,
+          "position_noise": 0.5,
+          "reply_latency": 5.0
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "camera",
+    "stage",
+    "focus",
+    "objectives",
+    "channels"
+  ],
+  "$defs": {
+    "ServerConfig": {
+      "description": "Where the service listens and keeps its data. Relative paths are relative to the\nconfiguration file.",
+      "type": "object",
+      "properties": {
+        "bind": {
+          "description": "The address to listen on: `127.0.0.1` for this computer only, `0.0.0.0` for the LAN.",
+          "type": "string",
+          "format": "ip",
+          "default": "127.0.0.1"
+        },
+        "port": {
+          "description": "The TCP port.",
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 5000
+        },
+        "data_root": {
+          "description": "The folder of the datasets.",
+          "type": "string",
+          "default": "data"
+        },
+        "scratch": {
+          "description": "Scratch space for raw frames, on a fast NVMe drive.",
+          "type": "string",
+          "default": "scratch"
+        }
+      },
+      "additionalProperties": false
+    },
+    "MemoryConfig": {
+      "description": "The memory budget, for the 32 GB / 8 GB workstation by default (ADR-0005).",
+      "type": "object",
+      "properties": {
+        "pool_slots": {
+          "description": "Frame-pool slots, each one full frame, allocated and locked at start-up.",
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 12
+        },
+        "job_ram_gb": {
+          "description": "RAM that processing jobs may use together, in GB.",
+          "type": "number",
+          "format": "double",
+          "default": 14.0
+        },
+        "job_vram_gb": {
+          "description": "GPU memory that processing jobs may use together, in GB.",
+          "type": "number",
+          "format": "double",
+          "default": 4.0
+        },
+        "tile_cache_mb": {
+          "description": "The deep-zoom tile cache, in MB.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 1024
+        }
+      },
+      "additionalProperties": false
+    },
+    "LogConfig": {
+      "description": "Where logs go: the `[log]` section of the instrument configuration.",
+      "type": "object",
+      "properties": {
+        "filter": {
+          "description": "What to log, in `RUST_LOG` syntax, such as `\"info\"` or `\"info,siq_grbl=debug\"`. The\n`RUST_LOG` environment variable overrides it.",
+          "type": "string",
+          "default": "info"
+        },
+        "console": {
+          "description": "Whether to log to the console (standard error).",
+          "type": "boolean",
+          "default": true
+        },
+        "directory": {
+          "description": "The folder for the daily log files, `spectrumiq.YYYY-MM-DD.log`. Without one, nothing is\nwritten to files.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "keep_days": {
+          "description": "How many daily files to keep.",
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535,
+          "default": 30
+        }
+      },
+      "additionalProperties": false
+    },
+    "CameraConfig": {
+      "description": "The camera.",
+      "oneOf": [
+        {
+          "description": "The simulated camera.",
+          "type": "object",
+          "properties": {
+            "width": {
+              "description": "Sensor columns.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "default": 11648
+            },
+            "height": {
+              "description": "Sensor rows.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "default": 8742
+            },
+            "pixel_format": {
+              "description": "The pixel format delivered.",
+              "$ref": "#/$defs/PixelFormat",
+              "default": "Mono14"
+            },
+            "frame_rate": {
+              "description": "The full-frame rate.",
+              "$ref": "#/$defs/Hertz",
+              "default": 9.0
+            },
+            "pixel_size": {
+              "description": "The sensor's pixel pitch, in µm.",
+              "$ref": "#/$defs/Micrometers",
+              "default": 3.76
+            },
+            "kind": {
+              "type": "string",
+              "const": "sim"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "A CoaXPress camera on a Euresys Coaxlink grabber.",
+          "type": "object",
+          "properties": {
+            "interface": {
+              "description": "The grabber's interface index.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "default": 0
+            },
+            "device": {
+              "description": "The device index on that interface.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "default": 0
+            },
+            "features": {
+              "description": "The camera's feature-name map (P10.2), if it differs from GenICam SFNC.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "kind": {
+              "type": "string",
+              "const": "euresys"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "PixelFormat": {
+      "description": "How a camera delivers pixels. Every format wider than 8 bits arrives in `u16` words, with the\nvalue in the low bits.",
+      "oneOf": [
+        {
+          "description": "8-bit monochrome, in `u8`.",
+          "type": "string",
+          "const": "Mono8"
+        },
+        {
+          "description": "10-bit monochrome, in `u16`.",
+          "type": "string",
+          "const": "Mono10"
+        },
+        {
+          "description": "12-bit monochrome, in `u16`.",
+          "type": "string",
+          "const": "Mono12"
+        },
+        {
+          "description": "14-bit monochrome, in `u16`.",
+          "type": "string",
+          "const": "Mono14"
+        },
+        {
+          "description": "16-bit monochrome, in `u16`.",
+          "type": "string",
+          "const": "Mono16"
+        }
+      ]
+    },
+    "Hertz": {
+      "description": "A frequency in hertz (Hz), such as a frame rate.",
+      "type": "number",
+      "format": "double"
+    },
+    "Micrometers": {
+      "description": "A length in micrometres (µm): SpectrumIQ's unit for positions and distances.",
+      "type": "number",
+      "format": "double"
+    },
+    "StageConfig": {
+      "description": "The XYZ stage.",
+      "oneOf": [
+        {
+          "description": "The GRBL driver, talking to the GRBL emulator.",
+          "type": "object",
+          "properties": {
+            "poll_hz": {
+              "description": "How often the driver asks for the position.",
+              "$ref": "#/$defs/Hertz",
+              "default": 5.0
+            },
+            "kind": {
+              "type": "string",
+              "const": "sim"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "A GRBL or grblHAL controller on a serial port.",
+          "type": "object",
+          "properties": {
+            "port": {
+              "description": "The serial port, such as `\"COM5\"`.",
+              "type": "string"
+            },
+            "baud": {
+              "description": "The baud rate.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "default": 115200
+            },
+            "poll_hz": {
+              "description": "How often the driver asks for the position. GRBL suggests at most 5 Hz.",
+              "$ref": "#/$defs/Hertz",
+              "default": 5.0
+            },
+            "kind": {
+              "type": "string",
+              "const": "grbl"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "port"
+          ]
+        }
+      ]
+    },
+    "FocusConfig": {
+      "description": "The focus drive.",
+      "oneOf": [
+        {
+          "description": "The ASCII driver, talking to an emulator made from the same dialect.",
+          "type": "object",
+          "properties": {
+            "dialect": {
+              "description": "The dialect to emulate; the example dialect if none.",
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null
+            },
+            "kind": {
+              "type": "string",
+              "const": "sim"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "A focus drive with an ASCII protocol on a serial port.",
+          "type": "object",
+          "properties": {
+            "port": {
+              "description": "The serial port, such as `\"COM6\"`.",
+              "type": "string"
+            },
+            "baud": {
+              "description": "The baud rate.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "default": 9600
+            },
+            "dialect": {
+              "description": "The dialect file that describes its protocol (P1.10).",
+              "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "const": "ascii"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "port",
+            "dialect"
+          ]
+        }
+      ]
+    },
+    "ObjectiveConfig": {
+      "description": "An objective.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Its id, unique among the objectives. It stays the same when the list is reordered.",
+          "$ref": "#/$defs/ObjectiveId"
+        },
+        "name": {
+          "description": "Its name, unique among the objectives, such as `\"10x/0.30\"`.",
+          "type": "string"
+        },
+        "magnification": {
+          "description": "The magnification.",
+          "type": "number",
+          "format": "double"
+        },
+        "numerical_aperture": {
+          "description": "The numerical aperture.",
+          "type": "number",
+          "format": "double"
+        },
+        "immersion": {
+          "description": "The immersion medium.",
+          "$ref": "#/$defs/Immersion",
+          "default": "air"
+        },
+        "turret_position": {
+          "description": "Its position on the objective turret, from 0, if it is on one.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint8",
+          "minimum": 0,
+          "maximum": 255,
+          "default": null
+        },
+        "parfocal_offset": {
+          "description": "How far focus moves when switching to it from the reference objective.",
+          "$ref": "#/$defs/Micrometers",
+          "default": 0.0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "magnification",
+        "numerical_aperture"
+      ]
+    },
+    "ObjectiveId": {
+      "description": "An objective of the instrument configuration.",
+      "type": "integer",
+      "format": "uint16",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "Immersion": {
+      "description": "An objective's immersion medium.",
+      "oneOf": [
+        {
+          "description": "Dry.",
+          "type": "string",
+          "const": "air"
+        },
+        {
+          "description": "Water.",
+          "type": "string",
+          "const": "water"
+        },
+        {
+          "description": "Oil.",
+          "type": "string",
+          "const": "oil"
+        },
+        {
+          "description": "Glycerol.",
+          "type": "string",
+          "const": "glycerol"
+        }
+      ]
+    },
+    "ChannelConfig": {
+      "description": "A channel: the illumination, filter and exposure an image is taken with.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Its id, unique among the channels. It stays the same when the list is reordered.",
+          "$ref": "#/$defs/ChannelId"
+        },
+        "name": {
+          "description": "Its name, unique among the channels, such as `\"DAPI\"`.",
+          "type": "string"
+        },
+        "illumination": {
+          "description": "The light source and intensity, if the instrument has illumination.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChannelIllumination"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "filter": {
+          "description": "The filter, by name, if the instrument has a filter wheel.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "exposure": {
+          "description": "The exposure time.",
+          "$ref": "#/$defs/Millis"
+        },
+        "colour": {
+          "description": "The colour the channel is shown in.",
+          "$ref": "#/$defs/Colour",
+          "default": "#ffffff"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "exposure"
+      ]
+    },
+    "ChannelId": {
+      "description": "A channel of the instrument configuration: illumination, filter, exposure and display\ncolour.",
+      "type": "integer",
+      "format": "uint16",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "ChannelIllumination": {
+      "description": "A channel's light source, and its intensity.",
+      "type": "object",
+      "properties": {
+        "source": {
+          "description": "The source, by name, from `peripherals.illumination.sources`.",
+          "type": "string"
+        },
+        "intensity": {
+          "description": "The intensity, from 0 to 1.",
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "intensity"
+      ]
+    },
+    "Millis": {
+      "description": "A duration in milliseconds (ms), such as an exposure time.",
+      "type": "number",
+      "format": "double"
+    },
+    "Colour": {
+      "description": "A display colour, written \"#rrggbb\".",
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+    },
+    "PeripheralsConfig": {
+      "description": "The peripherals, each optional: absent means not fitted.",
+      "type": "object",
+      "properties": {
+        "illumination": {
+          "description": "The light sources.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IlluminationConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "filter_wheel": {
+          "description": "The filter wheel.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FilterWheelConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "objective_turret": {
+          "description": "The objective turret.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TurretConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modality": {
+          "description": "The light-field, confocal or structured-illumination unit.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModalityConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "additionalProperties": false
+    },
+    "IlluminationConfig": {
+      "description": "The light sources.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "How it is driven.",
+          "$ref": "#/$defs/PeripheralKind",
+          "default": "sim"
+        },
+        "sources": {
+          "description": "The sources' names, such as `[\"white\", \"470nm\"]`.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "sources"
+      ]
+    },
+    "PeripheralKind": {
+      "description": "How a peripheral is driven. Only simulators exist until the hardware is chosen (P10.5).",
+      "oneOf": [
+        {
+          "description": "Simulated.",
+          "type": "string",
+          "const": "sim"
+        }
+      ]
+    },
+    "FilterWheelConfig": {
+      "description": "The filter wheel.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "How it is driven.",
+          "$ref": "#/$defs/PeripheralKind",
+          "default": "sim"
+        },
+        "filters": {
+          "description": "The filters' names, by position from 0. Use `\"empty\"` for an empty position.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "filters"
+      ]
+    },
+    "TurretConfig": {
+      "description": "The objective turret.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "How it is driven.",
+          "$ref": "#/$defs/PeripheralKind",
+          "default": "sim"
+        },
+        "positions": {
+          "description": "The number of positions.",
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "positions"
+      ]
+    },
+    "ModalityConfig": {
+      "description": "The modality unit.",
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "How it is driven.",
+          "$ref": "#/$defs/PeripheralKind",
+          "default": "sim"
+        },
+        "modes": {
+          "description": "The modes it offers.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ModalityMode"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "modes"
+      ]
+    },
+    "ModalityMode": {
+      "description": "An imaging mode of the modality unit.",
+      "oneOf": [
+        {
+          "description": "Plain widefield.",
+          "type": "string",
+          "const": "widefield"
+        },
+        {
+          "description": "Light field, with the microlens array in.",
+          "type": "string",
+          "const": "light_field"
+        },
+        {
+          "description": "Spinning-disk confocal.",
+          "type": "string",
+          "const": "confocal"
+        },
+        {
+          "description": "Structured illumination (SIM or HiLo).",
+          "type": "string",
+          "const": "structured_illumination"
+        }
+      ]
+    },
+    "SimConfig": {
+      "description": "The simulation (ADR-0012).",
+      "type": "object",
+      "properties": {
+        "seed": {
+          "description": "The seed of every random choice, so runs repeat.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0,
+          "default": 0
+        },
+        "profile": {
+          "description": "The full sensor, or a smaller one for fast UI work.",
+          "$ref": "#/$defs/SimProfile",
+          "default": "full"
+        },
+        "world": {
+          "description": "What the simulated camera looks at.",
+          "$ref": "#/$defs/WorldConfig",
+          "default": {
+            "kind": "cells"
+          }
+        },
+        "errors": {
+          "description": "The errors injected into the simulated stage.",
+          "$ref": "#/$defs/SimErrors",
+          "default": {
+            "backlash": 2.0,
+            "scale_error": 0.0005,
+            "position_noise": 0.5,
+            "reply_latency": 5.0
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "SimProfile": {
+      "description": "How much the simulated camera renders.",
+      "oneOf": [
+        {
+          "description": "The configured sensor.",
+          "type": "string",
+          "const": "full"
+        },
+        {
+          "description": "A quarter of the sensor's pixels, for quick work on the UI.",
+          "type": "string",
+          "const": "fast"
+        }
+      ]
+    },
+    "WorldConfig": {
+      "description": "The simulated specimen (P1.4).",
+      "oneOf": [
+        {
+          "description": "Cells, for transmitted light and fluorescence.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "cells"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "description": "Grains, for reflected light.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "grains"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "description": "A relief of known height, for depth from focus.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "height_field"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "description": "Fluorescent beads in a volume, for deconvolution and light field.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "beads"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "description": "A real image, laid out at a pixel size.",
+          "type": "object",
+          "properties": {
+            "path": {
+              "description": "The image file (16-bit PNG or TIFF).",
+              "type": "string"
+            },
+            "pixel_size": {
+              "description": "The size of one image pixel on the sample.",
+              "$ref": "#/$defs/Micrometers"
+            },
+            "kind": {
+              "type": "string",
+              "const": "image"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "path",
+            "pixel_size"
+          ]
+        }
+      ]
+    },
+    "SimErrors": {
+      "description": "The errors injected into the simulated stage, so stitching has something to correct.",
+      "type": "object",
+      "properties": {
+        "backlash": {
+          "description": "Lost motion when an axis reverses.",
+          "$ref": "#/$defs/Micrometers",
+          "default": 2.0
+        },
+        "scale_error": {
+          "description": "Relative scale error of the axes.",
+          "type": "number",
+          "format": "double",
+          "default": 0.0005
+        },
+        "position_noise": {
+          "description": "Random positioning error (standard deviation).",
+          "$ref": "#/$defs/Micrometers",
+          "default": 0.5
+        },
+        "reply_latency": {
+          "description": "How long the controller takes to reply.",
+          "$ref": "#/$defs/Millis",
+          "default": 5.0
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

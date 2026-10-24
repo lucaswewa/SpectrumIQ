@@ -29,3 +29,8 @@ rustc-ice-*.txt
 # Added by cargo
 
 /target
+
+# What config/sim.toml writes when the service runs from the repository
+/data/
+/scratch/
+/logs/

@@ -1,0 +1,80 @@
+---
+source: crates/siq-config/tests/config.rs
+expression: config
+---
+{
+  "server": {
+    "bind": "127.0.0.1",
+    "port": 5000,
+    "data_root": "data",
+    "scratch": "scratch"
+  },
+  "memory": {
+    "pool_slots": 12,
+    "job_ram_gb": 14.0,
+    "job_vram_gb": 4.0,
+    "tile_cache_mb": 1024
+  },
+  "log": {
+    "filter": "info",
+    "console": true,
+    "directory": null,
+    "keep_days": 30
+  },
+  "camera": {
+    "kind": "sim",
+    "width": 11648,
+    "height": 8742,
+    "pixel_format": "Mono14",
+    "frame_rate": 9.0,
+    "pixel_size": 3.76
+  },
+  "stage": {
+    "kind": "sim",
+    "poll_hz": 5.0
+  },
+  "focus": {
+    "kind": "sim",
+    "dialect": null
+  },
+  "objectives": [
+    {
+      "id": 1,
+      "name": "10x",
+      "magnification": 10.0,
+      "numerical_aperture": 0.3,
+      "immersion": "air",
+      "turret_position": null,
+      "parfocal_offset": 0.0
+    }
+  ],
+  "channels": [
+    {
+      "id": 1,
+      "name": "Brightfield",
+      "illumination": null,
+      "filter": null,
+      "exposure": 10.0,
+      "colour": "#ffffff"
+    }
+  ],
+  "peripherals": {
+    "illumination": null,
+    "filter_wheel": null,
+    "objective_turret": null,
+    "modality": null
+  },
+  "sim": {
+    "seed": 0,
+    "profile": "full",
+    "world": {
+      "kind": "cells"
+    },
+    "errors": {
+      "backlash": 2.0,
+      "scale_error": 0.0005,
+      "position_noise": 0.5,
+      "reply_latency": 5.0
+    }
+  }
+}

@@ -1,0 +1,25 @@
+---
+source: crates/siq-config/tests/config.rs
+expression: report
+---
+turret.toml:14:19: objectives[1].turret_position: objectives[0].turret_position has it too
+turret.toml:20:19: objectives[2].turret_position: must be a turret position, 0 to 1
+syntax.toml:2:8: string values must be quoted, expected literal string
+typo.toml:2:1: unknown field `prot`, expected one of `bind`, `port`, `data_root`, `scratch`
+type.toml:2:8: invalid type: string "5000", expected u16
+missing section.toml:1:1: missing field `stage`
+unknown kind.toml:4:8: unknown variant `basler`, expected `sim` or `euresys`
+colour.toml:18:10: "#33ff6" is not a colour: write "#rrggbb"
+missing key.toml:5:1: missing field `port`
+stage rules.toml:7:8: stage.port: must name the serial port, such as "COM5"
+stage rules.toml:8:11: stage.poll_hz: must be above 0 and at most 100 Hz, not 500 Hz
+rules.toml:2:14: memory.pool_slots: must be 2 to 64 frames, not 1
+rules.toml:4:20: peripherals.filter_wheel.filters[1]: peripherals.filter_wheel.filters[0] has it too
+rules.toml:8:12: channels[0].exposure: must be positive
+rules.toml:9:10: channels[0].filter: "GFP" is not one of the filters ["DAPI", "DAPI"]
+rules.toml:10:27: channels[0].illumination.source: there is no [peripherals.illumination]
+rules.toml:10:48: channels[0].illumination.intensity: must be from 0 to 1, not 1.5
+rules.toml:15:22: objectives[0].numerical_aperture: must be above 0 and at most 1.7, not 1.9
+rules.toml:16:19: objectives[0].turret_position: there is no [peripherals.objective_turret]
+rules.toml:26:8: objectives[1].name: objectives[0].name has it too
+rules.toml:30:6: channels[1].id: channels[0].id has it too

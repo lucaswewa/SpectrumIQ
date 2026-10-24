@@ -1,0 +1,150 @@
+---
+source: crates/siq-config/tests/config.rs
+expression: config
+---
+{
+  "server": {
+    "bind": "127.0.0.1",
+    "port": 5000,
+    "data_root": "config\\../data",
+    "scratch": "config\\../scratch"
+  },
+  "memory": {
+    "pool_slots": 12,
+    "job_ram_gb": 14.0,
+    "job_vram_gb": 4.0,
+    "tile_cache_mb": 1024
+  },
+  "log": {
+    "filter": "info",
+    "console": true,
+    "directory": "config\\../logs",
+    "keep_days": 30
+  },
+  "camera": {
+    "kind": "sim",
+    "width": 11648,
+    "height": 8742,
+    "pixel_format": "Mono14",
+    "frame_rate": 9.0,
+    "pixel_size": 3.76
+  },
+  "stage": {
+    "kind": "sim",
+    "poll_hz": 5.0
+  },
+  "focus": {
+    "kind": "sim",
+    "dialect": null
+  },
+  "objectives": [
+    {
+      "id": 1,
+      "name": "10x/0.30",
+      "magnification": 10.0,
+      "numerical_aperture": 0.3,
+      "immersion": "air",
+      "turret_position": 0,
+      "parfocal_offset": 0.0
+    },
+    {
+      "id": 2,
+      "name": "20x/0.75",
+      "magnification": 20.0,
+      "numerical_aperture": 0.75,
+      "immersion": "air",
+      "turret_position": 1,
+      "parfocal_offset": 12.5
+    },
+    {
+      "id": 3,
+      "name": "60x/1.40 oil",
+      "magnification": 60.0,
+      "numerical_aperture": 1.4,
+      "immersion": "oil",
+      "turret_position": 2,
+      "parfocal_offset": -8.0
+    }
+  ],
+  "channels": [
+    {
+      "id": 1,
+      "name": "Brightfield",
+      "illumination": {
+        "source": "white",
+        "intensity": 0.4
+      },
+      "filter": "empty",
+      "exposure": 10.0,
+      "colour": "#ffffff"
+    },
+    {
+      "id": 2,
+      "name": "DAPI",
+      "illumination": {
+        "source": "365nm",
+        "intensity": 0.8
+      },
+      "filter": "DAPI",
+      "exposure": 50.0,
+      "colour": "#3f6fff"
+    },
+    {
+      "id": 3,
+      "name": "GFP",
+      "illumination": {
+        "source": "470nm",
+        "intensity": 0.6
+      },
+      "filter": "GFP",
+      "exposure": 80.0,
+      "colour": "#3fff6f"
+    }
+  ],
+  "peripherals": {
+    "illumination": {
+      "kind": "sim",
+      "sources": [
+        "white",
+        "365nm",
+        "470nm",
+        "565nm"
+      ]
+    },
+    "filter_wheel": {
+      "kind": "sim",
+      "filters": [
+        "empty",
+        "DAPI",
+        "GFP",
+        "TRITC"
+      ]
+    },
+    "objective_turret": {
+      "kind": "sim",
+      "positions": 4
+    },
+    "modality": {
+      "kind": "sim",
+      "modes": [
+        "widefield",
+        "light_field",
+        "confocal",
+        "structured_illumination"
+      ]
+    }
+  },
+  "sim": {
+    "seed": 1,
+    "profile": "full",
+    "world": {
+      "kind": "cells"
+    },
+    "errors": {
+      "backlash": 2.0,
+      "scale_error": 0.0005,
+      "position_noise": 0.5,
+      "reply_latency": 5.0
+    }
+  }
+}

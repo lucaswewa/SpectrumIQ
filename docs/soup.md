@@ -27,3 +27,4 @@ This register lists every third-party component SpectrumIQ ships or builds with 
 | tracing | 0.1.44 | MIT | Structured logging | `siq-telemetry`, then every crate | P0.3a | Same version as teta-wot |
 | tracing-subscriber | 0.3.23 | MIT | Console and file output, env filter | `siq-telemetry` | P0.3a | Features `std`, `registry`, `fmt`, `ansi`, `env-filter`, as teta-wot |
 | tracing-appender | 0.2.5 | MIT | Daily rolling log files, non-blocking writer | `siq-telemetry` | P0.3a | Brings `time` 0.3.55; its `deranged` pinned to 0.5.8 (0.5.9 was under two weeks old) |
+| toml | 1.1.6 | MIT OR Apache-2.0 | The instrument configuration's format, with spans | `siq-config` | P0.3b | teta-wot's version. Its `toml_parser` 1.1.3, `toml_datetime` 1.1.1, `toml_writer` 1.1.2 and `serde_spanned` 1.1.1 are pinned to teta-wot's, the newer ones being 14–15 days old. `winnow` 1.0.4 is MIT |

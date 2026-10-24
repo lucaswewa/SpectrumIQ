@@ -134,8 +134,8 @@ A phase is Done once it is merged.
 |---|---|---|---|---|
 | P0.1 | Workspace, toolchain, xtask and templates | 600 | — | Done |
 | P0.2 | Domain types (`siq-types`) | 800 | P0.1 | Done |
-| P0.3a | Telemetry (split from P0.3) | 300 | P0.2 | Review |
-| P0.3b | Instrument configuration (split from P0.3) | 800 | P0.3a | — |
+| P0.3a | Telemetry (split from P0.3) | 300 | P0.2 | Done |
+| P0.3b | Instrument configuration (split from P0.3) | 800 | P0.3a | Review |
 
 ### M1 — Frame memory, devices and simulation ([brief](milestones/M01-memory-devices-simulation.md))
 

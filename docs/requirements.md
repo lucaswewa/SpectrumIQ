@@ -47,7 +47,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 | REQ-SIM-003 | Simulated peripherals. | Q | P1.10, P2.4 | |
 | REQ-SIM-004 | Synthetic datasets with ground truth for stitching, DFF, deconvolution, sectioning and light field. | G | P1.4, P4.9, P12.4, P13.1 | |
 | REQ-SIM-005 | Real images can serve as the virtual specimen. | Q | P1.4 | |
-| REQ-SIM-006 | The whole application runs end to end on simulation, with no hardware. | G | P0.3b, P2.3 | |
+| REQ-SIM-006 | The whole application runs end to end on simulation, with no hardware. | G | P0.3b, P2.3 | The configuration, in P0.3b: `siq-config` `the_simulated_instrument_is_valid` (`config/sim.toml`, every device `kind = "sim"`). Running end to end follows in P2.3 |
 
 ## Preview and streaming (PRV)
 
@@ -142,7 +142,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 | ID | Requirement | Source | Phases | Verified by |
 |---|---|---|---|---|
 | REQ-NFR-001 | Windows 11 x64 only. | G | P0.1, P15.1 | `rust-toolchain.toml` pins `x86_64-pc-windows-msvc`, and `deny.toml` targets it (P0.1, by configuration) |
-| REQ-NFR-002 | Runs within the fixed workstation: 32 GB RAM and RTX 3060 8 GB. | Q | P0.3b, P1.1, P2.4, P4.3, P7.1, P8.3, P8.5, P11.1, P12.2 | |
+| REQ-NFR-002 | Runs within the fixed workstation: 32 GB RAM and RTX 3060 8 GB. | Q | P0.3b, P1.1, P2.4, P4.3, P7.1, P8.3, P8.5, P11.1, P12.2 | The budget's configuration, in P0.3b: `[memory]` defaults for 32 GB / 8 GB, checked by `defaults_fill_what_a_minimal_configuration_leaves_out`. Enforcement follows in P1.1 and P4.3 |
 | REQ-NFR-003 | No lost frames in full-rate live view with both previews, the live mosaic and the recorder active. | D | P1.1, P1.2, P1.5, P9.5, P10.2, P15.2 | |
 | REQ-NFR-004 | Live preview latency ≤ 250 ms on the LAN, from exposure end to display. | D | P9.5, P10.2, P14.2 | |
 | REQ-NFR-005 | Permissive licences only; no Euresys SDK files in the repository. | Q | P2.5, all | |
