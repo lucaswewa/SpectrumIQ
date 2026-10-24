@@ -103,6 +103,24 @@ fn rows_mut_yields_each_row_once() {
 }
 
 #[test]
+fn split_rows_cover_the_image_once_even_without_trailing_padding() {
+    // 3 rows of 4 in a stride of 6, with no padding after the last row.
+    let mut data = [0u8; 16];
+    let view = ImageViewMut::new(&mut data, 4, 3, 6).unwrap();
+    let (mut top, bottom) = view.split_at_row(1);
+    let (mut middle, mut last) = bottom.split_at_row(1);
+    assert_eq!((top.height(), middle.height(), last.height()), (1, 1, 1));
+    top.fill(1);
+    middle.fill(2);
+    last.fill(3);
+    let (whole, empty) = ImageViewMut::new(&mut data, 4, 3, 6)
+        .unwrap()
+        .split_at_row(9);
+    assert_eq!((whole.height(), empty.height(), empty.width()), (3, 0, 4));
+    assert_eq!(data, [1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 3, 3, 3, 3]);
+}
+
+#[test]
 fn owned_rows_start_on_the_row_alignment() {
     for (width, height) in [(1, 1), (31, 3), (100, 7)] {
         let image = OwnedImage::<u16>::new(width, height);

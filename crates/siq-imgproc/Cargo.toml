@@ -1,0 +1,20 @@
+[package]
+name = "siq-imgproc"
+description = "SpectrumIQ's CPU image kernels: correction, resampling, blur, histograms, display mapping and focus measures, on rayon row bands."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+rayon.workspace = true
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+
+[lints]
+workspace = true

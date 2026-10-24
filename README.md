@@ -11,8 +11,8 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** P1.4, [`siq-synth`](crates/siq-synth/README.md): deterministic synthetic specimens
-with exact ground truth, and real images as specimens.
+**In review:** P1.5, [`siq-imgproc`](crates/siq-imgproc/README.md): allocation-free CPU kernels for
+correction, resampling, histograms, display mapping and focus, within the 100 MP frame budget.
 
 Done so far:
 
@@ -28,7 +28,9 @@ Done so far:
   - P1.2, the frame fan-out in `siq-buffer`: every frame to many consumers, each with its own
     policy, and the producer never waits;
   - P1.3, [`siq-devices`](crates/siq-devices/README.md), the device traits that the engines use,
-    with capability descriptors, status watches, and mocks for engine tests.
+    with capability descriptors, status watches, and mocks for engine tests;
+  - P1.4, [`siq-synth`](crates/siq-synth/README.md), deterministic synthetic specimens with exact
+    ground truth, and real images as specimens.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

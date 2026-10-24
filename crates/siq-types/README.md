@@ -26,7 +26,7 @@ Every other crate speaks these types. Their conventions are fixed by
 | `units` | `Micrometers`, `Millimeters`, `Nanometers`, `Millis`, `Hertz`, `MicrometersPerSecond` (P1.3) | `f64` newtypes. They add and subtract with themselves, scale by `f64`, divide to a ratio, convert, and print with their symbol (`{:.2}` → `1.50 µm`) |
 | `geometry` | `Vec2Um`, `PointPx`, `RectUm`, `RectPx`, `StagePose` | Stage-frame µm and image pixels. Pixel centres are at half-integers |
 | `affine` | `Affine2`, `AffineParams`, `StageToPixel`, `PixelToStage` | `compose`, `invert`, `from_params` and `decompose`. `StageToPixel::for_frame` is the calibration convention |
-| `image` | `PixelFormat`, `Roi`, `Binning`, `ImageView`, `ImageViewMut`, `OwnedImage` | Views borrow any memory, with a stride, and never allocate. `OwnedImage` rows are 64-byte aligned |
+| `image` | `PixelFormat`, `Roi`, `Binning`, `ImageView`, `ImageViewMut`, `OwnedImage` | Views borrow any memory, with a stride, and never allocate. `ImageViewMut::split_at_row` gives two views for two threads (P1.5). `OwnedImage` rows are 64-byte aligned |
 | `frame` | `FrameMeta`, `FrameSeq`, `DeviceMicros`, `PoseQuality`, `FrameFlags`, `ModalityMode` | `FrameMeta` is `Copy`, with no heap data. `ModalityMode` moved here from `siq-config` in P1.3, for the device traits |
 | `ids` | `DatasetId`, `CalibrationId`, `ChannelId`, `ObjectiveId` | UUID v7 for run-time things, configured `u16` numbers for channels and objectives |
 | `time` | `Timestamp`, `Clock`, `SystemClock`, `ManualClock` | One shared `Arc<dyn Clock>` per service; `ManualClock` for deterministic tests |

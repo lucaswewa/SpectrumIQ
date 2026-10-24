@@ -55,7 +55,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 |---|---|---|---|---|
 | REQ-PRV-001 | A compressed live overview stream (≤ 1080p, MJPEG first) for local and remote clients. | G | P2.2, P2.3, P3.2, P3.3, P7.3, P14.2 | |
 | REQ-PRV-002 | A live ROI stream at native resolution (1:1 or 2:1) that the user can pan. | Q | P2.2, P3.3 | |
-| REQ-PRV-003 | Server-side display mapping (window/level/gamma/auto-contrast) and a histogram. | D | P1.5, P2.2, P3.3 | |
+| REQ-PRV-003 | Server-side display mapping (window/level/gamma/auto-contrast) and a histogram. | D | P1.5, P2.2, P3.3 | The kernels, in P1.5: a 4096-bin histogram on a strided subsample, percentiles and the auto-contrast window, and a 64 Ki LUT with window, gamma and colormaps (`siq-imgproc`: `the_histogram_counts_the_subsample`, `the_lut_maps_every_pixel_as_its_formula`). The preview streams follow in P2.2 |
 | REQ-PRV-004 | Raw 14-bit data never crosses the UI or network boundary in live operation. | G | P2.2 | |
 | REQ-PRV-005 | Hardware-encoded H.264 preview (later). | G, Q | P14.3 | |
 
@@ -75,7 +75,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 | ID | Requirement | Source | Phases | Verified by |
 |---|---|---|---|---|
 | REQ-CAL-001 | A stage↔camera affine calibration per objective: pixel size, rotation, shear. | G | P5.1, P5.2, P5.4 | |
-| REQ-CAL-002 | Dark/flat calibration per objective × channel, and retrospective shading estimation. | Q | P1.5, P5.3, P5.4 | |
+| REQ-CAL-002 | Dark/flat calibration per objective × channel, and retrospective shading estimation. | Q | P1.5, P5.3, P5.4 | The correction kernel, in P1.5: `(raw − dark) × gain`, clamped, into a buffer or in place (`correction_matches_the_reference`). The calibration routines follow in P5.3 and P5.4 |
 | REQ-CAL-003 | Calibrations are versioned and referenced by frames and datasets. | D | P0.2, P5.2 | The reference, in P0.2: `FrameMeta.calibration: Option<CalibrationId>` (UUID v7), pinned by `frame_metadata_json_is_stable`. Versioning follows in P5.2 |
 
 ## Workflows (WF)
@@ -143,7 +143,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 |---|---|---|---|---|
 | REQ-NFR-001 | Windows 11 x64 only. | G | P0.1, P15.1 | `rust-toolchain.toml` pins `x86_64-pc-windows-msvc`, and `deny.toml` targets it (P0.1, by configuration) |
 | REQ-NFR-002 | Runs within the fixed workstation: 32 GB RAM and RTX 3060 8 GB. | Q | P0.3b, P1.1, P2.4, P4.3, P7.1, P8.3, P8.5, P11.1, P12.2 | The budget's configuration, in P0.3b: `[memory]` defaults for 32 GB / 8 GB, checked by `defaults_fill_what_a_minimal_configuration_leaves_out`. Enforcement follows in P1.1 and P4.3 |
-| REQ-NFR-003 | No lost frames in full-rate live view with both previews, the live mosaic and the recorder active. | D | P1.1, P1.2, P1.5, P9.5, P10.2, P15.2 | A precondition, in P1.1: the pool hands frames across threads with no allocation and no copy (`frames_cross_threads_intact_and_every_slot_comes_back`, `the_steady_state_allocates_nothing`). In P1.2: slow consumers never make the producer wait, and the fan-out allocates nothing (`two_slow_consumers_lose_frames_counted_while_a_lossless_one_gets_all_it_asked_for`, `the_steady_state_allocates_nothing`, the `fanout_soak` example at 9 frames/s × 194 MB). The full-rate test follows in P10.2 |
+| REQ-NFR-003 | No lost frames in full-rate live view with both previews, the live mosaic and the recorder active. | D | P1.1, P1.2, P1.5, P9.5, P10.2, P15.2 | A precondition, in P1.1: the pool hands frames across threads with no allocation and no copy (`frames_cross_threads_intact_and_every_slot_comes_back`, `the_steady_state_allocates_nothing`). In P1.2: slow consumers never make the producer wait, and the fan-out allocates nothing (`two_slow_consumers_lose_frames_counted_while_a_lossless_one_gets_all_it_asked_for`, `the_steady_state_allocates_nothing`, the `fanout_soak` example at 9 frames/s × 194 MB). In P1.5: the CPU kernels allocate nothing on a pool thread (`the_kernels_allocate_nothing_on_the_pool`), and the overview, statistics and binning fit their per-frame budgets at 102 MP (`kernels_bench`). The full-rate test follows in P10.2 |
 | REQ-NFR-004 | Live preview latency ≤ 250 ms on the LAN, from exposure end to display. | D | P9.5, P10.2, P14.2 | |
 | REQ-NFR-005 | Permissive licences only; no Euresys SDK files in the repository. | Q | P2.5, all | |
 | REQ-NFR-006 | Traceability (REQ ↔ tests), a SOUP register and an audit trail, so that IVD work later is possible. | Q | P0.1, P9.3, P15.3 | Partly: the impl-notes and README templates, the SOUP register, and REQ-tagged tests exist (P0.1). The matrix tooling follows in P15.3 |

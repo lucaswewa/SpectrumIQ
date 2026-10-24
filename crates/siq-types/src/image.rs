@@ -332,6 +332,14 @@ impl<'a, T> ImageViewMut<'a, T> {
         self.layout.stride
     }
 
+    /// The same view for a shorter borrow, to hand to a function that takes a view by value.
+    pub fn reborrow(&mut self) -> ImageViewMut<'_, T> {
+        ImageViewMut {
+            data: &mut *self.data,
+            layout: self.layout,
+        }
+    }
+
     /// A read-only view of the same pixels.
     pub fn as_view(&self) -> ImageView<'_, T> {
         let data = &*self.data;
@@ -359,6 +367,34 @@ impl<'a, T> ImageViewMut<'a, T> {
             .chunks_mut(stride.max(1))
             .take(rows)
             .map(move |row| &mut row[..width])
+    }
+
+    /// The rows above `y`, and the rows from `y` on, as two views that can go to different
+    /// threads. `y` past the last row leaves the second view empty.
+    pub fn split_at_row(self, y: usize) -> (Self, Self) {
+        let Layout {
+            width,
+            height,
+            stride,
+        } = self.layout;
+        let y = y.min(height);
+        let (top, bottom) = self.data.split_at_mut((y * stride).min(self.data.len()));
+        let layout = |height| Layout {
+            width,
+            height,
+            stride,
+        };
+        let (top, bottom) = (
+            Self {
+                data: top,
+                layout: layout(y),
+            },
+            Self {
+                data: bottom,
+                layout: layout(height - y),
+            },
+        );
+        (top, bottom)
     }
 
     /// A view of `rect` within this view, sharing its memory.

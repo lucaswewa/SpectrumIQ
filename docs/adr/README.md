@@ -33,3 +33,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0022](0022-fanout-consumer-policies-and-backpressure.md) | Fan-out consumer policies and backpressure | Accepted | P1.2 |
 | [0023](0023-device-abstraction.md) | Device abstraction: dyn-compatible async traits, capability descriptors, status watches | Accepted | P1.3 |
 | [0024](0024-synthetic-worlds-and-ground-truth.md) | Synthetic world model and ground-truth conventions | Accepted | P1.4 |
+| [0025](0025-cpu-kernel-strategy.md) | CPU kernel strategy: rayon row bands, plain loops first, caller-owned buffers | Accepted | P1.5 |

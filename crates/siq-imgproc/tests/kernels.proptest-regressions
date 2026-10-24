@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc ae7bcdba8db6e36dd2d158480bbe0732366922ed4e80a6d6bf1f6a89b217ffa7 # shrinks to input = Padded { width: 1, height: 2, stride: 1, data: [0, 1] }
