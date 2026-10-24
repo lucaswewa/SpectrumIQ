@@ -1,0 +1,47 @@
+# ADR-0007: Pure Rust + wgpu for algorithms; unsafe and native-code allow-list
+
+- **Status:** Accepted
+- **Date:** 2026-10-23
+- **Phase:** planning
+- **Related:** REQ-NFR-005
+
+## Context
+
+The project is MIT open source on Windows. OpenCV would bring a large native build (plus LLVM for
+its bindings) onto every machine. Most of the needed algorithms are tractable in Rust: FFT, phase
+correlation, least squares, blending, DFF, Richardson–Lucy, and light-field resampling.
+
+## Decision
+
+- **Algorithms are pure Rust** (`ndarray`, `rustfft`/`realfft`, `nalgebra`, `rayon`) plus **wgpu**
+  compute shaders (WGSL). Each kernel has a CPU reference.
+- **Native code is allowed only for:**
+  1. the Euresys shim (ADR-0004);
+  2. Windows OS APIs through `windows`/`windows-sys` (memory locking, thread priority, ACLs,
+     Media Foundation, shared memory);
+  3. `zstd` (through `zstd-sys`), for OME-Zarr.
+
+  Any other native library needs an ADR.
+- **`unsafe_code = "deny"` workspace-wide.** It is allowed only in:
+  - `siq-euresys-sys` and `siq-euresys`;
+  - `siq-buffer::{alloc, slot}`;
+  - `siq-shm`;
+  - small Windows-API modules, listed in their crate READMEs.
+
+  Every block carries a `// SAFETY:` comment, behind a safe public API.
+
+## Alternatives considered
+
+- **OpenCV:** SIFT/ORB and warps for free, but heavy and native.
+- **Case-by-case:** this ADR already permits exceptions through new ADRs.
+
+## Consequences
+
+- Some algorithms (a feature matcher, the GPU FFT) are written in-house (P8.6, P12.3).
+- Builds stay simple: MSVC + Rust, and LLVM only to regenerate bindings.
+
+## Verification
+
+- `cargo deny` license checks.
+- `cargo xtask layers`.
+- Review of unsafe blocks in each phase that adds them.
