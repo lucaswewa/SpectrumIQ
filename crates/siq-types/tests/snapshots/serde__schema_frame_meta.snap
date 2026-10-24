@@ -1,0 +1,349 @@
+---
+source: crates/siq-types/tests/serde.rs
+expression: "schemars::schema_for!(FrameMeta)"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FrameMeta",
+  "description": "What is known about a frame: when, how and where it was taken.",
+  "type": "object",
+  "properties": {
+    "seq": {
+      "description": "The frame's number.",
+      "$ref": "#/$defs/FrameSeq"
+    },
+    "device_ts": {
+      "description": "The device's timestamp, if it gives one.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DeviceMicros"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "host_ts_mid_exposure": {
+      "description": "The middle of the exposure, on the host's monotonic clock.",
+      "$ref": "#/$defs/Timestamp"
+    },
+    "exposure": {
+      "description": "The exposure time.",
+      "$ref": "#/$defs/Millis"
+    },
+    "gain": {
+      "description": "The analog gain, as a linear factor: 1 is unity.",
+      "type": "number",
+      "format": "double"
+    },
+    "roi": {
+      "description": "The sensor region read out.",
+      "$ref": "#/$defs/Roi"
+    },
+    "binning": {
+      "description": "The binning applied to the region.",
+      "$ref": "#/$defs/Binning"
+    },
+    "pixel_format": {
+      "description": "The pixel format.",
+      "$ref": "#/$defs/PixelFormat"
+    },
+    "pose": {
+      "description": "The stage and focus position, if known.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StagePose"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pose_quality": {
+      "description": "How well [`pose`](Self::pose) is known.",
+      "$ref": "#/$defs/PoseQuality"
+    },
+    "channel": {
+      "description": "The channel (illumination, filter and exposure) the frame was taken in.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChannelId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "objective": {
+      "description": "The objective in use.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ObjectiveId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "calibration": {
+      "description": "The stage–camera calibration in force for that objective (REQ-CAL-003).",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CalibrationId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "flags": {
+      "description": "What happens to the frame.",
+      "$ref": "#/$defs/FrameFlags"
+    }
+  },
+  "required": [
+    "seq",
+    "host_ts_mid_exposure",
+    "exposure",
+    "gain",
+    "roi",
+    "binning",
+    "pixel_format",
+    "pose_quality",
+    "flags"
+  ],
+  "$defs": {
+    "FrameSeq": {
+      "description": "A frame's number: it counts up by one for each frame the camera delivers, from 0 when the\ncamera starts. A gap means frames were lost.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "DeviceMicros": {
+      "description": "A timestamp from the camera or grabber, in microseconds of the device's own clock. It is only\ncomparable with other timestamps from the same device.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "Timestamp": {
+      "description": "A point on a monotonic clock: nanoseconds since the clock's epoch.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0
+    },
+    "Millis": {
+      "description": "A duration in milliseconds (ms), such as an exposure time.",
+      "type": "number",
+      "format": "double"
+    },
+    "Roi": {
+      "description": "A region of the sensor, in unbinned sensor pixels, as GenICam's `OffsetX`, `OffsetY`,\n`Width` and `Height`.",
+      "type": "object",
+      "properties": {
+        "offset_x": {
+          "description": "The first sensor column.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "offset_y": {
+          "description": "The first sensor row.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "width": {
+          "description": "The number of sensor columns.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "height": {
+          "description": "The number of sensor rows.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "offset_x",
+        "offset_y",
+        "width",
+        "height"
+      ]
+    },
+    "Binning": {
+      "description": "How many sensor pixels each image pixel combines, across and down.",
+      "type": "object",
+      "properties": {
+        "horizontal": {
+          "description": "Sensor columns per image column.",
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 1,
+          "maximum": 255
+        },
+        "vertical": {
+          "description": "Sensor rows per image row.",
+          "type": "integer",
+          "format": "uint8",
+          "minimum": 1,
+          "maximum": 255
+        }
+      },
+      "required": [
+        "horizontal",
+        "vertical"
+      ]
+    },
+    "PixelFormat": {
+      "description": "How a camera delivers pixels. Every format wider than 8 bits arrives in `u16` words, with the\nvalue in the low bits.",
+      "oneOf": [
+        {
+          "description": "8-bit monochrome, in `u8`.",
+          "type": "string",
+          "const": "Mono8"
+        },
+        {
+          "description": "10-bit monochrome, in `u16`.",
+          "type": "string",
+          "const": "Mono10"
+        },
+        {
+          "description": "12-bit monochrome, in `u16`.",
+          "type": "string",
+          "const": "Mono12"
+        },
+        {
+          "description": "14-bit monochrome, in `u16`.",
+          "type": "string",
+          "const": "Mono14"
+        },
+        {
+          "description": "16-bit monochrome, in `u16`.",
+          "type": "string",
+          "const": "Mono16"
+        }
+      ]
+    },
+    "StagePose": {
+      "description": "Where the stage and the focus drive are.\n\nEvery axis is in the stage frame of ADR-0018. `+z_coarse` and `+focus` both bring the sample\nand the objective closer together.",
+      "type": "object",
+      "properties": {
+        "x": {
+          "description": "The stage's x axis.",
+          "$ref": "#/$defs/Micrometers"
+        },
+        "y": {
+          "description": "The stage's y axis.",
+          "$ref": "#/$defs/Micrometers"
+        },
+        "z_coarse": {
+          "description": "The stage's own z axis, for coarse height and clearance.",
+          "$ref": "#/$defs/Micrometers"
+        },
+        "focus": {
+          "description": "The focus drive: the fine z axis, for z-stacks and autofocus.",
+          "$ref": "#/$defs/Micrometers"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z_coarse",
+        "focus"
+      ]
+    },
+    "Micrometers": {
+      "description": "A length in micrometres (µm): SpectrumIQ's unit for positions and distances.",
+      "type": "number",
+      "format": "double"
+    },
+    "PoseQuality": {
+      "description": "How well a frame's stage pose is known.",
+      "oneOf": [
+        {
+          "description": "Every axis was still during the exposure: the pose is the stage's reading.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "settled"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "description": "The stage was moving: the pose is interpolated between readings.",
+          "type": "object",
+          "properties": {
+            "uncertainty": {
+              "description": "How far the true position may be from the interpolated one.",
+              "$ref": "#/$defs/Micrometers"
+            },
+            "kind": {
+              "type": "string",
+              "const": "interpolated"
+            }
+          },
+          "required": [
+            "kind",
+            "uncertainty"
+          ]
+        },
+        {
+          "description": "There was no stage reading to go by.",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unknown"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        }
+      ]
+    },
+    "ChannelId": {
+      "description": "A channel of the instrument configuration: illumination, filter, exposure and display\ncolour.",
+      "type": "integer",
+      "format": "uint16",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "ObjectiveId": {
+      "description": "An objective of the instrument configuration.",
+      "type": "integer",
+      "format": "uint16",
+      "minimum": 0,
+      "maximum": 65535
+    },
+    "CalibrationId": {
+      "description": "A stage–camera calibration. Each recalibration gets a new id, and frames record the one in\nforce when they were taken.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "FrameFlags": {
+      "description": "Flags that say what happens to a frame.",
+      "type": "object",
+      "properties": {
+        "save": {
+          "description": "The recorder saves the frame to the dataset.",
+          "type": "boolean"
+        },
+        "moving": {
+          "description": "The stage was moving during the exposure.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "save",
+        "moving"
+      ]
+    }
+  }
+}

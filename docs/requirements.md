@@ -18,7 +18,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 | REQ-ACQ-001 | Acquire ~100 MP 14-bit mono frames (Mono16 container) from a Euresys CoaXPress grabber at the camera's native rate (~9 fps). | G | P2.5, P10.1 | |
 | REQ-ACQ-002 | Frames are DMA'd into pre-allocated, page-locked buffers. The per-frame path makes no heap allocations in steady state. | G | P1.1, P10.1 | |
 | REQ-ACQ-003 | ROI and binning modes, with their higher frame rates. | Q | P1.7, P10.1, P10.2 | |
-| REQ-ACQ-004 | Every frame carries metadata: sequence, device and host timestamps, exposure, ROI/binning, pose (XYZ + focus) with quality, channel, objective, and calibration id. | G, D | P0.2, P2.1 | |
+| REQ-ACQ-004 | Every frame carries metadata: sequence, device and host timestamps, exposure, ROI/binning, pose (XYZ + focus) with quality, channel, objective, and calibration id. | G, D | P0.2, P2.1 | The type, in P0.2: `siq-types` `tests/serde.rs` (`frame_metadata_json_is_stable`, `json_schemas_are_stable`, `frame_metadata_round_trips_through_json`) and the stage↔pixel tests in `affine::tests`. Stamping frames follows in P2.1 |
 | REQ-ACQ-005 | Lost frames, whether at the grabber or from pool exhaustion, are detected, counted and reported. | D | P1.2, P2.1, P10.1 | |
 | REQ-ACQ-006 | Live, snap (software-triggered) and sequence acquisition modes. | D | P1.7, P2.1, P4.7, P10.4 | |
 
@@ -76,7 +76,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 |---|---|---|---|---|
 | REQ-CAL-001 | A stage↔camera affine calibration per objective: pixel size, rotation, shear. | G | P5.1, P5.2, P5.4 | |
 | REQ-CAL-002 | Dark/flat calibration per objective × channel, and retrospective shading estimation. | Q | P1.5, P5.3, P5.4 | |
-| REQ-CAL-003 | Calibrations are versioned and referenced by frames and datasets. | D | P0.2, P5.2 | |
+| REQ-CAL-003 | Calibrations are versioned and referenced by frames and datasets. | D | P0.2, P5.2 | The reference, in P0.2: `FrameMeta.calibration: Option<CalibrationId>` (UUID v7), pinned by `frame_metadata_json_is_stable`. Versioning follows in P5.2 |
 
 ## Workflows (WF)
 

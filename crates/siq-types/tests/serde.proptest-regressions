@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 55830ee2f9a8f399ab12ff975984dea2e93a6aa9c9535eaeaf7fbaae76a6f202 # shrinks to rows = [[0, 0, 0], [-662649807, 0, 0]]
+cc 6b692a6915e09889b4e857575d72aad273b5a19fd855c7296ed48416f01c2061 # shrinks to meta = FrameMeta { seq: FrameSeq(0), device_ts: None, host_ts_mid_exposure: Timestamp(0), exposure: Millis(0.0), gain: 0.0, roi: Roi { offset_x: 0, offset_y: 0, width: 0, height: 0 }, binning: Binning { horizontal: 1, vertical: 1 }, pixel_format: Mono8, pose: Some(StagePose { x: Micrometers(0.0), y: Micrometers(0.0), z_coarse: Micrometers(0.0), focus: Micrometers(977312.9154378737) }), pose_quality: Settled, channel: None, objective: None, calibration: None, flags: FrameFlags { save: false, moving: false } }

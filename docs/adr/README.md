@@ -14,7 +14,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0003](0003-teta-wot-as-service-framework.md) | teta-wot v0.1.0 as the service framework, extended inside SpectrumIQ | Accepted | planning |
 | [0004](0004-euresys-via-cpp-shim-and-bindgen.md) | Euresys eGrabber through a C++ shim and bindgen | Accepted | planning |
 | [0005](0005-memory-model-and-out-of-core.md) | Memory model: pinned frame pool, streaming and out-of-core processing | Accepted | planning |
-| [0006](0006-data-formats.md) | Data formats: OME-Zarr master, raw scratch, OME-TIFF and DZI derived | Accepted | planning |
+| [0006](0006-data-formats.md) | Data formats: OME-Zarr master, raw scratch, OME-TIFF and DZI derived (amended in P0.2: exact float round trips) | Accepted | planning |
 | [0007](0007-pure-rust-wgpu-and-unsafe-policy.md) | Pure Rust + wgpu for algorithms; unsafe and native-code allow-list | Accepted | planning |
 | [0008](0008-frontend-stack-and-microscope-reuse.md) | Frontend: Vue + PrimeVue (unstyled) skinned with `microscope`'s tokens, copied from `microscope@0640f99` | Accepted | planning |
 | [0009](0009-visualization-stack.md) | Visualization: OpenSeadragon first, WebGL2 16-bit later; VTK.js; optional native viewer | Accepted | planning |
@@ -26,3 +26,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0015](0015-phase-sizing-and-deliverables.md) | Phase sizing and per-phase deliverables (amended in P0.1: exact counting rules) | Accepted | planning |
 | [0016](0016-hardware-baseline.md) | Hardware baseline and device roles | Accepted | planning |
 | [0017](0017-workspace-toolchain-and-xtask.md) | Workspace layout, toolchain pin, and `cargo xtask` as the quality gate | Accepted | P0.1 |
+| [0018](0018-coordinate-frames-units-and-handedness.md) | Coordinate frames, units and handedness | Accepted | P0.2 |

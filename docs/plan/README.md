@@ -131,8 +131,8 @@ A phase is Done once it is merged.
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P0.1 | Workspace, toolchain, xtask and templates | 600 | — | Review |
-| P0.2 | Domain types (`siq-types`) | 800 | P0.1 | — |
+| P0.1 | Workspace, toolchain, xtask and templates | 600 | — | Done |
+| P0.2 | Domain types (`siq-types`) | 800 | P0.1 | Review |
 | P0.3 | Configuration and telemetry | 800 | P0.2 | — |
 
 ### M1 — Frame memory, devices and simulation ([brief](milestones/M01-memory-devices-simulation.md))

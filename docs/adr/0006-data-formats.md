@@ -39,3 +39,14 @@ writer may have to be written by hand (P4.6).
 ## Verification
 
 P4.2 and P4.6: round-trip tests, plus manual checks in napari, Fiji and QuPath, recorded.
+
+## Amendment (P0.2, 2026-10-23): JSON round-trips every float exactly
+
+JSON files carry calibrations, poses and frame metadata, and must read back the values that were
+written. `serde_json`'s default float parser can be off by one unit in the last place. P0.2's
+property tests found `-94664258.14285716` read back as `…15`.
+
+The workspace therefore enables `serde_json`'s `float_roundtrip` feature. Every `f64` written as
+JSON parses back bit for bit. The regression is guarded by `siq-types`'s
+`frame_metadata_round_trips_through_json` and `transforms_round_trip_through_json`, whose failing
+seeds are kept in `tests/serde.proptest-regressions`.

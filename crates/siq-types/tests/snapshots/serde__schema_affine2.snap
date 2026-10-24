@@ -1,0 +1,21 @@
+---
+source: crates/siq-types/tests/serde.rs
+expression: "schemars::schema_for!(Affine2)"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Affine2",
+  "description": "A 2D affine transform, `p' = A·p + t`, stored as the rows `[a, b, tx]` and `[c, d, ty]`.\n\nIt serializes as those two rows: `[[a, b, tx], [c, d, ty]]`.",
+  "type": "array",
+  "items": {
+    "type": "array",
+    "items": {
+      "type": "number",
+      "format": "double"
+    },
+    "minItems": 3,
+    "maxItems": 3
+  },
+  "minItems": 2,
+  "maxItems": 2
+}

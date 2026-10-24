@@ -1,0 +1,49 @@
+---
+source: crates/siq-types/tests/serde.rs
+expression: "schemars::schema_for!(RectUm)"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RectUm",
+  "description": "A rectangle in the stage's XY plane: `origin` is its corner with the smallest coordinates.",
+  "type": "object",
+  "properties": {
+    "origin": {
+      "description": "The corner with the smallest x and y.",
+      "$ref": "#/$defs/Vec2Um"
+    },
+    "size": {
+      "description": "The width (x) and height (y), not negative.",
+      "$ref": "#/$defs/Vec2Um"
+    }
+  },
+  "required": [
+    "origin",
+    "size"
+  ],
+  "$defs": {
+    "Vec2Um": {
+      "description": "A position or displacement in the stage's XY plane.\n\nA sample point's coordinates are the stage reading that puts it at the centre of the sensor.\nPositions on the sample and stage positions are therefore the same kind of value.",
+      "type": "object",
+      "properties": {
+        "x": {
+          "description": "Along the stage's x axis.",
+          "$ref": "#/$defs/Micrometers"
+        },
+        "y": {
+          "description": "Along the stage's y axis.",
+          "$ref": "#/$defs/Micrometers"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ]
+    },
+    "Micrometers": {
+      "description": "A length in micrometres (µm): SpectrumIQ's unit for positions and distances.",
+      "type": "number",
+      "format": "double"
+    }
+  }
+}

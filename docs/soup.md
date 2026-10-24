@@ -16,5 +16,11 @@ This register lists every third-party component SpectrumIQ ships or builds with 
 | anyhow | 1.0.104 | MIT OR Apache-2.0 | Error handling in tools | `xtask` | P0.1 | Binaries and xtask only (conventions §5.1) |
 | clap | 4.6.7 | MIT OR Apache-2.0 | Command-line parsing | `xtask` | P0.1 | Same version as teta-wot |
 | serde | 1.0.229 | MIT OR Apache-2.0 | Serialization | `xtask` | P0.1 | Reads `cargo metadata` and `package.json` |
-| serde_json | 1.0.151 | MIT OR Apache-2.0 | JSON | `xtask` | P0.1 | 1.0.152–1.0.154 were under two weeks old; pinned back |
+| serde_json | 1.0.151 | MIT OR Apache-2.0 | JSON | `xtask`; `siq-types` (dev) | P0.1 | 1.0.152–1.0.154 were under two weeks old; pinned back. `float_roundtrip` on since P0.2 (ADR-0006) |
 | tempfile | 3.27.0 | MIT OR Apache-2.0 | Scratch folders in tests | `xtask` (dev) | P0.1 | Test-only |
+| chrono | 0.4.45 | MIT OR Apache-2.0 | UTC times for the `Clock` | `siq-types` | P0.2 | Same version as teta-wot |
+| schemars | 1.2.2 | MIT | JSON Schemas of the shared types | `siq-types` | P0.2 | 1.2.3 was under two weeks old; pinned back. `uuid1` feature for the ids |
+| thiserror | 2.0.21 | MIT OR Apache-2.0 | Error enums | `siq-types` | P0.2 | Same version as teta-wot |
+| uuid | 1.27.0 | Apache-2.0 OR MIT | UUID v7 dataset and calibration ids | `siq-types` | P0.2 | 1.28 and 1.29 were under two weeks old; pinned back |
+| proptest | 1.11.0 | MIT OR Apache-2.0 | Property tests | `siq-types` (dev) | P0.2 | 1.12.0 was under two weeks old; pinned back. Its `zerocopy` pinned to 0.8.59 |
+| insta | 1.49.0 | Apache-2.0 | Snapshot tests | `siq-types` (dev) | P0.2 | Published 2026-10-03 |

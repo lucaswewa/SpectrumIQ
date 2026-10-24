@@ -1,0 +1,11 @@
+---
+source: crates/siq-types/tests/serde.rs
+expression: "schemars::schema_for!(DatasetId)"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DatasetId",
+  "description": "A dataset: a scan, a stack, a snapshot, and everything derived from it.",
+  "type": "string",
+  "format": "uuid"
+}

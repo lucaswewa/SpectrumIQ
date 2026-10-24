@@ -24,9 +24,10 @@ criterion = "0.8.2"
 insta = { version = "1.48", features = ["json"] }
 proptest = "1.11"
 rayon = "1.12"
-schemars = { version = "1.2", features = ["preserve_order", "indexmap2"] }
+schemars = { version = "1.2", features = ["preserve_order", "indexmap2", "uuid1"] }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = { version = "1.0.151", features = ["preserve_order"] }
+# float_roundtrip: parse every f64 back exactly (calibrations, poses), not to within one ULP.
+serde_json = { version = "1.0.151", features = ["preserve_order", "float_roundtrip"] }
 tempfile = "3.27"
 thiserror = "2.0"
 tokio = { version = "1.47", features = ["fs", "io-util", "macros", "net", "rt", "rt-multi-thread", "signal", "sync", "time"] }

@@ -267,9 +267,15 @@ schedule.
 
 - **`TrueState`** (`siq-sim::state`): the true stage pose (with injected errors), focus,
   illumination, filter, objective and modality. Shared, lock-free reads.
+- **`Clock::sleep_until(deadline)` in `siq-types`.** P0.2 deferred it here, to its first user (see
+  `docs/impl-notes/P0.2.md`).
+  - `SystemClock` sleeps the thread.
+  - `ManualClock` blocks on a `Condvar` until another thread's `advance` or `set` passes the
+    deadline.
+  - Amend ADR-0018.
 - **Render thread:**
   - an fps model per ROI and binning (9 fps full frame, faster for ROI and binning);
-  - the `Clock` drives timing;
+  - the `Clock` drives timing, through `sleep_until`;
   - free-run and software-trigger modes;
   - when no slot is free, the frame is counted as lost.
 - **`FrameMeta`:** device timestamp (simulated clock), mid-exposure host timestamp, sequence.

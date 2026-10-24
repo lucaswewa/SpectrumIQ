@@ -1,0 +1,39 @@
+---
+source: crates/siq-types/tests/serde.rs
+expression: sample_meta()
+---
+{
+  "seq": 41,
+  "device_ts": 1234567,
+  "host_ts_mid_exposure": 987654321,
+  "exposure": 12.5,
+  "gain": 1.0,
+  "roi": {
+    "offset_x": 0,
+    "offset_y": 0,
+    "width": 11648,
+    "height": 8742
+  },
+  "binning": {
+    "horizontal": 1,
+    "vertical": 1
+  },
+  "pixel_format": "Mono14",
+  "pose": {
+    "x": 1500.0,
+    "y": -250.25,
+    "z_coarse": 0.0,
+    "focus": 37.5
+  },
+  "pose_quality": {
+    "kind": "interpolated",
+    "uncertainty": 0.8
+  },
+  "channel": 2,
+  "objective": 1,
+  "calibration": "01990000-0000-7000-8000-000000000001",
+  "flags": {
+    "save": true,
+    "moving": false
+  }
+}

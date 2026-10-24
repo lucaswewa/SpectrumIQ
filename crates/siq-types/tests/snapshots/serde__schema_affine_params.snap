@@ -1,0 +1,49 @@
+---
+source: crates/siq-types/tests/serde.rs
+expression: "schemars::schema_for!(AffineParams)"
+---
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AffineParams",
+  "description": "The parameters of an affine transform: `A = R(rotation) · Shear(shear) · Scale(scale_x, scale_y)`.\n\n`R(θ) = [[cos θ, −sin θ], [sin θ, cos θ]]`, `Shear(k) = [[1, k], [0, 1]]`, and\n`Scale(sx, sy) = [[sx, 0], [0, sy]]`. [`Affine2::decompose`] always gives a positive\n`scale_x`; a reflection shows as a negative `scale_y`.",
+  "type": "object",
+  "properties": {
+    "scale_x": {
+      "description": "Scale along the first axis.",
+      "type": "number",
+      "format": "double"
+    },
+    "scale_y": {
+      "description": "Scale along the second axis; negative for a reflection.",
+      "type": "number",
+      "format": "double"
+    },
+    "rotation": {
+      "description": "Rotation, in radians.",
+      "type": "number",
+      "format": "double"
+    },
+    "shear": {
+      "description": "How far the second axis leans along the first.",
+      "type": "number",
+      "format": "double"
+    },
+    "translation": {
+      "description": "Translation, `t`.",
+      "type": "array",
+      "items": {
+        "type": "number",
+        "format": "double"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    }
+  },
+  "required": [
+    "scale_x",
+    "scale_y",
+    "rotation",
+    "shear",
+    "translation"
+  ]
+}

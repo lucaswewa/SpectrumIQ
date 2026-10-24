@@ -463,11 +463,14 @@ flowchart LR
 
 ## 13. Cross-cutting
 
-- **Coordinates** (ADR in P0.2):
-  - stage frame in µm, right-handed, +z toward the objective;
-  - camera frame in pixels, origin top-left;
-  - mosaic frame in pixels at a given level;
-  - `Affine2` stage↔pixel per objective, from calibration.
+- **Coordinates** (ADR-0018):
+  - stage frame in µm, right-handed, +z toward the objective; sample coordinates are the stage
+    reading that puts a point on the optical axis;
+  - sensor and image frames in pixels, origin at the top-left corner, pixel centres at
+    half-integers; `image = (sensor − roi_offset) / binning`;
+  - calibration `L` (px per µm) per objective: `sensor_px = c + L·(S − P)`, as
+    `StageToPixel::for_frame`;
+  - mosaic frame in pixels at a given level, with the image orientation.
 
   Each frame's `FrameMeta` carries its pose and its calibration id.
 - **Configuration:** a TOML instrument config (`config/sim.toml`, `config/hardware.example.toml`),
