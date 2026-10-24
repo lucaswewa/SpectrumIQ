@@ -42,4 +42,5 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0031](0031-frame-pose-association-and-context-stamping.md) | Frame↔pose time association, and context stamping | Accepted | P2.1 |
 | [0032](0032-preview-stream-design.md) | Preview stream design: two streams, server-side display mapping, latest-only, and rate caps | Accepted | P2.2 |
 | [0033](0033-thing-decomposition-and-naming.md) | Thing decomposition and naming: camera, display, stage and focus | Accepted | P2.3 |
-| [0034](0034-sim-and-real-device-selection.md) | Simulated or real devices, chosen per device by the configuration | Accepted | P2.3 |
+| [0034](0034-sim-and-real-device-selection.md) | Simulated or real devices, chosen per device by the configuration (amended in P2.4: the peripherals) | Accepted | P2.3 |
+| [0035](0035-the-channel-model-and-its-devices.md) | The channel model, and how it maps onto the devices | Accepted | P2.4 |

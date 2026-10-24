@@ -57,3 +57,10 @@
 - **`siq-server` `server` tests** build the service from `config/sim.toml` on a small sensor, and
   drive it.
 - **By hand:** the `examples/python/live_and_move.py` script against the running service.
+
+## Amendment (P2.4, 2026-10-24): the peripherals
+
+- **Each `[peripherals]` section present makes its simulator** (P1.10b): `SimIllumination`, the
+  filter wheel's and turret's `SimChanger`, and `SimModalityUnit`, on the shared `TrueState`.
+- **An absent section means the peripheral isn't fitted.** Its Thing is not served (ADR-0035).
+- **There are no real peripherals until P10.5:** `kind` is only `"sim"`.

@@ -11,10 +11,10 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In progress:** Milestone 2, acquisition, live preview and the first server. P2.3,
-[`siq-server`](crates/siq-server/README.md) and [`spectrumiq-server`](apps/spectrumiq-server/README.md),
-is the latest: the simulated instrument served over HTTP, with its camera, display, stage and focus
-Things (`cargo run --release -p spectrumiq-server -- -c config/sim.toml`).
+**In progress:** Milestone 2, acquisition, live preview and the first server. P2.4 is the latest:
+[`siq-server`](crates/siq-server/README.md) now serves the simulated peripherals, the channels,
+and the metrics and memory routes (`cargo run --release -p spectrumiq-server -- -c
+config/sim.toml`, then `python examples/python/channels.py`).
 
 Done so far:
 
@@ -56,7 +56,10 @@ Done so far:
     settle-aware snaps and sequences, with every frame numbered and stamped with its pose and
     context;
   - P2.2, [`siq-preview`](crates/siq-preview/README.md)'s live previews: overview and ROI JPEG
-    streams and statistics, with the display mapping on the server.
+    streams and statistics, with the display mapping on the server;
+  - P2.3, [`siq-server`](crates/siq-server/README.md) and
+    [`spectrumiq-server`](apps/spectrumiq-server/README.md): the simulated instrument served over
+    HTTP, with its camera, display, stage and focus Things.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

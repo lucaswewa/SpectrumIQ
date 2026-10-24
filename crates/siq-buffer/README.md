@@ -37,6 +37,7 @@ No allocation and no copy happen on the frame path. The designs are in
 | `ReleaseSink`, `ReturnToPool` | Where released slots go; `set_release_sink` and `reset_release_sink` |
 | `stats()` → `PoolStats` | Free, filling, leased, and the high-water mark |
 | `working_set()` | The process's minimum and maximum working set |
+| `process_memory()` → `ProcessMemory` | The process's working set, its peak, and its private bytes (since P2.4, for `/api/siq/system/memory`) |
 
 With a registry, the pool reports `<name>.free_slots`, `<name>.in_use_high_water` and
 `<name>.lease_ms`.

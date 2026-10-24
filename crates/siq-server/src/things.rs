@@ -19,8 +19,8 @@ use serde::{Deserialize, Serialize};
 use siq_acquire::Mode;
 use siq_buffer::FrameLease;
 use siq_devices::{
-    Approach, AxisStatus, CameraSettings, DeviceResult, FocusStatus, MotionState, MoveOpts,
-    StageStatus, Travel, Xyz, watch,
+    Approach, CameraSettings, DeviceResult, FocusStatus, MotionState, MoveOpts, StageStatus,
+    Travel, Xyz, watch,
 };
 use siq_preview::{
     Contrast, DisplaySettings, FrameStats, PreviewSink, Renderer, RoiSettings, StatsSink,
@@ -39,9 +39,9 @@ use tokio::task::JoinHandle;
 use crate::Instrument;
 
 /// Where a Thing finds the instrument, once it has started.
-type Bound = OnceLock<Arc<Instrument>>;
+pub(crate) type Bound = OnceLock<Arc<Instrument>>;
 
-fn bind(slot: &Bound, ctx: &ThingCtx) -> anyhow::Result<()> {
+pub(crate) fn bind(slot: &Bound, ctx: &ThingCtx) -> anyhow::Result<()> {
     let instrument = ctx
         .server()
         .service::<Instrument>()
@@ -50,13 +50,13 @@ fn bind(slot: &Bound, ctx: &ThingCtx) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn bound(slot: &Bound) -> &Instrument {
+pub(crate) fn bound(slot: &Bound) -> &Instrument {
     slot.get()
         .expect("a Thing is used only once it has started")
 }
 
 /// The Thing that `ctx` is about, for a task that outlives the hook.
-fn this<T: Thing>(ctx: &ThingCtx) -> anyhow::Result<Arc<T>> {
+pub(crate) fn this<T: Thing>(ctx: &ThingCtx) -> anyhow::Result<Arc<T>> {
     let thing = ctx
         .server()
         .thing_ref::<T>(ctx.name())
@@ -65,9 +65,9 @@ fn this<T: Thing>(ctx: &ThingCtx) -> anyhow::Result<Arc<T>> {
 }
 
 /// Calls `apply` with each status from `status`, the current one first.
-fn follow<P: Copy + Send + Sync + 'static>(
-    mut status: watch::Receiver<AxisStatus<P>>,
-    apply: impl Fn(&AxisStatus<P>) + Send + 'static,
+pub(crate) fn follow<S: Send + Sync + 'static>(
+    mut status: watch::Receiver<S>,
+    apply: impl Fn(&S) + Send + 'static,
 ) -> JoinHandle<()> {
     apply(&status.borrow_and_update());
     tokio::spawn(async move {
@@ -77,11 +77,11 @@ fn follow<P: Copy + Send + Sync + 'static>(
     })
 }
 
-fn failed(error: impl Into<anyhow::Error>) -> PropertyError {
+pub(crate) fn failed(error: impl Into<anyhow::Error>) -> PropertyError {
     PropertyError::Failed(error.into())
 }
 
-fn stop_task(task: &Mutex<Option<JoinHandle<()>>>) {
+pub(crate) fn stop_task(task: &Mutex<Option<JoinHandle<()>>>) {
     if let Some(task) = task.lock().unwrap_or_else(PoisonError::into_inner).take() {
         task.abort();
     }

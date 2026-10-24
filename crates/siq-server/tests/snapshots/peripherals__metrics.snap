@@ -1,0 +1,18 @@
+---
+source: crates/siq-server/tests/peripherals.rs
+expression: kinds
+---
+{
+  "acquisition.fps": "gauge",
+  "acquisition.lost_device": "gauge",
+  "acquisition.lost_no_slot": "gauge",
+  "acquisition.published": "gauge",
+  "acquisition.waiting": "gauge",
+  "camera.pool.free_slots": "gauge",
+  "camera.pool.in_use_high_water": "gauge",
+  "camera.pool.lease_ms": "histogram",
+  "preview.overview.latency_ms": "histogram",
+  "preview.overview.work_ms": "histogram",
+  "preview.roi.latency_ms": "histogram",
+  "preview.roi.work_ms": "histogram"
+}

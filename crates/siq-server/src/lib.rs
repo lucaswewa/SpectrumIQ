@@ -2,9 +2,11 @@
 //! chosen from the configuration, the engines, and the instrument's Things on teta-wot, with
 //! SpectrumIQ's own routes in front.
 //!
-//! - **Things,** under `/api/v1/`: `camera`, `display`, `stage` and `focus`. The global lock is on:
-//!   hardware actions and writes take it, and `stage.stop` and `focus.stop` don't.
-//! - **Routes,** under `/api/siq/`: `system/health`. teta-wot's router serves every other request.
+//! - **Things,** under `/api/v1/`: `camera`, `display`, `stage`, `focus`, the fitted peripherals
+//!   (`illumination`, `filter_wheel`, `objective`, `modality`) and `imaging`. The global lock is
+//!   on: hardware actions and writes take it, and `stage.halt` and `focus.halt` don't.
+//! - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`. teta-wot's router
+//!   serves every other request.
 //! - **The lifecycle,** as teta-wot's `serve_with`, but with the routes merged, and live view and
 //!   motion stopped before the Things are.
 //!
@@ -17,7 +19,7 @@ use std::time::Instant;
 use anyhow::Context;
 use serde_json::{Value, json};
 use siq_acquire::Acquisition;
-use siq_buffer::PoolConfig;
+use siq_buffer::{FramePool, PoolConfig};
 use siq_config::model::InstrumentConfig;
 use siq_devices::FocusDrive;
 use siq_preview::{PreviewConfig, Previews};
@@ -34,10 +36,15 @@ use tower::ServiceExt;
 use tracing::{info, warn};
 
 pub mod devices;
+pub mod imaging;
+pub mod peripherals;
 pub mod things;
 
 pub use teta_wot::server::shutdown_signal;
 
+use devices::Peripherals;
+use imaging::Imaging;
+use peripherals::{FilterWheel, Illumination, ModalityUnit, Objective};
 use things::{Camera, Display, Focus, LatestStats, Stage};
 
 /// The prefix of the Things' routes.
@@ -58,10 +65,13 @@ pub struct Instrument {
     pub stage: Arc<dyn siq_devices::Stage>,
     /// The focus drive.
     pub focus: Arc<dyn FocusDrive>,
+    /// The fitted peripherals.
+    pub peripherals: Peripherals,
     /// The simulated instrument's true state.
     pub state: Arc<TrueState>,
     /// The metrics.
     pub registry: Registry,
+    slot_bytes: usize,
     started: Instant,
 }
 
@@ -87,18 +97,79 @@ impl Instrument {
             "camera": self.camera.info().model,
         })
     }
+
+    /// The registry's metrics, with the acquisition's statistics as gauges.
+    fn metrics(&self) -> Value {
+        let stats = self.acquisition.stats();
+        let gauges = [
+            ("acquisition.fps", stats.fps),
+            ("acquisition.published", stats.published as f64),
+            ("acquisition.lost_no_slot", stats.lost_no_slot as f64),
+            ("acquisition.lost_device", stats.lost_device as f64),
+            ("acquisition.waiting", stats.waiting as f64),
+        ];
+        for (name, value) in gauges {
+            if let Ok(gauge) = self.registry.gauge(name) {
+                gauge.set(value);
+            }
+        }
+        serde_json::to_value(self.registry.snapshot()).unwrap_or_default()
+    }
+
+    /// The frame pool, the process's memory, and the configured budgets, in bytes.
+    fn memory(&self) -> Value {
+        let pool = self.acquisition.pool_stats();
+        let process = siq_buffer::process_memory().ok().map(|memory| {
+            json!({
+                "working_set": memory.working_set,
+                "peak_working_set": memory.peak_working_set,
+                "private": memory.private,
+            })
+        });
+        let budgets = &self.config.memory;
+        json!({
+            "pool": {
+                "slots": pool.slots,
+                "slot_bytes": self.slot_bytes,
+                "free": pool.free,
+                "filling": pool.filling,
+                "leased": pool.leased,
+                "high_water": pool.high_water,
+            },
+            "process": process,
+            "budgets": {
+                "job_ram": budgets.job_ram_gb * 1e9,
+                "job_vram": budgets.job_vram_gb * 1e9,
+                "tile_cache": f64::from(budgets.tile_cache_mb) * 1e6,
+            },
+        })
+    }
 }
 
-/// The Things, with their names and the server's options.
-fn things(camera: Camera) -> ThingServerBuilder {
-    ThingServer::builder()
+/// The Things, with their names and the server's options: the peripherals' Things only for those
+/// `fitted` says.
+fn things(camera: Camera, fitted: impl Fn(&str) -> bool) -> ThingServerBuilder {
+    let mut builder = ThingServer::builder()
         .api_prefix(API_PREFIX)
         .api_info("SpectrumIQ", env!("CARGO_PKG_VERSION"))
         .global_lock(true)
         .thing("camera", camera)
         .thing("display", Display::default())
         .thing("stage", Stage::default())
-        .thing("focus", Focus::default())
+        .thing("focus", Focus::default());
+    if fitted("illumination") {
+        builder = builder.thing("illumination", Illumination::default());
+    }
+    if fitted("filter_wheel") {
+        builder = builder.thing("filter_wheel", FilterWheel::default());
+    }
+    if fitted("objective") {
+        builder = builder.thing("objective", Objective::default());
+    }
+    if fitted("modality") {
+        builder = builder.thing("modality", ModalityUnit::default());
+    }
+    builder.thing("imaging", Imaging::default())
 }
 
 /// The service: the Things' server, and the instrument behind it.
@@ -121,14 +192,15 @@ impl Service {
             slot_bytes: full,
             backend: devices.backend,
         };
-        let acquisition = Acquisition::new(devices.camera.clone(), &pool, clock.clone())?;
-        acquisition.follow_stage(devices.stage.status());
-        acquisition.follow_focus(devices.focus.status());
         let (camera, stats, registry) = (
             Camera::default(),
             Arc::new(LatestStats::default()),
             Registry::new(),
         );
+        let pool = FramePool::new(&pool, clock.clone(), Some(&registry))?;
+        let acquisition = Acquisition::with_pool(devices.camera.clone(), pool, clock.clone());
+        acquisition.follow_stage(devices.stage.status());
+        acquisition.follow_focus(devices.focus.status());
         let sink = Arc::new(camera.streams());
         let config_previews = PreviewConfig::default();
         let previews = Previews::start(
@@ -147,11 +219,22 @@ impl Service {
             stats,
             stage: devices.stage,
             focus: devices.focus,
+            peripherals: devices.peripherals.clone(),
             state: devices.state,
             registry,
+            slot_bytes: full,
             started: Instant::now(),
         });
-        let server = things(camera).service(instrument.clone()).build()?;
+        let fitted = |name: &str| {
+            let fitted = &devices.peripherals;
+            match name {
+                "illumination" => fitted.illumination.is_some(),
+                "filter_wheel" => fitted.filter_wheel.is_some(),
+                "objective" => fitted.turret.is_some(),
+                _ => fitted.modality.is_some(),
+            }
+        };
+        let server = things(camera, fitted).service(instrument.clone()).build()?;
         Ok(Self { server, instrument })
     }
 
@@ -224,17 +307,22 @@ impl Service {
 
 /// SpectrumIQ's own routes.
 fn routes(instrument: &Arc<Instrument>) -> Router {
-    let instrument = Arc::clone(instrument);
-    let health = move || {
-        let instrument = Arc::clone(&instrument);
-        async move { Json(instrument.health()) }
+    let route = |answer: fn(&Instrument) -> Value| {
+        let instrument = Arc::clone(instrument);
+        get(move || {
+            let instrument = Arc::clone(&instrument);
+            async move { Json(answer(&instrument)) }
+        })
     };
-    Router::new().route("/api/siq/system/health", get(health))
+    Router::new()
+        .route("/api/siq/system/health", route(Instrument::health))
+        .route("/api/siq/system/metrics", route(Instrument::metrics))
+        .route("/api/siq/system/memory", route(Instrument::memory))
 }
 
-/// The Things' OpenAPI document. It needs no devices.
+/// The Things' OpenAPI document, with every peripheral. It needs no devices.
 pub async fn openapi() -> anyhow::Result<Value> {
-    let server = things(Camera::default()).build()?;
+    let server = things(Camera::default(), |_| true).build()?;
     let request = Request::get("/openapi.json").body(Body::empty())?;
     let Ok(response) = server.router().oneshot(request).await;
     let body = axum::body::to_bytes(response.into_body(), usize::MAX).await?;

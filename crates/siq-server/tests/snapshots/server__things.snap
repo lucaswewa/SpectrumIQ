@@ -36,6 +36,20 @@ expression: descriptions
     ],
     "events": []
   },
+  "filter_wheel": {
+    "title": "FilterWheel",
+    "properties": [
+      "filters",
+      "moving",
+      "position"
+    ],
+    "actions": [
+      "select"
+    ],
+    "events": [
+      "changed"
+    ]
+  },
   "focus": {
     "title": "Focus",
     "properties": [
@@ -51,6 +65,62 @@ expression: descriptions
     ],
     "events": [
       "arrived"
+    ]
+  },
+  "illumination": {
+    "title": "Illumination",
+    "properties": [
+      "levels",
+      "sources"
+    ],
+    "actions": [
+      "set_level"
+    ],
+    "events": [
+      "changed"
+    ]
+  },
+  "imaging": {
+    "title": "Imaging",
+    "properties": [
+      "channel",
+      "channels"
+    ],
+    "actions": [
+      "select_channel"
+    ],
+    "events": [
+      "channel_changed"
+    ]
+  },
+  "modality": {
+    "title": "ModalityUnit",
+    "properties": [
+      "modality",
+      "modes",
+      "moving",
+      "patterns"
+    ],
+    "actions": [
+      "set_modality"
+    ],
+    "events": [
+      "changed"
+    ]
+  },
+  "objective": {
+    "title": "Objective",
+    "properties": [
+      "current",
+      "moving",
+      "objectives",
+      "position"
+    ],
+    "actions": [
+      "select"
+    ],
+    "events": [
+      "changed"
     ]
   },
   "stage": {

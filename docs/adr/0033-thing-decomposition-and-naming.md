@@ -78,7 +78,7 @@
   from (`spectrumiq-server --print-openapi`).
 - **The display mapping is shared by every client:** one viewer's change shows in another's
   stream.
-- **The peripherals and the `imaging` Thing follow in P2.4,** in the same way.
+- **The peripherals and the `imaging` Thing follow in P2.4,** in the same way (ADR-0035).
 
 ## Verification
 

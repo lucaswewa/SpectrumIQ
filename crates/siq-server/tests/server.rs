@@ -2,55 +2,17 @@
 //! teta-wot's in-process client: the Things and their descriptions, a move observed over HTTP, the
 //! MJPEG streams, a snap, the global lock, and SpectrumIQ's own routes.
 
-use std::path::Path;
+mod common;
+
 use std::time::Duration;
 
+use common::{client, config, finished};
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
-use siq_config::model::{CameraConfig, InstrumentConfig};
 use siq_server::Service;
 use teta_wot::http::axum::body::Body;
 use teta_wot::http::axum::http::{Request, StatusCode};
-use teta_wot::testing::{TestClient, TestResponse};
 use tower::ServiceExt;
-
-fn config() -> InstrumentConfig {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config/sim.toml");
-    let mut config = siq_config::load(&path).unwrap();
-    let CameraConfig::Sim(camera) = &mut config.camera else {
-        panic!("a simulated camera")
-    };
-    (camera.width, camera.height) = (256, 192);
-    config.memory.pool_slots = 6;
-    config
-}
-
-async fn client() -> TestClient {
-    let (server, _) = Service::build(config()).await.unwrap().into_parts();
-    TestClient::start(server).await.unwrap()
-}
-
-/// Waits for an invocation to end, and gives back its last state.
-async fn finished(client: &TestClient, invocation: TestResponse) -> Value {
-    assert_eq!(
-        invocation.status,
-        StatusCode::CREATED,
-        "{}",
-        invocation.text()
-    );
-    let href = invocation.json()["href"]
-        .as_str()
-        .unwrap()
-        .replace("http://testserver", "");
-    for _ in 0..1000 {
-        let state = client.get(&href).await.json();
-        if !matches!(state["status"].as_str(), Some("pending" | "running")) {
-            return state;
-        }
-        tokio::time::sleep(Duration::from_millis(10)).await;
-    }
-    panic!("{href} didn't finish");
-}
 
 /// Each Thing's affordances, by kind, for a snapshot.
 fn affordances(td: &Value) -> Value {
@@ -71,7 +33,18 @@ async fn the_things_are_listed_and_described() {
     let things = client.get("/api/v1/things/").await.json();
     let mut names: Vec<_> = things.as_object().unwrap().keys().cloned().collect();
     names.sort();
-    assert_eq!(names, ["camera", "display", "focus", "stage"]);
+    let expected = [
+        "camera",
+        "display",
+        "filter_wheel",
+        "focus",
+        "illumination",
+        "imaging",
+        "modality",
+        "objective",
+        "stage",
+    ];
+    assert_eq!(names, expected);
     let mut descriptions = serde_json::Map::new();
     for name in names {
         let td = client.get(&format!("/api/v1/{name}/")).await.json();

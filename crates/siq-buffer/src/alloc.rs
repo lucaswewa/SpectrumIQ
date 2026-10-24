@@ -12,6 +12,7 @@ use windows_sys::Win32::System::Memory::{
     MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE, VirtualAlloc, VirtualFree, VirtualLock,
     VirtualUnlock,
 };
+use windows_sys::Win32::System::ProcessStatus::{K32GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
 use windows_sys::Win32::System::Threading::{
     GetCurrentProcess, GetProcessWorkingSetSize, SetProcessWorkingSetSize,
 };
@@ -163,6 +164,34 @@ pub fn working_set() -> io::Result<(usize, usize)> {
     } else {
         Ok((min, max))
     }
+}
+
+/// The process's memory, in bytes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ProcessMemory {
+    /// The physical memory in use: the working set.
+    pub working_set: usize,
+    /// The largest the working set has been.
+    pub peak_working_set: usize,
+    /// The memory committed to the process alone: what it would need of the page file.
+    pub private: usize,
+}
+
+/// The process's memory now.
+pub fn process_memory() -> io::Result<ProcessMemory> {
+    // SAFETY: an all-zero struct of integers is valid.
+    let mut counters: PROCESS_MEMORY_COUNTERS = unsafe { std::mem::zeroed() };
+    let size = size_of::<PROCESS_MEMORY_COUNTERS>() as u32;
+    // SAFETY: the pseudo-handle of the current process, and a struct of `size` bytes to fill.
+    let ok = unsafe { K32GetProcessMemoryInfo(GetCurrentProcess(), &mut counters, size) };
+    if ok == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(ProcessMemory {
+        working_set: counters.WorkingSetSize,
+        peak_working_set: counters.PeakWorkingSetSize,
+        private: counters.PagefileUsage,
+    })
 }
 
 fn set_working_set(min: usize, max: usize) -> io::Result<()> {

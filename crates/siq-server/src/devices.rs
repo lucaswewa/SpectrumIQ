@@ -7,23 +7,32 @@
 //! - **The focus drive:** the ASCII driver, against the dialect emulator for `"sim"`, or on a
 //!   serial port for `"ascii"`, in the configured dialect.
 //!
-//! The simulators share one `TrueState`: the emulators move it, and the camera sees it.
+//! - **The peripherals,** each one only if `[peripherals]` names it: simulated, until their
+//!   models are chosen (P10.5).
+//!
+//! The simulators share one `TrueState`: the emulators and the peripherals move it, and the camera
+//! sees it.
 
 use std::sync::Arc;
 
 use anyhow::{Context, bail};
 use siq_ascii::{AsciiFocusDrive, Dialect};
 use siq_buffer::Backend;
-use siq_config::model::{CameraConfig, FocusConfig, InstrumentConfig, StageConfig};
-use siq_devices::{Camera, FocusDrive, Stage};
+use siq_config::model::{
+    CameraConfig, FocusConfig, InstrumentConfig, PeripheralsConfig, StageConfig,
+};
+use siq_devices::{
+    Camera, FilterWheel, FocusDrive, Illumination, ModalityUnit, ObjectiveTurret, PatternSet, Stage,
+};
 use siq_grbl::{GrblOptions, GrblStage};
 use siq_serial::{Framing, PortSettings, duplex};
 use siq_sim::camera::{SimCamera, SimCameraSetup};
 use siq_sim::dialect::DialectEmulator;
 use siq_sim::grbl::{GrblEmulator, GrblErrors, GrblSettings};
+use siq_sim::peripherals::{SimChanger, SimIllumination, SimModalityUnit};
 use siq_sim::state::TrueState;
 use siq_synth::WorldInfo;
-use siq_types::Clock;
+use siq_types::{Clock, ModalityMode};
 
 /// The instrument's devices.
 pub struct Devices {
@@ -36,8 +45,87 @@ pub struct Devices {
     pub stage: Arc<dyn Stage>,
     /// The focus drive.
     pub focus: Arc<dyn FocusDrive>,
+    /// The peripherals that are fitted.
+    pub peripherals: Peripherals,
     /// The simulated instrument's true state.
     pub state: Arc<TrueState>,
+}
+
+/// The peripherals, each `None` if it isn't fitted.
+#[derive(Clone, Default)]
+pub struct Peripherals {
+    /// The light sources.
+    pub illumination: Option<Arc<dyn Illumination>>,
+    /// The filter wheel.
+    pub filter_wheel: Option<Arc<dyn FilterWheel>>,
+    /// The objective turret.
+    pub turret: Option<Arc<dyn ObjectiveTurret>>,
+    /// The modality unit.
+    pub modality: Option<Arc<dyn ModalityUnit>>,
+}
+
+/// The structured-illumination patterns of the simulated modality unit: 3 orientations of 3 phases.
+const PATTERNS: PatternSet = PatternSet {
+    orientations: 3,
+    phases: 3,
+};
+
+/// The peripherals of `config`, simulated, moving `state`.
+fn peripherals(
+    config: &PeripheralsConfig,
+    state: &Arc<TrueState>,
+    clock: &Arc<dyn Clock>,
+) -> Peripherals {
+    let (state, clock) = (state.clone(), clock.clone());
+    let illumination = config
+        .illumination
+        .as_ref()
+        .map(|light| -> Arc<dyn Illumination> {
+            Arc::new(SimIllumination::new(
+                light.sources.clone(),
+                state.clone(),
+                clock.clone(),
+            ))
+        });
+    let filter_wheel = config
+        .filter_wheel
+        .as_ref()
+        .map(|wheel| -> Arc<dyn FilterWheel> {
+            Arc::new(SimChanger::filter_wheel(
+                wheel.filters.clone(),
+                state.clone(),
+                clock.clone(),
+            ))
+        });
+    let turret = config
+        .objective_turret
+        .as_ref()
+        .map(|turret| -> Arc<dyn ObjectiveTurret> {
+            Arc::new(SimChanger::objective_turret(
+                turret.positions,
+                state.clone(),
+                clock.clone(),
+            ))
+        });
+    let modality = config
+        .modality
+        .as_ref()
+        .map(|unit| -> Arc<dyn ModalityUnit> {
+            let structured = unit.modes.contains(&ModalityMode::StructuredIllumination);
+            let patterns = structured.then_some(PATTERNS);
+            Arc::new(SimModalityUnit::new(
+                unit.modes.clone(),
+                patterns,
+                state.clone(),
+                clock.clone(),
+            ))
+        });
+    Peripherals {
+        illumination,
+        filter_wheel,
+        turret,
+        modality,
+    }
 }
 
 fn port(baud: u32) -> PortSettings {
@@ -97,12 +185,12 @@ pub async fn open(config: &InstrumentConfig, clock: Arc<dyn Clock>) -> anyhow::R
             tokio::spawn(
                 DialectEmulator::new(dialect.clone(), state.clone(), clock.clone()).run(device),
             );
-            Arc::new(AsciiFocusDrive::connect(host, dialect, clock).await?)
+            Arc::new(AsciiFocusDrive::connect(host, dialect, clock.clone()).await?)
         }
         FocusConfig::Ascii(focus) => {
             let dialect = Arc::new(Dialect::load(&focus.dialect)?);
             let link = siq_serial::open(&focus.port, &port(focus.baud), dialect.framing())?;
-            let connected = AsciiFocusDrive::connect(link, dialect, clock).await;
+            let connected = AsciiFocusDrive::connect(link, dialect, clock.clone()).await;
             Arc::new(connected.with_context(|| format!("the focus drive on {}", focus.port))?)
         }
     };
@@ -111,6 +199,7 @@ pub async fn open(config: &InstrumentConfig, clock: Arc<dyn Clock>) -> anyhow::R
         backend,
         stage,
         focus,
+        peripherals: peripherals(&config.peripherals, &state, &clock),
         state,
     })
 }

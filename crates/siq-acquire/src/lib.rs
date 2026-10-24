@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError, Weak};
 use std::time::{Duration, Instant};
 
 use siq_buffer::{
-    Fanout, FillGuard, FrameLease, FramePool, Policy, PoolConfig, PoolError, Subscriber,
+    Fanout, FillGuard, FrameLease, FramePool, Policy, PoolConfig, PoolError, PoolStats, Subscriber,
     SubscriberStats,
 };
 use siq_devices::{
@@ -166,6 +166,11 @@ impl Acquisition {
         clock: Arc<dyn Clock>,
     ) -> Result<Self, PoolError> {
         let pool = FramePool::new(pool, clock.clone(), None)?;
+        Ok(Self::with_pool(camera, pool, clock))
+    }
+
+    /// An engine for `camera` with `pool`, made by the caller: with its metrics, say.
+    pub fn with_pool(camera: Arc<dyn Camera>, pool: FramePool, clock: Arc<dyn Clock>) -> Self {
         let slots = pool.slots();
         let state = State {
             mode: Mode::Stopped,
@@ -187,9 +192,14 @@ impl Acquisition {
             turn: tokio::sync::Mutex::new(()),
             state: Mutex::new(state),
         };
-        Ok(Self {
+        Self {
             inner: Arc::new(inner),
-        })
+        }
+    }
+
+    /// The pool's slots: free, being filled, and leased.
+    pub fn pool_stats(&self) -> PoolStats {
+        self.inner.pool.stats()
     }
 
     /// Follows the stage's status, for the frames' poses.
