@@ -26,6 +26,8 @@ tests web/src/ui/AppButton.spec.ts
 tests web/src/api/wot/client.test.ts
 tests web/e2e/live.spec.ts
 tests xtask/tests/fixtures/loc_paths.txt
+tests crates/siq-telemetry/src/metrics/snapshots/metrics__tests__snapshot.snap
+tests crates/siq-config/tests/snapshots/config__schema.snap
 
 # Examples, and the web app's demo pages.
 examples crates/siq-types/examples/affine_demo.rs

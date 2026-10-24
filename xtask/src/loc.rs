@@ -83,6 +83,8 @@ pub fn classify(path: &str) -> Class {
         Class::Generated
     } else if in_dir("tests")
         || in_dir("benches")
+        || in_dir("snapshots")
+        || extension == "snap"
         || *file == "tests.rs"
         || file.ends_with(".spec.ts")
         || file.ends_with(".test.ts")

@@ -475,9 +475,11 @@ flowchart LR
   Each frame's `FrameMeta` carries its pose and its calibration id.
 - **Configuration:** a TOML instrument config (`config/sim.toml`, `config/hardware.example.toml`),
   validated with a JSON Schema export. teta-wot settings files hold runtime-tunable values.
-- **Logging and metrics:** `tracing` with daily rolling files under
-  `%ProgramData%\SpectrumIQ\logs`. A metrics registry (counters and gauges) is exposed as properties
-  and at `/api/siq/system/metrics`.
+- **Logging and metrics** (ADR-0019):
+  - `tracing` with structured fields;
+  - daily rolling files under `%ProgramData%\SpectrumIQ\logs`;
+  - a lock-free registry of named counters, gauges and histograms (`camera.frames_lost`,
+    `preview.latency_ms`), exposed as properties and at `/api/siq/system/metrics`.
 - **Deployment:**
   - service account;
   - `%ProgramData%\SpectrumIQ\{config,settings,logs,audit}`;

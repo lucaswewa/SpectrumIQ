@@ -115,7 +115,8 @@ flowchart LR
   M14 --> M15
 ```
 
-There are 86 phases in total. The optional, stretch and gated phases are P8.6, P10.4, P13.4 and
+There are 87 phases in total: 86 planned, and P0.3 split in two. The optional, stretch and gated
+phases are P8.6, P10.4, P13.4 and
 P14.4–P14.5. P10.5 repeats once per peripheral.
 
 **Status values:**
@@ -132,8 +133,9 @@ A phase is Done once it is merged.
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
 | P0.1 | Workspace, toolchain, xtask and templates | 600 | — | Done |
-| P0.2 | Domain types (`siq-types`) | 800 | P0.1 | Review |
-| P0.3 | Configuration and telemetry | 800 | P0.2 | — |
+| P0.2 | Domain types (`siq-types`) | 800 | P0.1 | Done |
+| P0.3a | Telemetry (split from P0.3) | 300 | P0.2 | Review |
+| P0.3b | Instrument configuration (split from P0.3) | 800 | P0.3a | — |
 
 ### M1 — Frame memory, devices and simulation ([brief](milestones/M01-memory-devices-simulation.md))
 
@@ -156,7 +158,7 @@ A phase is Done once it is merged.
 |---|---|---|---|---|
 | P2.1 | Acquisition engine | 800 | P1.2, P1.3, P1.7 | — |
 | P2.2 | Preview pipelines | 700 | P1.5, P2.1 | — |
-| P2.3 | Service core: camera, display, stage, focus Things | 900 | P0.3, P1.9, P1.10, P2.2 | — |
+| P2.3 | Service core: camera, display, stage, focus Things | 900 | P0.3b, P1.9, P1.10, P2.2 | — |
 | P2.4 | Peripherals, channels and system routes | 600 | P2.3 | — |
 | P2.5 | Euresys shim and bindings (risk spike) | 700 | P0.1 | — |
 
@@ -176,7 +178,7 @@ A phase is Done once it is merged.
 |---|---|---|---|---|
 | P4.1 | Datasets and raw scratch writer | 800 | P2.1 | — |
 | P4.2 | OME-Zarr I/O | 850 | P4.1 | — |
-| P4.3 | Job system | 850 | P0.3, P4.1 | — |
+| P4.3 | Job system | 850 | P0.3b, P4.1 | — |
 | P4.4 | Pyramid builder | 600 | P4.2, P4.3 | — |
 | P4.5 | Tile service and DZI | 850 | P4.4, P2.3 | — |
 | P4.6 | OME-TIFF export | 800 | P4.4 | — |
@@ -209,7 +211,7 @@ A phase is Done once it is merged.
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P7.1 | GPU foundation | 800 | P0.3 | — |
+| P7.1 | GPU foundation | 800 | P0.3b | — |
 | P7.2 | Live mosaic canvas | 900 | P7.1, P5.2, P5.3 | — |
 | P7.3 | Viewport rendering and `mosaic_live` Thing | 700 | P7.2, P2.3 | — |
 | P7.4 | Live mosaic UI | 700 | P7.3, P6.6 | — |

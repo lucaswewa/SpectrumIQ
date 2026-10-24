@@ -16,7 +16,7 @@ a low-bandwidth stream. The live mosaic doubles as the navigation map for scan s
 
 ### P7.1 — GPU foundation (`siq-gpu`)
 
-**Budget** ~800 · **Depends on** P0.3 · **Requirements** REQ-STI-001, REQ-3D-005, REQ-NFR-002
+**Budget** ~800 · **Depends on** P0.3b · **Requirements** REQ-STI-001, REQ-3D-005, REQ-NFR-002
 
 **Goal.** Shared, safe wgpu infrastructure for live stitching and the 3D kernels.
 

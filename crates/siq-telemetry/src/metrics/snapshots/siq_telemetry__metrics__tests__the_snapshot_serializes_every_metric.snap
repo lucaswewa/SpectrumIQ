@@ -1,0 +1,33 @@
+---
+source: crates/siq-telemetry/src/metrics/tests.rs
+expression: registry.snapshot()
+---
+{
+  "camera.frames_acquired": {
+    "kind": "counter",
+    "value": 42
+  },
+  "pool.free_slots": {
+    "kind": "gauge",
+    "value": 10.0
+  },
+  "preview.latency_ms": {
+    "kind": "histogram",
+    "count": 3,
+    "sum": 96.0,
+    "buckets": [
+      {
+        "le": 10.0,
+        "count": 1
+      },
+      {
+        "le": 50.0,
+        "count": 1
+      },
+      {
+        "le": null,
+        "count": 1
+      }
+    ]
+  }
+}

@@ -112,37 +112,66 @@ direction; pixel centre convention.
 
 ---
 
-### P0.3 — Configuration and telemetry (`siq-config`, `siq-telemetry`)
+> **P0.3 was split into P0.3a and P0.3b during implementation.** The complete phase measured
+> about 1060 counted lines against its estimate of 800. Telemetry and configuration are
+> independent crates, so they became two phases (see `docs/impl-notes/P0.3a.md`). "P0.3"
+> elsewhere means both.
 
-**Budget** ~800 · **Depends on** P0.2 · **Requirements** REQ-NFR-002, REQ-SIM-006
+### P0.3a — Telemetry (`siq-telemetry`)
 
-**Goal.** One validated instrument configuration, plus logging and metrics that every service
-component uses.
+**Budget** ~300 · **Depends on** P0.2 · **Requirements** — (it serves REQ-ACQ-005 and
+REQ-NFR-003 later, through metrics)
+
+**Goal.** Logging and metrics that every service component uses.
 
 **Scope**
 
-- **`siq-config`:** `InstrumentConfig` loaded from TOML, with these sections:
+- **`init(LogConfig)`:** console plus daily rolling files (`tracing-appender`), with an env
+  filter. `LogConfig` serializes, so the instrument configuration can embed it as `[log]`.
+- **Metrics registry:** atomic `Counter`, `Gauge`, and fixed-bucket `Histogram`, named, with a
+  JSON snapshot.
+
+**Tests**
+
+- Metrics under concurrent updates.
+- Bucket edges.
+- Name, kind and bounds conflicts.
+- The snapshot's JSON.
+- Logging to a daily file.
+
+**Example.** `metrics_demo`.
+
+**ADR.** Logging and metrics conventions.
+
+---
+
+### P0.3b — Instrument configuration (`siq-config`)
+
+**Budget** ~800 · **Depends on** P0.3a · **Requirements** REQ-NFR-002, REQ-SIM-006
+
+**Goal.** One validated instrument configuration.
+
+**Scope**
+
+- **`InstrumentConfig`,** loaded from TOML, with these sections:
   - `[server]`: bind, port, data_root, scratch;
   - `[memory]`: pool_slots, job_ram_gb, job_vram_gb, tile_cache_mb;
+  - `[log]`: P0.3a's `LogConfig`;
   - `[camera]`, `[stage]`, `[focus]`: `kind = "sim" | "euresys" | "grbl" | "ascii"`, plus kind
     parameters (port, baud, poll_hz, dialect path);
   - `[[objectives]]`, `[[channels]]`, `[peripherals.*]`;
   - `[sim]`: world, seed, error injection, profile.
 - **Validation** reports source spans. Defaults are applied, and `--print-config-schema` (JSON
-  Schema) is supported. Ship `config/sim.toml` and `config/hardware.example.toml`.
-- **`siq-telemetry`:**
-  - `init(LogConfig)`: console plus daily rolling files (`tracing-appender`), with an env filter;
-  - a metrics registry of atomic `Counter`, `Gauge`, and fixed-bucket `Histogram`, named, with a
-    JSON snapshot.
+  Schema) is supported.
+- **Ship** `config/sim.toml` and `config/hardware.example.toml`.
 
 **Tests**
 
 - Valid and invalid configs, with insta snapshots of the error messages.
 - Defaults.
 - The schema snapshot.
-- Metrics under concurrent updates.
 
-**Examples.** `validate_config <file>` and `metrics_demo`.
+**Example.** `validate_config <file>`.
 
 **ADR.** Configuration format and layering: a TOML instrument config, while teta-wot settings
-files hold runtime-tunable values. Logging and metrics conventions.
+files hold runtime-tunable values.

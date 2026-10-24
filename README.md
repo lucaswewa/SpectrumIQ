@@ -11,10 +11,13 @@ Scientific microscope instrument software:
 
 ## Status
 
-**Phase P0.2 is in review:** [`siq-types`](crates/siq-types/README.md), the shared units,
-coordinate frames, image views, frame metadata, ids and clocks. P0.1 (the workspace and the
-`cargo xtask` quality gate) is done. The [roadmap](docs/plan/README.md#3-roadmap) tracks every
-phase.
+**Phase P0.3a is in review:** [`siq-telemetry`](crates/siq-telemetry/README.md), logging and
+metrics. Done so far:
+
+- P0.1, the workspace and the `cargo xtask` quality gate;
+- P0.2, [`siq-types`](crates/siq-types/README.md), the shared vocabulary.
+
+The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 
 ## Documentation
 

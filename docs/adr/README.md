@@ -27,3 +27,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0016](0016-hardware-baseline.md) | Hardware baseline and device roles | Accepted | planning |
 | [0017](0017-workspace-toolchain-and-xtask.md) | Workspace layout, toolchain pin, and `cargo xtask` as the quality gate | Accepted | P0.1 |
 | [0018](0018-coordinate-frames-units-and-handedness.md) | Coordinate frames, units and handedness | Accepted | P0.2 |
+| [0019](0019-logging-and-metrics.md) | Logging and metrics conventions | Accepted | P0.3a |

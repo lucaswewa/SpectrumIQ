@@ -85,7 +85,7 @@ with ground truth.
 
 ### P4.3 — Job system (`siq-jobs`, `jobs` Thing)
 
-**Budget** ~850 · **Depends on** P0.3, P4.1 · **Requirements** REQ-3D-005, REQ-NFR-002
+**Budget** ~850 · **Depends on** P0.3b, P4.1 · **Requirements** REQ-3D-005, REQ-NFR-002
 
 **Goal.** Run heavy processing in the background without disturbing acquisition, within the
 memory budget.
