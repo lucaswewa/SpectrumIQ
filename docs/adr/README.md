@@ -26,7 +26,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0015](0015-phase-sizing-and-deliverables.md) | Phase sizing and per-phase deliverables (amended in P0.1: exact counting rules) | Accepted | planning |
 | [0016](0016-hardware-baseline.md) | Hardware baseline and device roles | Accepted | planning |
 | [0017](0017-workspace-toolchain-and-xtask.md) | Workspace layout, toolchain pin, and `cargo xtask` as the quality gate | Accepted | P0.1 |
-| [0018](0018-coordinate-frames-units-and-handedness.md) | Coordinate frames, units and handedness | Accepted | P0.2 |
+| [0018](0018-coordinate-frames-units-and-handedness.md) | Coordinate frames, units and handedness (amended in P1.7: waiting on the clock) | Accepted | P0.2 |
 | [0019](0019-logging-and-metrics.md) | Logging and metrics conventions | Accepted | P0.3a |
 | [0020](0020-instrument-configuration.md) | Instrument configuration format and layering | Accepted | P0.3b |
 | [0021](0021-frame-pool.md) | Frame pool design | Accepted | P1.1 |
@@ -34,4 +34,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0023](0023-device-abstraction.md) | Device abstraction: dyn-compatible async traits, capability descriptors, status watches | Accepted | P1.3 |
 | [0024](0024-synthetic-worlds-and-ground-truth.md) | Synthetic world model and ground-truth conventions | Accepted | P1.4 |
 | [0025](0025-cpu-kernel-strategy.md) | CPU kernel strategy: rayon row bands, plain loops first, caller-owned buffers | Accepted | P1.5 |
-| [0026](0026-simulated-camera-fidelity-and-the-noiseless-cache.md) | Simulated-camera fidelity versus performance, and the noiseless cache | Accepted | P1.6 |
+| [0026](0026-simulated-camera-fidelity-and-the-noiseless-cache.md) | Simulated-camera fidelity versus performance, and the noiseless cache (amended in P1.7: timing, triggering and `TrueState`) | Accepted | P1.6 |

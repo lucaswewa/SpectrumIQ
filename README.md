@@ -11,9 +11,8 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** P1.6, [`siq-sim`](crates/siq-sim/README.md)'s image formation: realistic 14-bit frames
-of a synthetic specimen for the stage pose and focus, with optics, sensor noise and a noiseless
-cache.
+**In review:** P1.7, the simulated camera in [`siq-sim`](crates/siq-sim/README.md): a `Camera` that
+renders the true state into pool slots at the model's frame rates, free-running or triggered.
 
 Done so far:
 
@@ -34,7 +33,10 @@ Done so far:
     ground truth, and real images as specimens;
   - P1.5, [`siq-imgproc`](crates/siq-imgproc/README.md), allocation-free CPU kernels for
     correction, resampling, histograms, display mapping and focus, within the 100 MP frame
-    budget.
+    budget;
+  - P1.6, [`siq-sim`](crates/siq-sim/README.md)'s image formation: realistic 14-bit frames of a
+    synthetic specimen for the stage pose and focus, with optics, sensor noise and a noiseless
+    cache.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

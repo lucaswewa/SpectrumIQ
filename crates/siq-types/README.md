@@ -17,7 +17,7 @@ Every other crate speaks these types. Their conventions are fixed by
 - **Depends on:** `serde`, `schemars` (with `uuid1`), `uuid` (v7), `chrono`, `thiserror`.
 - **Used by:** every crate.
 - **Phase:** P0.2. P1.3 adds `MicrometersPerSecond` and `ModalityMode`; P1.7 adds
-  `Clock::sleep_until`.
+  `Clock::wait_until` and `Clock::sleep_until`.
 
 ## API
 
@@ -29,7 +29,7 @@ Every other crate speaks these types. Their conventions are fixed by
 | `image` | `PixelFormat`, `Roi`, `Binning`, `ImageView`, `ImageViewMut`, `OwnedImage` | Views borrow any memory, with a stride, and never allocate. `ImageViewMut::split_at_row` gives two views for two threads (P1.5). `OwnedImage` rows are 64-byte aligned |
 | `frame` | `FrameMeta`, `FrameSeq`, `DeviceMicros`, `PoseQuality`, `FrameFlags`, `ModalityMode` | `FrameMeta` is `Copy`, with no heap data. `ModalityMode` moved here from `siq-config` in P1.3, for the device traits |
 | `ids` | `DatasetId`, `CalibrationId`, `ChannelId`, `ObjectiveId` | UUID v7 for run-time things, configured `u16` numbers for channels and objectives |
-| `time` | `Timestamp`, `Clock`, `SystemClock`, `ManualClock` | One shared `Arc<dyn Clock>` per service; `ManualClock` for deterministic tests |
+| `time` | `Timestamp`, `Clock`, `SystemClock`, `ManualClock` | One shared `Arc<dyn Clock>` per service; `ManualClock` for deterministic tests. `wait_until(deadline, timeout)` and `sleep_until(deadline)` wait on either: a `ManualClock` wakes its sleepers when moved (P1.7) |
 
 Every type that crosses the HTTP API or a file derives `Serialize`, `Deserialize` and
 `JsonSchema`. The JSON forms are pinned by snapshots in `tests/snapshots/`.
@@ -66,7 +66,6 @@ None.
 
 ## Limitations
 
-- **`Clock` has no `sleep_until` yet.** P1.7 adds it, with its first user.
 - **`OwnedImage` aligns rows** only when the pixel size divides 64 bytes. It is for tests and
   tools, not the frame path.
 - **`Binning::image_size` drops partial bins** at the edges, as most cameras do.

@@ -122,7 +122,7 @@ tile poses and mosaic placement all use them.
 - Every geometric computation goes through `Affine2`, `StageToPixel` or `PixelToStage`, so these
   conventions are tested in one place.
 - `Clock::sleep_until` is added in P1.7, with its first user. The trait is extended then, before
-  M1 ends.
+  M1 ends. See the amendment below.
 
 ## Verification
 
@@ -133,3 +133,18 @@ tile poses and mosaic placement all use them.
   - property tests for inverse, composition and decomposition.
 - `geometry::tests::pixel_centres_are_at_half_pixels`.
 - The `affine_demo` example.
+
+## Amendment (P1.7, 2026-10-24): waiting on the clock
+
+- **`Clock::wait_until(deadline, timeout) -> bool`** is required.
+  - It waits until the clock reaches `deadline`, or until `timeout` of real time has passed.
+  - It says whether the deadline was reached.
+- **`Clock::sleep_until(deadline)`** is provided, built on `wait_until`.
+- **`SystemClock`** sleeps the thread.
+- **`ManualClock`** blocks on a condition variable that `advance` and `set` notify. A thread
+  waiting on it wakes when another thread moves the clock past its deadline.
+- **Why a timeout as well:** a thread that must also notice other events waits in steps of the
+  timeout, and checks them between steps. The simulated camera does this to notice a stop during
+  a long exposure, or on a manual clock that nobody moves.
+- **Verified by** `a_manual_clock_wakes_a_sleeper_when_moved_past_its_deadline` and
+  `a_system_clock_sleeps_until_its_deadline`.

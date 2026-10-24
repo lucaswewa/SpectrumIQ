@@ -948,10 +948,13 @@ name = "siq-sim"
 version = "0.1.0"
 dependencies = [
  "png",
+ "siq-buffer",
+ "siq-config",
  "siq-devices",
  "siq-imgproc",
  "siq-synth",
  "siq-types",
+ "tokio",
 ]
 
 [[package]]

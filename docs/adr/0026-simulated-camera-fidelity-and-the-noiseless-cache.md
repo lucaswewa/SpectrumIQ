@@ -154,3 +154,81 @@ and the blur pass. A blended relief needs one more.
   - `a_varying_defocus_blurs_only_where_the_surface_is_out_of_focus`;
   - `the_renderer_drafts_while_moving_keeps_a_still_signal_and_samples_strong_blur_coarsely`.
 - The `render_frame` example.
+
+## Amendment (P1.7, 2026-10-24): timing, triggering and `TrueState`
+
+### `TrueState`
+
+- **What it holds:** the true pose, as stage x, y, z_coarse and focus, and the illumination
+  levels, the filter, the objective and the modality.
+- **Who writes it:** the emulators (P1.8, P1.10) and the peripheral simulators. The camera reads
+  it.
+- **Reads take no lock.**
+  - The pose is behind a sequence lock of atomics: writers take turns, and a reader retries while
+    one writes, so it never sees half of a move.
+  - The peripherals are single atomics.
+- **The light reaching the sample** is the sum of the levels, or 1 when no sources are simulated.
+  It scales the flux.
+- **The objective at the turret position in place** sets the calibration
+  (magnification ÷ pixel pitch) and the optics' NA and index.
+
+### Timing
+
+- **The camera runs on its own thread,** timed by the shared `Clock` through
+  `wait_until(deadline, 20 ms)`, so that it notices a stop.
+- **Exposures start every period, `max(exposure, readout)`.** The readout is the capability
+  model's: 1 ms plus a line time per row read, which gives the configured full-frame rate.
+- **A frame is ready its exposure plus its readout after it starts.**
+- **Its timestamps:**
+  - the host timestamp is its mid-exposure, on the schedule;
+  - the device timestamp counts microseconds from `start()`.
+- **Exact on a `ManualClock`.** The schedule doesn't depend on how long rendering takes, so the
+  timing is exact on a manual clock.
+- **The time zero is taken when `start()` is called,** not when the thread first runs.
+- **A late render slips the schedule.**
+  - When a render runs late, the next frame is ready at once rather than overdue.
+  - Frame numbers stay contiguous, and the rate drops.
+  - Lateness is judged before the frame is handed to the sink, which may take any time.
+  - So the slow full-detail frame after a stop costs rate, not lost frames. Lost frames mean a
+    want of slots (REQ-ACQ-005).
+
+### Triggering
+
+- **`Software` and `External` modes:** an exposure starts `trigger_latency` (0.1 ms) after
+  `trigger()`, and not before the last frame's period allows.
+- **The simulator has no trigger line,** so `trigger()` also stands in for an external trigger.
+- **One trigger is pending at a time.** Another before its exposure has started is refused as
+  `Busy`.
+
+### Settings, slots and stopping
+
+- **Settings are read at the start of each exposure,** so a change takes effect at the next frame.
+- **While acquiring,** only the exposure and the gain change.
+- **No free slot when a frame is ready:** the frame is lost and counted as `lost_no_slot`, and its
+  number skipped.
+- **`stop()` resolves when the thread has finished,** through a waker the thread wakes.
+
+### The `fast` profile
+
+`SimCameraSetup::from_config` halves each side of the sensor and doubles its pixel, keeping the
+field of view. ROI steps are the largest of 8, 4, 2 and 1 that divide each side, so a sensor's full
+frame is always a valid ROI.
+
+### Measurements
+
+- **`sim_live`,** release build, 5824 × 4371 (`fast`), real time, a new pose every second: 6–8
+  frames per pose, 5.9–7.0 frames/s. Each new pose costs a draft and one full render, about
+  0.45 s, before the noise-only frames at up to 9 frames/s. No frames were lost.
+- **On a `ManualClock`,** frames come at exactly 9.000 frames/s for the full 192-row test sensor,
+  and 26.5 frames/s for a 64-row ROI.
+
+### Verification
+
+- `siq-sim` camera tests:
+  - `free_running_frames_come_at_the_model_s_rate_for_the_full_frame_and_an_roi`;
+  - `a_software_trigger_starts_an_exposure_after_its_latency`;
+  - `frames_are_lost_and_counted_while_consumers_hold_every_slot`;
+  - `a_settings_change_takes_effect_at_the_next_frame`;
+  - `the_camera_sees_the_true_state`;
+  - `a_pose_is_never_seen_half_written`.
+- The `sim_live` example.

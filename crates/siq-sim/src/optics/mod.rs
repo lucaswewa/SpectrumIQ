@@ -72,8 +72,17 @@ impl Renderer {
         self.draft_samples = samples.max(1);
     }
 
-    /// The optics, to change, such as the light's flux. A change takes effect at the next new
-    /// signal.
+    /// The optics.
+    pub fn optics(&self) -> &OpticsModel {
+        &self.optics
+    }
+
+    /// Sets the flux, which only the digitization uses, so the signal is kept.
+    pub fn set_flux(&mut self, flux: f64) {
+        self.optics.flux = flux;
+    }
+
+    /// The optics, to change. The next frame renders a new signal.
     pub fn optics_mut(&mut self) -> &mut OpticsModel {
         self.last = None;
         &mut self.optics

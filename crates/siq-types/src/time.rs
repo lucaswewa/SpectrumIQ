@@ -8,7 +8,7 @@ mod tests;
 
 use std::fmt;
 use std::ops::{Add, Sub};
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::sync::{Condvar, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
 use chrono::{DateTime, TimeDelta, Utc};
@@ -61,6 +61,16 @@ pub trait Clock: Send + Sync + fmt::Debug {
     fn now_utc(&self) -> DateTime<Utc> {
         self.utc(self.now())
     }
+
+    /// Waits until the clock reaches `deadline`, or until `timeout` of real time has passed, and
+    /// says whether the deadline was reached. A thread that must also notice other events, such
+    /// as a camera being stopped, waits in steps of `timeout`.
+    fn wait_until(&self, deadline: Timestamp, timeout: Duration) -> bool;
+
+    /// Blocks until the clock reaches `deadline`.
+    fn sleep_until(&self, deadline: Timestamp) {
+        while !self.wait_until(deadline, Duration::from_secs(3600)) {}
+    }
 }
 
 /// The system's monotonic clock, with its epoch at the clock's creation.
@@ -91,15 +101,24 @@ impl Clock for SystemClock {
         Timestamp(nanos(self.epoch.elapsed()))
     }
 
+    /// Sleeps the thread.
+    fn wait_until(&self, deadline: Timestamp, timeout: Duration) -> bool {
+        let remaining = deadline.saturating_since(self.now());
+        std::thread::sleep(remaining.min(timeout));
+        self.now() >= deadline
+    }
+
     fn utc(&self, timestamp: Timestamp) -> DateTime<Utc> {
         utc_after(self.epoch_utc, timestamp)
     }
 }
 
 /// A clock that moves only when [`advance`](Self::advance) or [`set`](Self::set) is called.
+/// A thread waiting on it wakes when another thread moves it past the deadline.
 #[derive(Debug)]
 pub struct ManualClock {
     now: Mutex<Timestamp>,
+    moved: Condvar,
     epoch_utc: DateTime<Utc>,
 }
 
@@ -112,19 +131,25 @@ impl ManualClock {
     /// A clock at its epoch, which is `epoch_utc`.
     pub fn starting_at(epoch_utc: DateTime<Utc>) -> Self {
         let now = Mutex::new(Timestamp(0));
-        Self { now, epoch_utc }
+        Self {
+            now,
+            moved: Condvar::new(),
+            epoch_utc,
+        }
     }
 
     /// Moves the clock forward by `duration`.
     pub fn advance(&self, duration: Duration) {
         let mut now = self.lock();
         *now = *now + duration;
+        self.moved.notify_all();
     }
 
     /// Moves the clock to `timestamp`, if that is later. A monotonic clock never goes back.
     pub fn set(&self, timestamp: Timestamp) {
         let mut now = self.lock();
         *now = (*now).max(timestamp);
+        self.moved.notify_all();
     }
 
     fn lock(&self) -> MutexGuard<'_, Timestamp> {
@@ -141,6 +166,17 @@ impl Default for ManualClock {
 impl Clock for ManualClock {
     fn now(&self) -> Timestamp {
         *self.lock()
+    }
+
+    /// Blocks on a condition variable until another thread moves the clock past `deadline`, or
+    /// `timeout` of real time passes.
+    fn wait_until(&self, deadline: Timestamp, timeout: Duration) -> bool {
+        let now = self.lock();
+        let (now, _) = self
+            .moved
+            .wait_timeout_while(now, timeout, |now| *now < deadline)
+            .unwrap_or_else(PoisonError::into_inner);
+        *now >= deadline
     }
 
     fn utc(&self, timestamp: Timestamp) -> DateTime<Utc> {

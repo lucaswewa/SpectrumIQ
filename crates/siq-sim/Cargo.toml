@@ -9,6 +9,8 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+siq-buffer = { path = "../siq-buffer" }
+siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }
 siq-imgproc = { path = "../siq-imgproc" }
 siq-synth = { path = "../siq-synth" }
@@ -16,6 +18,7 @@ siq-types = { path = "../siq-types" }
 
 [dev-dependencies]
 png.workspace = true
+tokio = { workspace = true, features = ["macros", "rt", "time"] }
 
 [lints]
 workspace = true
