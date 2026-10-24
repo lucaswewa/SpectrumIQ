@@ -151,13 +151,13 @@ A phase is Done once it is merged.
 | P1.8 | Serial transport and GRBL emulator | 850 | P1.7 | Done |
 | P1.9 | GRBL stage driver | 800 | P1.3, P1.8 | Done |
 | P1.10a | ASCII dialects and the dialect emulator (split from P1.10) | 700 | P1.3, P1.8 | Done |
-| P1.10b | ASCII focus driver and peripheral simulators (split from P1.10) | 650 | P1.10a | Review |
+| P1.10b | ASCII focus driver and peripheral simulators (split from P1.10) | 650 | P1.10a | Done |
 
 ### M2 — Acquisition, live preview and the first server ([brief](milestones/M02-acquisition-preview-server.md))
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P2.1 | Acquisition engine | 800 | P1.2, P1.3, P1.7 | — |
+| P2.1 | Acquisition engine | 800 | P1.2, P1.3, P1.7 | Review |
 | P2.2 | Preview pipelines | 700 | P1.5, P2.1 | — |
 | P2.3 | Service core: camera, display, stage, focus Things | 900 | P0.3b, P1.9, P1.10b, P2.2 | — |
 | P2.4 | Peripherals, channels and system routes | 600 | P2.3 | — |

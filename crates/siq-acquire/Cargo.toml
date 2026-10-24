@@ -1,0 +1,28 @@
+[package]
+name = "siq-acquire"
+description = "SpectrumIQ's acquisition engine: the camera, the frame pool and fan-out, and every frame's pose and context."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+siq-buffer = { path = "../siq-buffer" }
+siq-devices = { path = "../siq-devices" }
+siq-types = { path = "../siq-types" }
+tokio = { workspace = true, features = ["rt", "sync", "time"] }
+tracing.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+siq-config = { path = "../siq-config" }
+siq-grbl = { path = "../siq-grbl" }
+siq-serial = { path = "../siq-serial" }
+siq-sim = { path = "../siq-sim" }
+siq-synth = { path = "../siq-synth" }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
+
+[lints]
+workspace = true

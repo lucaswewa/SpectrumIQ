@@ -11,9 +11,9 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** P1.10b, the ASCII focus driver in `siq-ascii` and the peripheral simulators in
-`siq-sim`. It completes Milestone 1: the simulated rig of `config/sim.toml` runs with the real
-drivers against their emulators (`cargo run --release -p siq-sim --example sim_rig`).
+**In review:** P2.1, [`siq-acquire`](crates/siq-acquire/README.md), the acquisition engine: live
+view, settle-aware snaps and sequences, with every frame numbered and stamped with its pose and
+context.
 
 Done so far:
 
@@ -23,7 +23,9 @@ Done so far:
   - P0.3a, [`siq-telemetry`](crates/siq-telemetry/README.md), logging and metrics;
   - P0.3b, [`siq-config`](crates/siq-config/README.md), the instrument configuration, with
     [`config/sim.toml`](config/sim.toml) for the simulated instrument.
-- Milestone 1 (frame memory, devices and simulation):
+- Milestone 1 (frame memory, devices and simulation), complete: the simulated rig of
+  `config/sim.toml` runs with the real drivers against their emulators
+  (`cargo run --release -p siq-sim --example sim_rig`):
   - P1.1, [`siq-buffer`](crates/siq-buffer/README.md), the frame pool, with slots locked in RAM and
     frames shared without allocation or copy;
   - P1.2, the frame fan-out in `siq-buffer`: every frame to many consumers, each with its own
@@ -46,7 +48,8 @@ Done so far:
     resolve once the stage is still, a backlash-consistent approach, jogs, homing, and a stop that
     keeps the position;
   - P1.10a, [`siq-ascii`](crates/siq-ascii/README.md)'s data-driven dialects: a device's ASCII
-    protocol described by a TOML file, and `siq-sim`'s emulator of any dialect.
+    protocol described by a TOML file, and `siq-sim`'s emulator of any dialect;
+  - P1.10b, the ASCII focus driver in `siq-ascii`, and the peripheral simulators in `siq-sim`.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

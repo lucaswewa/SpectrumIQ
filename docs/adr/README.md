@@ -39,3 +39,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0028](0028-licence-exceptions-mpl-and-ijg.md) | Licence exceptions: MPL-2.0 for unmodified dependencies, and IJG with attribution | Accepted | P1.8 |
 | [0029](0029-grbl-motion-completion-polling-stop-and-recovery.md) | GRBL motion completion, status polling, and stop and recovery | Accepted | P1.9 |
 | [0030](0030-data-driven-ascii-dialects.md) | Data-driven ASCII dialects: templates for both directions, and the dialect emulator (amended in P1.10b: the focus driver) | Accepted | P1.10a |
+| [0031](0031-frame-pose-association-and-context-stamping.md) | Frame↔pose time association, and context stamping | Accepted | P2.1 |

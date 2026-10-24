@@ -1034,6 +1034,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
+name = "siq-acquire"
+version = "0.1.0"
+dependencies = [
+ "proptest",
+ "siq-buffer",
+ "siq-config",
+ "siq-devices",
+ "siq-grbl",
+ "siq-serial",
+ "siq-sim",
+ "siq-synth",
+ "siq-types",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "siq-ascii"
 version = "0.1.0"
 dependencies = [
