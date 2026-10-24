@@ -23,5 +23,6 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0012](0012-simulation-strategy.md) | Simulation: protocol emulators, image-formation camera, ground-truth worlds | Accepted | planning |
 | [0013](0013-2d-acquisition-and-stitching-strategy.md) | 2D acquisition and stitching strategy | Accepted | planning |
 | [0014](0014-3d-scope-and-pluggability.md) | 3D reconstruction scope and pluggability | Accepted | planning |
-| [0015](0015-phase-sizing-and-deliverables.md) | Phase sizing and per-phase deliverables | Accepted | planning |
+| [0015](0015-phase-sizing-and-deliverables.md) | Phase sizing and per-phase deliverables (amended in P0.1: exact counting rules) | Accepted | planning |
 | [0016](0016-hardware-baseline.md) | Hardware baseline and device roles | Accepted | planning |
+| [0017](0017-workspace-toolchain-and-xtask.md) | Workspace layout, toolchain pin, and `cargo xtask` as the quality gate | Accepted | P0.1 |

@@ -1,0 +1,38 @@
+{
+  "packages": [
+    { "name": "siq-types", "dependencies": [{ "name": "serde", "kind": null }], "targets": [] },
+    { "name": "siq-buffer", "dependencies": [{ "name": "siq-types", "kind": null }], "targets": [] },
+    { "name": "siq-imgproc", "dependencies": [{ "name": "siq-types", "kind": null }], "targets": [] },
+    {
+      "name": "siq-sim",
+      "dependencies": [
+        { "name": "siq-buffer", "kind": null },
+        { "name": "siq-imgproc", "kind": null }
+      ],
+      "targets": []
+    },
+    {
+      "name": "siq-dff",
+      "dependencies": [
+        { "name": "siq-imgproc", "kind": null },
+        { "name": "siq-sim", "kind": "dev" }
+      ],
+      "targets": []
+    },
+    { "name": "siq-workflow", "dependencies": [{ "name": "siq-sim", "kind": null }], "targets": [] },
+    {
+      "name": "siq-server",
+      "dependencies": [
+        { "name": "teta-wot", "kind": null },
+        { "name": "siq-workflow", "kind": null }
+      ],
+      "targets": []
+    },
+    { "name": "spectrumiq-server", "dependencies": [{ "name": "siq-server", "kind": null }], "targets": [] },
+    {
+      "name": "xtask",
+      "dependencies": [{ "name": "anyhow", "kind": null }],
+      "targets": [{ "name": "classify", "kind": ["example"], "required-features": [] }]
+    }
+  ]
+}

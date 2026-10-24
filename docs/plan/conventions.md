@@ -30,8 +30,17 @@ implement the phase without access to the planning conversation.
 
 ### 1.3 Definition of done (every phase)
 
-- [ ] `cargo xtask ci` passes: fmt, clippy (`-D warnings`), tests, example smoke runs, web
-      lint/test/build (if `web/` changed), and the license check.
+- [ ] `cargo xtask ci` passes. It runs, in order:
+      - fmt;
+      - clippy (`-D warnings`);
+      - tests;
+      - rustdoc (`-D warnings`);
+      - `layers`;
+      - example smoke runs;
+      - the licence check (when cargo-deny is installed);
+      - the web checks (once `web/package.json` exists).
+
+      The exact steps are in ADR-0017.
 - [ ] `cargo xtask loc --base main` reports **< 1000** production lines (see §2).
 - [ ] The tests listed in the brief exist and pass. Tests that verify a requirement are tagged with
       its ID (§5.3).
@@ -57,7 +66,8 @@ implement the phase without access to the planning conversation.
   `.css`), `**/*.wgsl`, and `xtask/src/**`.
 - **Not counted:**
   - tests: `tests/`, `**/tests.rs`, `**/tests/**`, `*.spec.ts`, `*.test.ts`, `web/e2e/**`;
-  - `benches/`, `examples/`, and `web/src/dev/**` (demo routes, which serve as frontend examples);
+  - `benches/`, `examples/`, and `web/src/views/dev/**` (the dev galleries and demo pages, which
+    serve as frontend examples);
   - documentation (`*.md`), and configuration (`Cargo.toml`, `package.json`, `tauri.conf.json`,
     `*.toml` configs);
   - generated files (`**/generated/**`, `bindings.rs`, `openapi.json`, lockfiles).
@@ -69,13 +79,15 @@ implement the phase without access to the planning conversation.
 - **Unit tests** live in separate files (`#[cfg(test)] mod tests;` → `src/<module>/tests.rs`), so
   that counting by path is exact.
 - `cargo xtask loc --base <rev>` implements these rules and prints counted, excluded, and example
-  totals.
+  totals. The exact path and comment rules are in the ADR-0015 amendment.
 
 ## 3. Repository layout
 
 ```
 Cargo.toml                 workspace
 rust-toolchain.toml        pinned toolchain (1.99.1, x86_64-pc-windows-msvc)
+.cargo/config.toml         the `cargo xtask` alias (own target dir: target/xtask)
+deny.toml                  licence policy for cargo-deny
 crates/siq-*/              libraries (see architecture.md §3)
 apps/spectrumiq-server/    the service binary
 apps/spectrumiq-desktop/   Tauri 2 desktop shell (src-tauri/ inside)
@@ -188,7 +200,7 @@ verifies a requirement. `cargo xtask trace` builds the traceability matrix from 
 - **Rust:** `crates/<crate>/examples/<name>.rs`, run as `cargo run -p <crate> --example <name>`.
   Every example supports smoke mode (env `SIQ_SMOKE=1`: short duration, small sizes) and exits
   non-zero on failure. `cargo xtask ci` runs every example in smoke mode.
-- **Frontend:** a dev-only demo route under `web/src/dev/` (mocked stores, works without a server),
+- **Frontend:** a dev-only demo page under `web/src/views/dev/` (mocked stores, works without a server),
   plus a written walkthrough in `web/README.md` for running it against the simulated server.
 - **Scripting:** `examples/python/*.py` (httpx), run with `uv run`. Each script is documented with
   the server command it expects.

@@ -1,0 +1,64 @@
+# Expected classes of repository paths, for `cargo xtask loc` (conventions §2).
+# Each line is "<class> <path>". Blank lines and lines starting with # are ignored.
+
+# Production source.
+counted crates/siq-types/src/lib.rs
+counted crates/siq-types/src/geometry/affine.rs
+counted crates/siq-euresys-sys/build.rs
+counted crates/siq-euresys-sys/shim/siq_egrabber.cpp
+counted crates/siq-euresys-sys/shim/siq_egrabber.h
+counted crates/siq-gpu/src/shaders/lut.wgsl
+counted apps/spectrumiq-server/src/main.rs
+counted apps/spectrumiq-desktop/src-tauri/src/lib.rs
+counted apps/spectrumiq-desktop/src-tauri/build.rs
+counted web/src/main.ts
+counted web/src/ui/AppButton.vue
+counted web/src/theme/tokens.css
+counted xtask/src/loc.rs
+counted crates\siq-types\src\units.rs
+
+# Tests and benches.
+tests crates/siq-types/src/geometry/tests.rs
+tests crates/siq-types/src/geometry/tests/affine.rs
+tests crates/siq-types/tests/serde.rs
+tests crates/siq-imgproc/benches/kernels.rs
+tests web/src/ui/AppButton.spec.ts
+tests web/src/api/wot/client.test.ts
+tests web/e2e/live.spec.ts
+tests xtask/tests/fixtures/loc_paths.txt
+
+# Examples, and the web app's demo pages.
+examples crates/siq-types/examples/affine_demo.rs
+examples examples/python/live_and_move.py
+examples web/src/views/dev/ComponentsView.vue
+
+# Generated files.
+generated Cargo.lock
+generated web/package-lock.json
+generated crates/siq-euresys-sys/src/bindings.rs
+generated web/src/api/generated/schema.d.ts
+generated web/src/api/generated/openapi.json
+
+# Documentation.
+docs README.md
+docs crates/siq-types/README.md
+docs docs/adr/0001-record-decisions-and-traceability.md
+docs docs/plan/architecture.md
+
+# Configuration.
+config Cargo.toml
+config crates/siq-types/Cargo.toml
+config rust-toolchain.toml
+config web/package.json
+config apps/spectrumiq-desktop/src-tauri/tauri.conf.json
+config .gitignore
+config .gitattributes
+config web/.prettierrc.json
+config web/.nvmrc
+
+# Everything else.
+other web/vite.config.ts
+other web/eslint.config.js
+other web/index.html
+other LICENSE
+other crates/siq-types/src/data/schema.bin

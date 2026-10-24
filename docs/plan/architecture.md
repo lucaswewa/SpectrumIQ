@@ -82,13 +82,13 @@ flowchart LR
 
 | Layer | Crates | May depend on |
 |---|---|---|
-| L0 Foundation | `siq-types` (units, coordinates, frame metadata, image views, clock), `siq-config`, `siq-telemetry` | external crates only |
-| L1 Core libraries: sync, no devices, no tokio | `siq-buffer` (frame pool, fan-out), `siq-imgproc` (CPU kernels), `siq-gpu` (wgpu infra, GPU FFT), `siq-synth` (synthetic specimens and ground truth), `siq-storage` (datasets, raw, OME-Zarr, OME-TIFF), `siq-register` (phase correlation) | L0, other L1 |
-| L2 Devices | `siq-devices` (traits and mocks), `siq-serial`, `siq-grbl`, `siq-ascii` (dialect driver), `siq-euresys-sys`, `siq-euresys`, `siq-sim` (camera image formation, protocol emulators, peripheral sims) | L0, L1 |
-| L3 Processing: pure algorithms, sync, rayon/wgpu | `siq-pyramid`, `siq-calib`, `siq-stitch-live`, `siq-stitch`, `siq-dff`, `siq-deconv`, `siq-section`, `siq-lightfield` | L0, L1 (never L2) |
-| L4 Engines: async orchestration | `siq-acquire`, `siq-preview`, `siq-jobs`, `siq-workflow` (incl. autofocus, focus map, calibration routines), `siq-auth` | L0–L3 |
+| L0 Foundation | `siq-types` (units, coordinates, frame metadata, image views, clock), `siq-config`, `siq-telemetry` | L0 |
+| L1 Core libraries: sync, no devices, no tokio | `siq-buffer` (frame pool, fan-out), `siq-imgproc` (CPU kernels), `siq-gpu` (wgpu infra, GPU FFT), `siq-synth` (synthetic specimens and ground truth), `siq-storage` (datasets, raw, OME-Zarr, OME-TIFF), `siq-register` (phase correlation), `siq-mfenc` (H.264, M14), `siq-shm` (shared memory, M14) | L0, L1 |
+| L2 Devices | `siq-devices` (traits and mocks), `siq-serial`, `siq-grbl`, `siq-ascii` (dialect driver), `siq-euresys-sys`, `siq-euresys`, `siq-sim` (camera image formation, protocol emulators, peripheral sims) | L0–L2 |
+| L3 Processing: pure algorithms, sync, rayon/wgpu | `siq-pyramid`, `siq-calib`, `siq-stitch-live`, `siq-stitch`, `siq-dff`, `siq-deconv`, `siq-section`, `siq-lightfield` | L0, L1, L3 (never L2) |
+| L4 Engines: async orchestration | `siq-acquire`, `siq-preview`, `siq-jobs`, `siq-workflow` (incl. autofocus, focus map, calibration routines), `siq-auth` | L0–L4 |
 | L5 Service | `siq-server`: Things, routes, middleware, web app hosting. **The only crate that depends on teta-wot.** | all |
-| Apps | `spectrumiq-server`, `spectrumiq-desktop` (Tauri), `siq-datagen`, `spectrumiq-viewer3d` (late) | — |
+| Apps | `spectrumiq-server`, `spectrumiq-desktop` (Tauri), `siq-datagen`, `spectrumiq-viewer3d` (late) | anything; nothing depends on an app |
 
 Rules:
 
@@ -96,8 +96,13 @@ Rules:
    tests, and in `siq-datagen` validation.
 2. Engines (L4) depend on device **traits** (`siq-devices`), never on concrete drivers. Concrete
    drivers are selected in `siq-server` from configuration (sim or real, per device).
-3. `xtask` checks these rules with `cargo xtask layers`, using `cargo metadata` against a table in
-   `xtask`.
+3. `cargo xtask layers` checks the table and rule 1 with `cargo metadata`, against the table in
+   `xtask/src/layers.rs`.
+   - Normal and build dependencies are checked.
+   - Dev-dependencies are exempt, so tests may use simulators to make data.
+   - A crate missing from the table fails the check.
+
+   Review enforces rule 2 (ADR-0017).
 
 ### 3.2 Crate map (milestone introducing it)
 

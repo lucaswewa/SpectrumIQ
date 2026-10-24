@@ -1,0 +1,5 @@
+[alias]
+# `cargo xtask <command>`. xtask builds into its own target directory, so the running xtask.exe
+# is never overwritten by the workspace builds it starts (Windows can't replace a running
+# executable).
+xtask = "run --quiet --package xtask --target-dir target/xtask --"

@@ -1,0 +1,25 @@
+# cargo-deny's configuration: the licence policy of docs/plan/conventions.md §7.
+# `cargo xtask ci` runs `cargo deny check licenses` when cargo-deny is installed
+# (cargo install --locked cargo-deny). MPL-2.0 and copyleft licences need an ADR first.
+
+[graph]
+targets = ["x86_64-pc-windows-msvc"]
+
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "BSL-1.0",
+]
+confidence-threshold = 0.93
+
+[licenses.private]
+# The workspace's own crates aren't published, and are MIT.
+ignore = true

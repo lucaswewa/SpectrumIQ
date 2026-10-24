@@ -1,0 +1,27 @@
+{
+  "packages": [
+    { "name": "siq-types", "dependencies": [{ "name": "serde", "kind": null }], "targets": [] },
+    { "name": "siq-buffer", "dependencies": [], "targets": [] },
+    { "name": "siq-config", "dependencies": [{ "name": "siq-buffer", "kind": "build" }], "targets": [] },
+    { "name": "siq-sim", "dependencies": [{ "name": "siq-types", "kind": null }], "targets": [] },
+    { "name": "siq-imgproc", "dependencies": [{ "name": "siq-sim", "kind": "dev" }], "targets": [] },
+    {
+      "name": "siq-dff",
+      "dependencies": [
+        { "name": "siq-types", "kind": null },
+        { "name": "siq-sim", "kind": null }
+      ],
+      "targets": []
+    },
+    { "name": "siq-preview", "dependencies": [{ "name": "teta-wot", "kind": null }], "targets": [] },
+    {
+      "name": "siq-server",
+      "dependencies": [
+        { "name": "teta-wot", "kind": null },
+        { "name": "siq-preview", "kind": null }
+      ],
+      "targets": []
+    },
+    { "name": "siq-unplanned", "dependencies": [], "targets": [] }
+  ]
+}

@@ -1,6 +1,42 @@
-[package]
-name = "SpectrumIQ"
+[workspace]
+resolver = "3"
+members = ["crates/*", "apps/*", "xtask"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
+# The minimum supported version is teta-wot's; the pinned toolchain is newer.
+rust-version = "1.98"
+license = "MIT"
+repository = "https://github.com/lucaswewa/SpectrumIQ"
+# Nothing is published to crates.io.
+publish = false
 
-[dependencies]
+# Shared versions. Where teta-wot uses a crate, the requirement matches teta-wot's, so the two
+# resolve to one copy. Every version was published at least two weeks before it was added.
+[workspace.dependencies]
+teta-wot = { git = "https://github.com/lucaswewa/teta-wot", tag = "v0.1.0" }
+
+anyhow = "1.0"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+clap = { version = "4.6", features = ["derive"] }
+criterion = "0.8.2"
+insta = { version = "1.48", features = ["json"] }
+proptest = "1.11"
+rayon = "1.12"
+schemars = { version = "1.2", features = ["preserve_order", "indexmap2"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
+tempfile = "3.27"
+thiserror = "2.0"
+tokio = { version = "1.47", features = ["fs", "io-util", "macros", "net", "rt", "rt-multi-thread", "signal", "sync", "time"] }
+tracing = "0.1.41"
+uuid = { version = "1.18", features = ["v4", "v7", "serde"] }
+
+[workspace.lints.rust]
+missing_docs = "warn"
+# Unsafe code is allowed only where ADR-0007 lists it, with `#![allow(unsafe_code)]` there.
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }

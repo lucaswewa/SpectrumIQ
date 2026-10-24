@@ -141,10 +141,10 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 
 | ID | Requirement | Source | Phases | Verified by |
 |---|---|---|---|---|
-| REQ-NFR-001 | Windows 11 x64 only. | G | P0.1, P15.1 | |
+| REQ-NFR-001 | Windows 11 x64 only. | G | P0.1, P15.1 | `rust-toolchain.toml` pins `x86_64-pc-windows-msvc`, and `deny.toml` targets it (P0.1, by configuration) |
 | REQ-NFR-002 | Runs within the fixed workstation: 32 GB RAM and RTX 3060 8 GB. | Q | P0.3, P1.1, P2.4, P4.3, P7.1, P8.3, P8.5, P11.1, P12.2 | |
 | REQ-NFR-003 | No lost frames in full-rate live view with both previews, the live mosaic and the recorder active. | D | P1.1, P1.2, P1.5, P9.5, P10.2, P15.2 | |
 | REQ-NFR-004 | Live preview latency ≤ 250 ms on the LAN, from exposure end to display. | D | P9.5, P10.2, P14.2 | |
 | REQ-NFR-005 | Permissive licences only; no Euresys SDK files in the repository. | Q | P2.5, all | |
-| REQ-NFR-006 | Traceability (REQ ↔ tests), a SOUP register and an audit trail, so that IVD work later is possible. | Q | P0.1, P9.3, P15.3 | |
-| REQ-NFR-007 | Each phase has < 1000 production lines, and delivers impl notes, ADR, README, tests and examples. | G | P0.1, all | |
+| REQ-NFR-006 | Traceability (REQ ↔ tests), a SOUP register and an audit trail, so that IVD work later is possible. | Q | P0.1, P9.3, P15.3 | Partly: the impl-notes and README templates, the SOUP register, and REQ-tagged tests exist (P0.1). The matrix tooling follows in P15.3 |
+| REQ-NFR-007 | Each phase has < 1000 production lines, and delivers impl notes, ADR, README, tests and examples. | G | P0.1, all | `xtask` tests `loc::tests::*`, `layers::tests::*`, `tests/loc.rs` (`paths_are_classified_as_the_fixture_says`, `a_phase_branch_is_measured_from_its_merge_base_with_imports_excluded`), `tests/layers.rs` (`broken_rules_are_reported`, `a_layered_workspace_passes_with_dev_dependencies_exempt`, `this_workspace_follows_the_layers`) |
