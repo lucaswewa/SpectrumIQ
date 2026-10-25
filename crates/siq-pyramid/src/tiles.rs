@@ -9,6 +9,7 @@
 //!   colours), and encoded as JPEG or PNG.
 //! - **The [`TileService`]** caches tiles, bounded by bytes, least recently used first out, each
 //!   with an ETag that changes when the image does.
+//! - **A [`thumbnail`]** is a plane's channels composited at the top level, as JPEG.
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -301,6 +302,57 @@ pub fn channel_lut(image: &ZarrImage, c: u64) -> TileLut {
         gamma: 1.0,
         colormap,
     }
+}
+
+/// A thumbnail of plane (`t`, `z`) of `image`, as JPEG: its [`composite`] within
+/// [`TOP`](crate::TOP) pixels, the top level once the pyramid is built.
+pub fn thumbnail(image: &ZarrImage, plane: (u64, u64)) -> Result<Vec<u8>, TileError> {
+    let (rgb, width, height) = composite(image, plane, crate::TOP)?;
+    let mut out = Vec::new();
+    Encoder::new(&mut out, QUALITY)
+        .encode(&rgb, width as u16, height as u16, ColorType::Rgb)
+        .map_err(|error| TileError::Encode(error.to_string()))?;
+    Ok(out)
+}
+
+/// Plane (`t`, `z`) of `image` in colour, at the first level within `fit` pixels both ways: every
+/// channel through its own window and colour, added. Its RGB pixels, width and height.
+pub fn composite(
+    image: &ZarrImage,
+    (t, z): (u64, u64),
+    fit: u64,
+) -> Result<(Vec<u8>, u32, u32), TileError> {
+    let info = image.info();
+    if t >= info.size.t || z >= info.size.z {
+        return Err(TileError::NotFound(format!(
+            "the image has no plane at t {t}, z {z}"
+        )));
+    }
+    let mut level = info.levels - 1;
+    while info.size(level).x.max(info.size(level).y) > fit.max(1) {
+        level += 1;
+    }
+    let size = info.size(level);
+    let whole = RectPx::new(0, 0, size.x as u32, size.y as u32);
+    let mut sums = vec![0u32; size.x as usize * size.y as usize * 3];
+    for c in 0..info.size.c {
+        let lut = channel_lut(image, c);
+        let levels = match info.sample {
+            SampleType::U16 => map_u16(&read::<u16>(image, level, (t, c, z), whole)?.0, &lut)?,
+            SampleType::F32 => map_f32(&read::<f32>(image, level, (t, c, z), whole)?.0, &lut),
+        };
+        let colour = match lut.colormap {
+            Colormap::Colour(colour) => colour,
+            Colormap::Grey | Colormap::Inverted => [255; 3],
+        };
+        for (pixel, &level) in sums.chunks_mut(3).zip(&levels) {
+            for (sum, c) in pixel.iter_mut().zip(colour) {
+                *sum += (u32::from(c) * u32::from(level) + 127) / 255;
+            }
+        }
+    }
+    let rgb = sums.into_iter().map(|sum| sum.min(255) as u8).collect();
+    Ok((rgb, whole.width, whole.height))
 }
 
 /// `rect` of `plane` at a Zarr level, which may be coarser than the image's top level: then the

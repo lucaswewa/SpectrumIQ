@@ -7,12 +7,14 @@
 //! - Level `l` halves the one before it in `y` and `x`, rounding up, so its pixel is 2ˡ of level
 //!   0's. Its translation centres it on the level-0 pixels it covers.
 //! - The writer stores one chunk at a time, in any order and from any thread
-//!   ([`ZarrImage::write_chunk`]). Chunks at the right and bottom edges are given clipped, and
+//!   ([`ZarrImage::write_chunk`]), or a whole plane, its chunks in parallel
+//!   ([`ZarrImage::write_plane`]). Chunks at the right and bottom edges are given clipped, and
 //!   padded with zeros on disk, as Zarr stores them.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use rayon::prelude::*;
 use serde_json::{Map, Value, json};
 use siq_types::{ImageView, RectPx};
 use zarrs::array::codec::ZstdCodec;
@@ -344,6 +346,43 @@ impl ZarrImage {
         array
             .store_chunk(&[t, c, z, row, col], whole.as_slice())
             .map_err(|error| zarr_error(&self.path, &error.to_string()))
+    }
+
+    /// Stores the whole of plane (`t`, `c`, `z`) at `level` from `pixels`, which must be the
+    /// level's size: its chunks in parallel, on the calling rayon pool.
+    pub fn write_plane<T: ZarrSample>(
+        &self,
+        level: usize,
+        plane: (u64, u64, u64),
+        pixels: ImageView<'_, T>,
+    ) -> Result<(), StorageError> {
+        let size = self.info.size(level);
+        if (pixels.width() as u64, pixels.height() as u64) != (size.x, size.y) {
+            let why = format!(
+                "level {level} is {} × {}, not {} × {}",
+                size.x,
+                size.y,
+                pixels.width(),
+                pixels.height()
+            );
+            return Err(zarr_error(&self.path, &why));
+        }
+        let (rows, cols) = self.info.chunks(level);
+        let chunk = self.info.chunk;
+        (0..rows * cols).into_par_iter().try_for_each(|k| {
+            let (row, col) = (k / cols, k % cols);
+            let (x, y) = (col * chunk, row * chunk);
+            let rect = RectPx::new(
+                x as u32,
+                y as u32,
+                chunk.min(size.x - x) as u32,
+                chunk.min(size.y - y) as u32,
+            );
+            let view = pixels
+                .sub_view(rect)
+                .map_err(|error| zarr_error(&self.path, &error.to_string()))?;
+            self.write_chunk(level, plane, (row, col), view)
+        })
     }
 
     /// Reads `rect` of plane (`t`, `c`, `z`) at `level`, in the level's pixels.

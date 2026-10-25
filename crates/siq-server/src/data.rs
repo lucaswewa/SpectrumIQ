@@ -1,7 +1,10 @@
-//! SpectrumIQ's data routes (ADR-0045): deep-zoom tiles of a dataset's OME-Zarr images, rendered
-//! on demand, and the true value of a pixel. `{image}` names an image of the dataset's `zarr/`
-//! folder, without `.ome.zarr`; `{dataset}` is the dataset's id.
+//! SpectrumIQ's data routes (ADR-0041, ADR-0045): a dataset's manifest and thumbnail, deep-zoom
+//! tiles of its OME-Zarr images, rendered on demand, and the true value of a pixel. `{image}` names
+//! an image of the dataset's `zarr/` folder, without `.ome.zarr`; `{dataset}` is the dataset's id.
 //!
+//! - `GET /api/siq/data/{dataset}/manifest`: its manifest, as JSON;
+//! - `GET /api/siq/data/{dataset}/thumb.jpg`: its first image's first plane, every channel in its
+//!   colour, at the top level;
 //! - `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}.dzi`: the plane's DZI descriptor;
 //! - `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}_files/{level}/{col}_{row}.{jpeg|png}`: a
 //!   tile, with `min`, `max`, `gamma` and `cmap` (`grey`, `inverted` or `rrggbb`) in the query,
@@ -16,7 +19,8 @@ use std::sync::Arc;
 
 use serde_json::json;
 use siq_imgproc::Colormap;
-use siq_pyramid::tiles::{TileAt, TileError, TileFormat, TileLut, channel_lut, value};
+use siq_pyramid::tiles::{TileAt, TileError, TileFormat, TileLut, channel_lut, thumbnail, value};
+use siq_storage::Dataset;
 use siq_types::DatasetId;
 use teta_wot::http::axum::extract::{Path as UrlPath, Query, State};
 use teta_wot::http::axum::http::{HeaderMap, HeaderValue, StatusCode, header};
@@ -25,12 +29,15 @@ use teta_wot::http::axum::routing::get;
 use teta_wot::http::axum::{Json, Router};
 
 use crate::Instrument;
+use crate::datasets::images;
 
 type Params = HashMap<String, String>;
 
 /// The data routes.
 pub(crate) fn routes(instrument: &Arc<Instrument>) -> Router {
     Router::new()
+        .route("/api/siq/data/{dataset}/manifest", get(manifest))
+        .route("/api/siq/data/{dataset}/thumb.jpg", get(thumb))
         .route("/api/siq/data/{dataset}/{image}/value", get(probe))
         .route(
             "/api/siq/data/{dataset}/{image}/{c}/{z}/{t}",
@@ -71,9 +78,8 @@ fn bad(why: impl Into<String>) -> Refusal {
     Refusal(StatusCode::BAD_REQUEST, why.into())
 }
 
-/// The folder of image `image` of dataset `dataset`, looking the dataset up again if it isn't
-/// known yet.
-fn image_path(instrument: &Instrument, dataset: &str, image: &str) -> Result<PathBuf, Refusal> {
+/// The folder of dataset `dataset`, looking it up again if it isn't known yet.
+fn dataset_path(instrument: &Instrument, dataset: &str) -> Result<PathBuf, Refusal> {
     let id: DatasetId = dataset
         .parse()
         .map_err(|_| not_found(format!("{dataset} isn't a dataset's id")))?;
@@ -83,14 +89,53 @@ fn image_path(instrument: &Instrument, dataset: &str, image: &str) -> Result<Pat
         catalog.get(id)
     });
     let summary = summary.ok_or_else(|| not_found(format!("there is no dataset {id}")))?;
+    Ok(summary.path)
+}
+
+/// The folder of image `image` of dataset `dataset`.
+fn image_path(instrument: &Instrument, dataset: &str, image: &str) -> Result<PathBuf, Refusal> {
+    let folder = dataset_path(instrument, dataset)?;
     let plain = image
         .chars()
         .all(|c| c.is_ascii_alphanumeric() || "-_.".contains(c));
-    let path = summary.path.join("zarr").join(format!("{image}.ome.zarr"));
+    let path = folder.join("zarr").join(format!("{image}.ome.zarr"));
     if !plain || image.starts_with('.') || !path.is_dir() {
-        return Err(not_found(format!("dataset {id} has no image {image:?}")));
+        return Err(not_found(format!(
+            "dataset {dataset} has no image {image:?}"
+        )));
     }
     Ok(path)
+}
+
+async fn manifest(
+    State(instrument): State<Arc<Instrument>>,
+    UrlPath(dataset): UrlPath<String>,
+) -> Result<Response, Refusal> {
+    let folder = dataset_path(&instrument, &dataset)?;
+    let dataset = Dataset::open(folder).map_err(TileError::from)?;
+    Ok(Json(dataset.manifest()).into_response())
+}
+
+async fn thumb(
+    State(instrument): State<Arc<Instrument>>,
+    UrlPath(dataset): UrlPath<String>,
+) -> Result<Response, Refusal> {
+    let folder = dataset_path(&instrument, &dataset)?;
+    let image = images(&folder).into_iter().next();
+    let image = image.ok_or_else(|| not_found(format!("dataset {dataset} has no image yet")))?;
+    let path = folder.join("zarr").join(format!("{image}.ome.zarr"));
+    let tiles = Arc::clone(&instrument.tiles);
+    let jpeg = tokio::task::spawn_blocking(move || {
+        let (opened, _) = tiles.image(&path)?;
+        thumbnail(&opened, (0, 0))
+    })
+    .await
+    .map_err(|error| Refusal(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))??;
+    let headers = [
+        (header::CONTENT_TYPE, "image/jpeg"),
+        (header::CACHE_CONTROL, "private, no-cache"),
+    ];
+    Ok((headers, jpeg).into_response())
 }
 
 fn number<T: std::str::FromStr>(text: &str, what: &str) -> Result<T, Refusal> {

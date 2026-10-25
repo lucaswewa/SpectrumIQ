@@ -3,11 +3,12 @@
 //! SpectrumIQ's own routes in front.
 //!
 //! - **Things,** under `/api/v1/`: `camera`, `display`, `stage`, `focus`, the fitted peripherals
-//!   (`illumination`, `filter_wheel`, `objective`, `modality`), `imaging` and `jobs`. The global
-//!   lock is on: hardware actions and writes take it, and `stage.halt`, `focus.halt` and
-//!   `jobs.cancel` don't.
+//!   (`illumination`, `filter_wheel`, `objective`, `modality`), `imaging`, `jobs` and `datasets`.
+//!   The global lock is on: hardware actions and writes take it, and `stage.halt`, `focus.halt`,
+//!   `jobs.cancel` and the `datasets` actions other than `snap_to_dataset` don't.
 //! - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`; and under
-//!   `/api/siq/data/`, a dataset's deep-zoom tiles and pixel values (ADR-0045).
+//!   `/api/siq/data/`, a dataset's manifest and thumbnail, and its images' deep-zoom tiles and
+//!   pixel values (ADR-0045).
 //! - **The web app** at `/` and `/assets/…`, embedded in release builds (ADR-0036).
 //!
 //! teta-wot's router serves every other request.
@@ -40,6 +41,7 @@ use tower::ServiceExt;
 use tracing::{info, warn};
 
 mod data;
+pub mod datasets;
 pub mod devices;
 pub mod imaging;
 pub mod jobs;
@@ -49,6 +51,7 @@ pub mod webapp;
 
 pub use teta_wot::server::shutdown_signal;
 
+use datasets::Datasets;
 use devices::Peripherals;
 use imaging::Imaging;
 use jobs::Jobs;
@@ -193,6 +196,7 @@ fn things(camera: Camera, fitted: impl Fn(&str) -> bool) -> ThingServerBuilder {
     builder
         .thing("imaging", Imaging::default())
         .thing("jobs", Jobs::default())
+        .thing("datasets", Datasets::default())
 }
 
 /// The service: the Things' server, and the instrument behind it.

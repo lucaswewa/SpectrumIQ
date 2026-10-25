@@ -120,4 +120,13 @@ fn the_catalog_lists_a_data_root_s_datasets_newest_first() {
     assert!(catalog.get(third.manifest().id).is_none());
     catalog.refresh().unwrap();
     assert_eq!(catalog.list()[0].name, "third");
+
+    // Deleting one removes its folder and its entry; an unknown one is refused.
+    let id = third.manifest().id;
+    assert!(catalog.delete(id).unwrap());
+    assert!(!third.path().exists());
+    assert!(catalog.get(id).is_none());
+    assert!(!catalog.delete(id).unwrap());
+    catalog.refresh().unwrap();
+    assert_eq!(catalog.list().len(), 2);
 }

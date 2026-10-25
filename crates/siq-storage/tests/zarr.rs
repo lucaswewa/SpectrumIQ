@@ -1,5 +1,5 @@
 //! OME-Zarr images (ADR-0042): round trips on odd sizes, chunks clipped at the edges, the NGFF
-//! metadata, and writers storing disjoint chunks at once. REQ-DATA-003.
+//! metadata, writers storing disjoint chunks at once, and whole planes. REQ-DATA-003.
 
 use rayon::prelude::*;
 use siq_storage::zarr::*;
@@ -223,5 +223,36 @@ fn disjoint_chunks_are_written_at_once_from_many_threads() {
                 .enumerate()
                 .all(|(x, &p)| p == value(0, 0, x as u64, y as u64))
         );
+    }
+}
+
+#[test]
+fn a_whole_plane_is_written_at_once_and_reads_back_as_given() {
+    let folder = tempfile::tempdir().unwrap();
+    let path = folder.path().join("plane.ome.zarr");
+    let size = Size5 {
+        t: 1,
+        c: 2,
+        z: 1,
+        y: 700,
+        x: 1100,
+    };
+    let image = ZarrImage::create(&path, info(size, SampleType::U16, 256, 1)).unwrap();
+    for c in 0..2 {
+        let plane = OwnedImage::from_fn(1100, 700, |x, y| value(c, 0, x as u64, y as u64));
+        image.write_plane(0, (0, c, 0), plane.view()).unwrap();
+    }
+    let wrong = OwnedImage::from_fn(1000, 700, |_, _| 0u16);
+    assert!(image.write_plane(0, (0, 0, 0), wrong.view()).is_err());
+
+    let image = ZarrImage::open(&path).unwrap();
+    for c in 0..2 {
+        let whole = image
+            .read_region::<u16>(0, (0, c, 0), RectPx::new(0, 0, 1100, 700))
+            .unwrap();
+        for (k, &pixel) in whole.pixels.iter().enumerate() {
+            let (x, y) = (k as u64 % 1100, k as u64 / 1100);
+            assert_eq!(pixel, value(c, 0, x, y), "channel {c} at ({x}, {y})");
+        }
     }
 }

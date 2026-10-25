@@ -28,6 +28,7 @@ OpenSeadragon (ADR-0045).
 | `tiles::render(image, TileAt, lut, format)` | A tile: its level's region (halved from the top for coarser levels), through a `TileLut`, encoded as JPEG or PNG |
 | `tiles::TileLut` | `min`, `max`, `gamma`, `colormap`; `check`; `channel_lut(image, c)` gives a channel's own |
 | `tiles::value(image, plane, level, x, y)` | The true value of a pixel |
+| `tiles::composite(image, (t, z), fit)`, `tiles::thumbnail(image, (t, z))` | A plane's channels in their own windows and colours, added, at the first level within `fit` pixels: RGB, or as a JPEG within 256 |
 | `tiles::TileService` | `new(budget)`; `tile`, `descriptor`, `image`, `stats`: tiles cached by bytes, LRU, with ETags that follow the image's generation |
 
 ## Examples

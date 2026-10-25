@@ -23,6 +23,20 @@ expression: descriptions
       "frames_lost"
     ]
   },
+  "datasets": {
+    "title": "Datasets",
+    "properties": [],
+    "actions": [
+      "delete",
+      "export_dzi",
+      "export_ome_tiff",
+      "snap_to_dataset",
+      "summary"
+    ],
+    "events": [
+      "created"
+    ]
+  },
   "display": {
     "title": "Display",
     "properties": [

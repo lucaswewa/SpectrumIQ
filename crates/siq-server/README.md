@@ -11,11 +11,14 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
   - `camera`, `display`, `stage` and `focus`;
   - the fitted peripherals: `illumination`, `filter_wheel`, `objective` and `modality`;
   - `imaging`, the channels (ADR-0035);
-  - `jobs`, the background jobs (ADR-0043).
+  - `jobs`, the background jobs (ADR-0043);
+  - `datasets`, the datasets, a snap made into one, and their exports (ADR-0041, amended).
 
-  The global lock is on, and the `halt` actions and `jobs.cancel` bypass it.
-- **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`, with teta-wot's router
-  as the fallback (ADR-0003, amended).
+  The global lock is on. The `halt` actions, `jobs.cancel` and the `datasets` actions other than
+  `snap_to_dataset` bypass it.
+- **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`; under
+  `/api/siq/data/`, a dataset's manifest and thumbnail, and its images' tiles. teta-wot's router
+  is the fallback (ADR-0003, amended).
 - **The web app** at `/`, `/assets/…`, `/favicon.svg` and `/third-party-licences.txt` (ADR-0036):
   - `web/dist` is embedded in release builds, and read from disk in debug builds;
   - `Service::with_webapp(WebApp::Dir(folder))` serves another build;
@@ -33,11 +36,11 @@ This is the only crate that depends on teta-wot.
   - `siq-acquire`, `siq-preview`, `siq-jobs`, `siq-pyramid`, `siq-storage`;
   - `siq-devices`, `siq-grbl`, `siq-ascii`, `siq-serial`, `siq-sim`;
   - `siq-config`, `siq-telemetry`, `siq-buffer`, `siq-imgproc`, `siq-synth`, `siq-types`;
-  - `tokio`, `serde`, `schemars`, `anyhow`, `tracing`.
+  - `tokio`, `serde`, `schemars`, `chrono`, `anyhow`, `tracing`.
 - **Used by:** `apps/spectrumiq-server`, the service binary.
 - **Phase:** P2.3; P2.4 added the peripherals, the channels, and the metrics and memory routes;
   P3.1 the web app; P4.3 the `jobs` Thing; P4.5 the data routes, with the catalog and the tile
-  cache.
+  cache; P4.7 the `datasets` Thing, a dataset's manifest and thumbnail.
 
 ## API
 
@@ -67,6 +70,7 @@ This is the only crate that depends on teta-wot.
 | `modality` | `modality`, `moving` (observable); `modes`, `patterns` | `set_modality(mode, pattern?)` | `changed` |
 | `imaging` | `channel` (observable); `channels` | `select_channel(id)`: every light off, the filter, the exposure and colour, the light, then the frames' channel | `channel_changed` |
 | `jobs` | `queue`, `running` (observable): each job's id, kind, priority, state, progress, estimate and times | `cancel(id)` | — |
+| `datasets` | — | `summary(offset, limit)`: a page of the datasets, newest first; `snap_to_dataset(channels?, name?)`: a frame per channel, recorded raw, written as the image `snap` by a job, and its pyramid submitted; `export_ome_tiff(dataset, image)` and `export_dzi(dataset, image, c, z, t, format)`, as background jobs; `delete(dataset)`, refused while a job works on it | `created` |
 
 The peripherals' Things are served only if their `[peripherals]` section is present.
 
@@ -78,13 +82,15 @@ The peripherals' Things are served only if their `[peripherals]` section is pres
 | `GET /api/siq/system/metrics` | Every metric by name, as `{"kind": "gauge", "value": …}`, `{"kind": "counter", …}` or `{"kind": "histogram", "count", "sum", "buckets"}`: the pool, the previews' latencies, and the acquisition's rate and losses |
 | `GET /api/siq/system/memory` | The pool's slots by state and their size; the process's working set, its peak and its private bytes; the configured budgets, all in bytes |
 
-### The data routes (ADR-0045)
+### The data routes (ADR-0041, ADR-0045)
 
 `{dataset}` is a dataset's id in the catalog of `[server] data_root`; `{image}` is an image of its
 `zarr/` folder, without `.ome.zarr`.
 
 | Route | What |
 |---|---|
+| `GET /api/siq/data/{dataset}/manifest` | The dataset's manifest, as JSON |
+| `GET /api/siq/data/{dataset}/thumb.jpg` | Its first image's first plane, the channels composited in their colours, at the top level |
 | `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}.dzi` | The plane's DZI descriptor |
 | `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}_files/{level}/{col}_{row}.{jpeg\|png}` | A tile, rendered on demand and cached within `tile_cache_mb`, with `min`, `max`, `gamma` and `cmap` (`grey`, `inverted`, `rrggbb`) in the query, each the channel's own if not given; an ETag, and 304 when it matches |
 | `GET /api/siq/data/{dataset}/{image}/value?c&z&t&level&x&y` | `{"value", "level", "x", "y"}`: the true value of a pixel of a Zarr level |
@@ -120,7 +126,9 @@ library only:
 - `examples/python/live_and_move.py` moves the stage, and saves a frame before and after;
 - `examples/python/channels.py` cycles through the channels, and saves a snap of each;
 - `examples/python/live_soak.py` runs live view with both previews streaming, by default for
-  10 minutes, and fails if a frame is lost.
+  10 minutes, and fails if a frame is lost;
+- `examples/python/snap_and_fetch_tile.py` snaps into a dataset, waits for its pyramid, and saves
+  a tile and the thumbnail, with the time each step took.
 
 [`test.http`](../../test.http), at the repository's root, has a request for every route and
 affordance, for VS Code's REST Client extension. It includes expected refusals. The requests named
@@ -132,7 +140,7 @@ None.
 
 ## Testing
 
-`cargo test -p siq-server` runs three binaries, with `config/sim.toml` on a 256 × 192 sensor,
+`cargo test -p siq-server` runs its binaries, with `config/sim.toml` on a 256 × 192 sensor,
 through teta-wot's in-process `TestClient`.
 
 `server`:
@@ -152,6 +160,14 @@ through teta-wot's in-process `TestClient`.
   the new light only after its filter;
 - an instrument without peripherals: only `imaging` is added, and a channel still sets the camera;
 - the metrics' names, with a snapshot, and the memory route.
+
+`datasets`, end to end over HTTP on a 640 × 480 sensor:
+
+- a snap in two channels made into a dataset, its event, and its pyramid built as a job;
+- level 0 holding the raw frames' pixels, the channels named and coloured as theirs;
+- its tiles, manifest (both jobs recorded) and thumbnail served;
+- the summary, both exports as jobs, and an export of an image it hasn't refused;
+- deleting it: refused while a job works on it, then done.
 
 `webapp`, from a build in a temporary folder:
 

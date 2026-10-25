@@ -2740,6 +2740,256 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/datasets/created": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A dataset was made.
+         * @description ## A dataset was made.
+         *
+         *     A dataset was made.
+         *
+         *     Server-sent events: each event's data, as JSON in a `data:` line, following this schema:
+         *
+         *     ```json
+         *     {
+         *       "$ref": "#/components/schemas/datasets_created_data"
+         *     }
+         *     ```
+         */
+        get: operations["subscribe_event_api_v1_datasets_created_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of delete.
+         * @description List all the invocations of delete that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_datasets_delete_get"];
+        put?: never;
+        /**
+         * Deletes dataset `dataset`: its folder, and everything in it. Refused while a job is waiting
+         * @description ## Deletes dataset `dataset`: its folder, and everything in it. Refused while a job is waiting
+         *
+         *     Deletes dataset `dataset`: its folder, and everything in it. Refused while a job is waiting
+         *     or running on it; false if there is no such dataset. Only an admin may, from M9. It doesn't
+         *     wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_datasets_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/export_dzi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of export_dzi.
+         * @description List all the invocations of export_dzi that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_datasets_export_dzi_get"];
+        put?: never;
+        /**
+         * Exports plane (`c`, `z`, `t`) of image `image` of dataset `dataset` as a static DZI
+         * @description ## Exports plane (`c`, `z`, `t`) of image `image` of dataset `dataset` as a static DZI
+         *
+         *     Exports plane (`c`, `z`, `t`) of image `image` of dataset `dataset` as a static DZI
+         *     pyramid, in the channel's own window and colour, to `exports/dzi/<image>_c<c>_z<z>_t<t>.dzi`
+         *     and its tiles, `jpeg` or `png`: a background job, whose id it gives. It doesn't wait for the
+         *     global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_datasets_export_dzi_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/export_ome_tiff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of export_ome_tiff.
+         * @description List all the invocations of export_ome_tiff that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_datasets_export_ome_tiff_get"];
+        put?: never;
+        /**
+         * Exports image `image` of dataset `dataset` as OME-TIFF, to `exports/<image>.ome.tif`, as a
+         * @description ## Exports image `image` of dataset `dataset` as OME-TIFF, to `exports/<image>.ome.tif`, as a
+         *
+         *     Exports image `image` of dataset `dataset` as OME-TIFF, to `exports/<image>.ome.tif`, as a
+         *     background job: its id. It doesn't wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_datasets_export_ome_tiff_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/snap_to_dataset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of snap_to_dataset.
+         * @description List all the invocations of snap_to_dataset that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_datasets_snap_to_dataset_get"];
+        put?: never;
+        /**
+         * Snaps a frame in each of `channels`, in order, or one in the channel in use, and makes them
+         * @description ## Snaps a frame in each of `channels`, in order, or one in the channel in use, and makes them
+         *
+         *     Snaps a frame in each of `channels`, in order, or one in the channel in use, and makes them
+         *     a dataset named `name` (`snap` by default): the frames recorded raw, then written as level
+         *     0 of the image `snap`, a channel each, then its pyramid submitted as a job. Frames must be
+         *     of 16-bit pixels.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_datasets_snap_to_dataset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of summary.
+         * @description List all the invocations of summary that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_datasets_summary_get"];
+        put?: never;
+        /**
+         * The datasets, newest first: up to `limit` (at most 500) from `offset`. It doesn't wait for
+         * @description ## The datasets, newest first: up to `limit` (at most 500) from `offset`. It doesn't wait for
+         *
+         *     The datasets, newest first: up to `limit` (at most 500) from `offset`. It doesn't wait for
+         *     the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_datasets_summary_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Query All Actions
+         * @description The invocations of each action of `datasets`, newest first (`queryallactions`).
+         */
+        get: operations["query_all_actions_api_v1_datasets_actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subscribe All Events
+         * @description Server-sent events: every event of `datasets`, named after it (`subscribeallevents`).
+         */
+        get: operations["subscribe_all_events_api_v1_datasets_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/datasets/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Thing Description
+         * @description The W3C Thing Description of `datasets`: its properties, actions and events, and how to use them.
+         */
+        get: operations["things_datasets_api_v1_datasets__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3839,6 +4089,212 @@ export interface components {
             /** @description Why it failed. */
             error?: string | null;
         }[];
+        /** @description A dataset, as the API lists it. */
+        datasets_created_data: {
+            /**
+             * Format: uuid
+             * @description Its id.
+             */
+            id: string;
+            /** @description What it holds: `snap`, `tile_scan`, `z_stack`, …. */
+            kind: string;
+            /** @description Its name. */
+            name: string;
+            /**
+             * Format: date-time
+             * @description When it was made.
+             */
+            created: string;
+            /** @description Who made it. */
+            user: string;
+            /** @description The raw frames recorded in it. */
+            frames: number;
+            /** @description Its OME-Zarr images, by name, as the data routes take them: `snap`, `mosaic`, …. */
+            images: string[];
+        };
+        datasets_delete_input: {
+            /**
+             * Format: uuid
+             * @description A dataset: a scan, a stack, a snapshot, and everything derived from it.
+             */
+            dataset: string;
+        };
+        datasets_delete_output: boolean;
+        datasets_delete_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["datasets_delete_input"];
+            output?: components["schemas"]["datasets_delete_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        datasets_export_dzi_input: {
+            /**
+             * Format: uuid
+             * @description A dataset: a scan, a stack, a snapshot, and everything derived from it.
+             */
+            dataset: string;
+            image: string;
+            /** @default 0 */
+            c?: number;
+            /** @default 0 */
+            z?: number;
+            /** @default 0 */
+            t?: number;
+            format?: string | null;
+        };
+        datasets_export_dzi_output: number;
+        datasets_export_dzi_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["datasets_export_dzi_input"];
+            output?: components["schemas"]["datasets_export_dzi_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        datasets_export_ome_tiff_input: {
+            /**
+             * Format: uuid
+             * @description A dataset: a scan, a stack, a snapshot, and everything derived from it.
+             */
+            dataset: string;
+            image: string;
+        };
+        datasets_export_ome_tiff_output: number;
+        datasets_export_ome_tiff_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["datasets_export_ome_tiff_input"];
+            output?: components["schemas"]["datasets_export_ome_tiff_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        datasets_snap_to_dataset_input: {
+            channels?: number[] | null;
+            name?: string | null;
+        };
+        /** @description A snap made into a dataset. */
+        datasets_snap_to_dataset_output: {
+            /** @description The dataset. */
+            dataset: {
+                /**
+                 * Format: uuid
+                 * @description Its id.
+                 */
+                id: string;
+                /** @description What it holds: `snap`, `tile_scan`, `z_stack`, …. */
+                kind: string;
+                /** @description Its name. */
+                name: string;
+                /**
+                 * Format: date-time
+                 * @description When it was made.
+                 */
+                created: string;
+                /** @description Who made it. */
+                user: string;
+                /** @description The raw frames recorded in it. */
+                frames: number;
+                /** @description Its OME-Zarr images, by name, as the data routes take them: `snap`, `mosaic`, …. */
+                images: string[];
+            };
+            /** @description Its image's name. */
+            image: string;
+            /** @description The job building the image's pyramid. */
+            pyramid: number;
+        };
+        datasets_snap_to_dataset_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["datasets_snap_to_dataset_input"];
+            output?: components["schemas"]["datasets_snap_to_dataset_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        datasets_summary_input: {
+            /** @default 0 */
+            offset?: number;
+            /** @default 50 */
+            limit?: number;
+        };
+        /** @description A page of the datasets, newest first. */
+        datasets_summary_output: {
+            /** @description The datasets in all. */
+            total: number;
+            /** @description The first one's place in the list. */
+            offset: number;
+            /** @description The page's datasets. */
+            datasets: {
+                /**
+                 * Format: uuid
+                 * @description Its id.
+                 */
+                id: string;
+                /** @description What it holds: `snap`, `tile_scan`, `z_stack`, …. */
+                kind: string;
+                /** @description Its name. */
+                name: string;
+                /**
+                 * Format: date-time
+                 * @description When it was made.
+                 */
+                created: string;
+                /** @description Who made it. */
+                user: string;
+                /** @description The raw frames recorded in it. */
+                frames: number;
+                /** @description Its OME-Zarr images, by name, as the data routes take them: `snap`, `mosaic`, …. */
+                images: string[];
+            }[];
+        };
+        datasets_summary_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["datasets_summary_input"];
+            output?: components["schemas"]["datasets_summary_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -7413,6 +7869,398 @@ export interface operations {
         };
     };
     things_jobs_api_v1_jobs__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThingDescription"];
+                };
+            };
+        };
+    };
+    subscribe_event_api_v1_datasets_created_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-sent events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_datasets_delete_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of delete. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_datasets_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["datasets_delete_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["datasets_delete_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["datasets_delete_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_datasets_export_dzi_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of export_dzi. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_datasets_export_dzi_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["datasets_export_dzi_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["datasets_export_dzi_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["datasets_export_dzi_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_datasets_export_ome_tiff_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of export_ome_tiff. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_datasets_export_ome_tiff_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["datasets_export_ome_tiff_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["datasets_export_ome_tiff_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["datasets_export_ome_tiff_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_datasets_snap_to_dataset_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of snap_to_dataset. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_datasets_snap_to_dataset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["datasets_snap_to_dataset_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["datasets_snap_to_dataset_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["datasets_snap_to_dataset_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_datasets_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of summary. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_datasets_summary_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["datasets_summary_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["datasets_summary_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["datasets_summary_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    query_all_actions_api_v1_datasets_actions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: components["schemas"]["InvocationSummary"][];
+                    };
+                };
+            };
+        };
+    };
+    subscribe_all_events_api_v1_datasets_events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-sent events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    things_datasets_api_v1_datasets__get: {
         parameters: {
             query?: never;
             header?: never;

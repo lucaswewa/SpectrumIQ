@@ -81,6 +81,18 @@ impl Catalog {
         let index = self.index.read().unwrap_or_else(PoisonError::into_inner);
         index.get(&id).cloned()
     }
+
+    /// Deletes dataset `id`: its folder and everything in it, then its entry. False if the catalog
+    /// doesn't know it. A folder that is only partly deleted stays in the catalog.
+    pub fn delete(&self, id: DatasetId) -> Result<bool, StorageError> {
+        let Some(summary) = self.get(id) else {
+            return Ok(false);
+        };
+        fs::remove_dir_all(&summary.path).map_err(io_at(&summary.path))?;
+        let mut index = self.index.write().unwrap_or_else(PoisonError::into_inner);
+        index.remove(&id);
+        Ok(true)
+    }
 }
 
 fn scan(data_root: &Path) -> Result<BTreeMap<DatasetId, DatasetSummary>, StorageError> {

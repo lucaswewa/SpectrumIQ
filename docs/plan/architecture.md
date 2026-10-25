@@ -221,7 +221,7 @@ overview, stats and binning passes into one read of the frame.
 | `mosaic_live` | `viewport`, `bounds`, `enabled`, `canvas_scale` | `clear`, `save_snapshot` | stream `view` |
 | `workflow` | `state`, `progress`, `plan` | `tile_scan`, `z_stack`, `multi_position`, `time_lapse`, `pause`, `resume` | `tile_acquired`, `finished` |
 | `calibration` | `status` per objective × channel | `stage_camera`, `capture_dark`, `capture_flat`, `estimate_shading` | — |
-| `datasets` | `summary` | `snap_to_dataset`, `export_ome_tiff`, `export_dzi`, `delete` | `created` |
+| `datasets` | — | `summary` (paged), `snap_to_dataset`, `export_ome_tiff`, `export_dzi`, `delete` | `created` |
 | `jobs` | `queue`, `running` | `stitch`, `build_pyramid`, `dff`, `deconvolve`, `section`, `lightfield`, `cancel` | `job_finished` |
 | `control` | `holder`, `since` | `request`, `release`, `take_over` | `changed` |
 
@@ -240,6 +240,7 @@ overview, stats and binning passes into one read of the frame.
 | `/`, `/assets/…` | Web app (embedded with `rust-embed` in release builds, from disk in debug builds) |
 | `/api/siq/auth/{login,logout,me,local}` | Sessions (P9.1) |
 | `/api/siq/users…`, `/api/siq/audit…` | Admin (P9.1, P9.3) |
+| `/api/siq/data/{dataset}/manifest`, `…/thumb.jpg` | A dataset's manifest, and its thumbnail: the first image's channels composited at the top level (P4.7, ADR-0041 amended) |
 | `/api/siq/data/{dataset}/{image}/{c}/{z}/{t}.dzi` and `…/{t}_files/{level}/{col}_{row}.{jpeg,png}?min&max&gamma&cmap` | Deep-zoom tiles of a dataset's OME-Zarr image, rendered on demand (P4.5, ADR-0045) |
 | `/api/siq/data/{dataset}/{image}/value?x&y&c&z&t&level` | Pixel probe (true values) |
 | `/api/siq/data/{dataset}/heightmap`, `…/volume`, `…/points` | Reduced 3D payloads for VTK.js (binary, P11.4, P12.5) |

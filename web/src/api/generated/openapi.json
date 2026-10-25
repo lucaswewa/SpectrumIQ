@@ -3865,6 +3865,433 @@
           }
         }
       }
+    },
+    "/api/v1/datasets/created": {
+      "get": {
+        "summary": "A dataset was made.",
+        "description": "## A dataset was made.\n\nA dataset was made.\n\nServer-sent events: each event's data, as JSON in a `data:` line, following this schema:\n\n```json\n{\n  \"$ref\": \"#/components/schemas/datasets_created_data\"\n}\n```",
+        "operationId": "subscribe_event_api_v1_datasets_created_get",
+        "responses": {
+          "200": {
+            "description": "Server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/delete": {
+      "get": {
+        "summary": "All invocations of delete.",
+        "description": "List all the invocations of delete that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_datasets_delete_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of delete.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Deletes dataset `dataset`: its folder, and everything in it. Refused while a job is waiting",
+        "description": "## Deletes dataset `dataset`: its folder, and everything in it. Refused while a job is waiting\n\nDeletes dataset `dataset`: its folder, and everything in it. Refused while a job is waiting\nor running on it; false if there is no such dataset. Only an admin may, from M9. It doesn't\nwait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_datasets_delete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/datasets_delete_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/datasets_delete_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/datasets_delete_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/export_dzi": {
+      "get": {
+        "summary": "All invocations of export_dzi.",
+        "description": "List all the invocations of export_dzi that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_datasets_export_dzi_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of export_dzi.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Exports plane (`c`, `z`, `t`) of image `image` of dataset `dataset` as a static DZI",
+        "description": "## Exports plane (`c`, `z`, `t`) of image `image` of dataset `dataset` as a static DZI\n\nExports plane (`c`, `z`, `t`) of image `image` of dataset `dataset` as a static DZI\npyramid, in the channel's own window and colour, to `exports/dzi/<image>_c<c>_z<z>_t<t>.dzi`\nand its tiles, `jpeg` or `png`: a background job, whose id it gives. It doesn't wait for the\nglobal lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_datasets_export_dzi_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/datasets_export_dzi_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/datasets_export_dzi_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/datasets_export_dzi_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/export_ome_tiff": {
+      "get": {
+        "summary": "All invocations of export_ome_tiff.",
+        "description": "List all the invocations of export_ome_tiff that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_datasets_export_ome_tiff_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of export_ome_tiff.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Exports image `image` of dataset `dataset` as OME-TIFF, to `exports/<image>.ome.tif`, as a",
+        "description": "## Exports image `image` of dataset `dataset` as OME-TIFF, to `exports/<image>.ome.tif`, as a\n\nExports image `image` of dataset `dataset` as OME-TIFF, to `exports/<image>.ome.tif`, as a\nbackground job: its id. It doesn't wait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_datasets_export_ome_tiff_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/datasets_export_ome_tiff_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/datasets_export_ome_tiff_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/datasets_export_ome_tiff_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/snap_to_dataset": {
+      "get": {
+        "summary": "All invocations of snap_to_dataset.",
+        "description": "List all the invocations of snap_to_dataset that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_datasets_snap_to_dataset_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of snap_to_dataset.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Snaps a frame in each of `channels`, in order, or one in the channel in use, and makes them",
+        "description": "## Snaps a frame in each of `channels`, in order, or one in the channel in use, and makes them\n\nSnaps a frame in each of `channels`, in order, or one in the channel in use, and makes them\na dataset named `name` (`snap` by default): the frames recorded raw, then written as level\n0 of the image `snap`, a channel each, then its pyramid submitted as a job. Frames must be\nof 16-bit pixels.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_datasets_snap_to_dataset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/datasets_snap_to_dataset_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/datasets_snap_to_dataset_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/datasets_snap_to_dataset_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/summary": {
+      "get": {
+        "summary": "All invocations of summary.",
+        "description": "List all the invocations of summary that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_datasets_summary_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of summary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "The datasets, newest first: up to `limit` (at most 500) from `offset`. It doesn't wait for",
+        "description": "## The datasets, newest first: up to `limit` (at most 500) from `offset`. It doesn't wait for\n\nThe datasets, newest first: up to `limit` (at most 500) from `offset`. It doesn't wait for\nthe global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_datasets_summary_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/datasets_summary_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/datasets_summary_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/datasets_summary_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/actions": {
+      "get": {
+        "summary": "Query All Actions",
+        "description": "The invocations of each action of `datasets`, newest first (`queryallactions`).",
+        "operationId": "query_all_actions_api_v1_datasets_actions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/InvocationSummary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/events": {
+      "get": {
+        "summary": "Subscribe All Events",
+        "description": "Server-sent events: every event of `datasets`, named after it (`subscribeallevents`).",
+        "operationId": "subscribe_all_events_api_v1_datasets_events_get",
+        "responses": {
+          "200": {
+            "description": "Server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/datasets/": {
+      "get": {
+        "summary": "Thing Description",
+        "description": "The W3C Thing Description of `datasets`: its properties, actions and events, and how to use them.",
+        "operationId": "things_datasets_api_v1_datasets__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThingDescription"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8733,6 +9160,822 @@
             "queued"
           ]
         }
+      },
+      "datasets_created_data": {
+        "description": "A dataset, as the API lists it.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Its id.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "What it holds: `snap`, `tile_scan`, `z_stack`, ….",
+            "type": "string"
+          },
+          "name": {
+            "description": "Its name.",
+            "type": "string"
+          },
+          "created": {
+            "description": "When it was made.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "user": {
+            "description": "Who made it.",
+            "type": "string"
+          },
+          "frames": {
+            "description": "The raw frames recorded in it.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "images": {
+            "description": "Its OME-Zarr images, by name, as the data routes take them: `snap`, `mosaic`, ….",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "created",
+          "user",
+          "frames",
+          "images"
+        ]
+      },
+      "datasets_delete_input": {
+        "type": "object",
+        "properties": {
+          "dataset": {
+            "description": "A dataset: a scan, a stack, a snapshot, and everything derived from it.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "additionalProperties": false
+      },
+      "datasets_delete_output": {
+        "type": "boolean"
+      },
+      "datasets_delete_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/datasets_delete_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/datasets_delete_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "datasets_export_dzi_input": {
+        "type": "object",
+        "properties": {
+          "dataset": {
+            "description": "A dataset: a scan, a stack, a snapshot, and everything derived from it.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          },
+          "c": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0
+          },
+          "z": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0
+          },
+          "t": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0
+          },
+          "format": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dataset",
+          "image"
+        ],
+        "additionalProperties": false
+      },
+      "datasets_export_dzi_output": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "datasets_export_dzi_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/datasets_export_dzi_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/datasets_export_dzi_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "datasets_export_ome_tiff_input": {
+        "type": "object",
+        "properties": {
+          "dataset": {
+            "description": "A dataset: a scan, a stack, a snapshot, and everything derived from it.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dataset",
+          "image"
+        ],
+        "additionalProperties": false
+      },
+      "datasets_export_ome_tiff_output": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "datasets_export_ome_tiff_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/datasets_export_ome_tiff_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/datasets_export_ome_tiff_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "datasets_snap_to_dataset_input": {
+        "type": "object",
+        "properties": {
+          "channels": {
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "description": "A channel of the instrument configuration: illumination, filter, exposure and display\ncolour.",
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 65535
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "datasets_snap_to_dataset_output": {
+        "description": "A snap made into a dataset.",
+        "type": "object",
+        "properties": {
+          "dataset": {
+            "description": "The dataset.",
+            "type": "object",
+            "properties": {
+              "id": {
+                "description": "Its id.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "kind": {
+                "description": "What it holds: `snap`, `tile_scan`, `z_stack`, ….",
+                "type": "string"
+              },
+              "name": {
+                "description": "Its name.",
+                "type": "string"
+              },
+              "created": {
+                "description": "When it was made.",
+                "format": "date-time",
+                "type": "string"
+              },
+              "user": {
+                "description": "Who made it.",
+                "type": "string"
+              },
+              "frames": {
+                "description": "The raw frames recorded in it.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "images": {
+                "description": "Its OME-Zarr images, by name, as the data routes take them: `snap`, `mosaic`, ….",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "name",
+              "created",
+              "user",
+              "frames",
+              "images"
+            ]
+          },
+          "image": {
+            "description": "Its image's name.",
+            "type": "string"
+          },
+          "pyramid": {
+            "description": "The job building the image's pyramid.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "dataset",
+          "image",
+          "pyramid"
+        ]
+      },
+      "datasets_snap_to_dataset_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/datasets_snap_to_dataset_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/datasets_snap_to_dataset_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "datasets_summary_input": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "default": 0,
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "default": 50,
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      },
+      "datasets_summary_output": {
+        "description": "A page of the datasets, newest first.",
+        "type": "object",
+        "properties": {
+          "total": {
+            "description": "The datasets in all.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "offset": {
+            "description": "The first one's place in the list.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "datasets": {
+            "description": "The page's datasets.",
+            "type": "array",
+            "items": {
+              "description": "A dataset, as the API lists it.",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "description": "Its id.",
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "kind": {
+                  "description": "What it holds: `snap`, `tile_scan`, `z_stack`, ….",
+                  "type": "string"
+                },
+                "name": {
+                  "description": "Its name.",
+                  "type": "string"
+                },
+                "created": {
+                  "description": "When it was made.",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "user": {
+                  "description": "Who made it.",
+                  "type": "string"
+                },
+                "frames": {
+                  "description": "The raw frames recorded in it.",
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "images": {
+                  "description": "Its OME-Zarr images, by name, as the data routes take them: `snap`, `mosaic`, ….",
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "name",
+                "created",
+                "user",
+                "frames",
+                "images"
+              ]
+            }
+          }
+        },
+        "required": [
+          "total",
+          "offset",
+          "datasets"
+        ]
+      },
+      "datasets_summary_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/datasets_summary_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/datasets_summary_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
       }
     }
   }

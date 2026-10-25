@@ -6,10 +6,72 @@ use std::path::{Path, PathBuf};
 use siq_pyramid::tiles::{DziGeometry, TileAt, TileFormat, TileLut, render};
 use siq_pyramid::{Control, PyramidError, TOP};
 use siq_storage::ometiff::{self, TiffCompression};
-use siq_storage::zarr::ZarrImage;
-use siq_storage::{Dataset, StorageError};
+use siq_storage::zarr::{ImageInfo, ZarrImage};
+use siq_storage::{Dataset, DatasetReader, FrameKey, StorageError};
 
 use crate::{Job, JobCtx, JobError, JobOutput, Resources};
+
+/// Writes a dataset's raw frames as level 0 of a new OME-Zarr image: the snap pipeline's first step
+/// (ADR-0041, as amended in P4.7). Frame `c` of `frames` is the image's channel `c`. The job must
+/// be given its dataset.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ZarrFromRawJob {
+    /// The image to make, such as `<dataset>/zarr/snap.ome.zarr`.
+    pub image: PathBuf,
+    /// Its metadata, of one level: its `c` is the frames' count, its `y` and `x` their size.
+    pub info: ImageInfo,
+    /// The frames, by key: one per channel, in order.
+    pub frames: Vec<FrameKey>,
+}
+
+impl Job for ZarrFromRawJob {
+    fn kind(&self) -> &str {
+        "zarr_from_raw"
+    }
+
+    fn params(&self) -> serde_json::Value {
+        let frames: Vec<String> = self.frames.iter().map(ToString::to_string).collect();
+        serde_json::json!({ "image": self.image, "frames": frames })
+    }
+
+    fn estimate(&self) -> Resources {
+        let threads = std::thread::available_parallelism().map_or(1, |n| n.get() / 2);
+        // Each thread's chunk, padded, and its encoding: the frames are mapped, not read in.
+        let chunk = self.info.chunk * self.info.chunk * 2;
+        Resources {
+            ram: 3 * chunk * threads as u64,
+            vram: 0,
+            gpu: false,
+            threads,
+        }
+    }
+
+    fn run(&mut self, ctx: &JobCtx) -> Result<JobOutput, JobError> {
+        let dataset = ctx
+            .dataset()
+            .ok_or_else(|| JobError::failed("the job needs its dataset"))?;
+        let dataset = Dataset::open(dataset).map_err(JobError::failed)?;
+        let reader = DatasetReader::open(&dataset).map_err(JobError::failed)?;
+        let image = ZarrImage::create(&self.image, self.info.clone()).map_err(JobError::failed)?;
+        for (c, key) in self.frames.iter().enumerate() {
+            ctx.check()?;
+            let frame = reader
+                .frames()
+                .iter()
+                .find(|frame| frame.sidecar.key == *key);
+            let frame = frame.ok_or_else(|| JobError::failed(format!("no raw frame {key}")))?;
+            let mapped = frame.map().map_err(JobError::failed)?;
+            let pixels = mapped
+                .image_u16()
+                .ok_or_else(|| JobError::failed(format!("frame {key} isn't of 16-bit pixels")))?;
+            ctx.pool()
+                .install(|| image.write_plane(0, (0, c as u64, 0), pixels))
+                .map_err(JobError::failed)?;
+            ctx.progress((c + 1) as f64 / self.frames.len() as f64);
+        }
+        Ok(output(ctx, &self.image))
+    }
+}
 
 /// Builds an OME-Zarr image's pyramid (ADR-0044): its levels 1 and up, from level 0.
 #[derive(Debug, Clone, PartialEq)]

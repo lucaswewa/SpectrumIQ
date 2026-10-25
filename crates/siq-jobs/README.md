@@ -10,8 +10,8 @@ priority, on threads of below-normal priority, and recorded in their dataset's m
 - **Depends on:** `siq-storage` (the records), `siq-pyramid` (its job), `siq-telemetry`,
   `siq-types`; `rayon`, `tokio` (`watch`), `windows-sys`.
 - **Used by:** `siq-server` (the `jobs` Thing); the jobs of P4.4 and later.
-- **Phase:** P4.3; P4.4 added `kinds::PyramidJob`, P4.5 `kinds::DziExportJob`, and P4.6
-  `kinds::OmeTiffExportJob`.
+- **Phase:** P4.3; P4.4 added `kinds::PyramidJob`, P4.5 `kinds::DziExportJob`, P4.6
+  `kinds::OmeTiffExportJob`, and P4.7 `kinds::ZarrFromRawJob`.
 
 ## API
 
@@ -23,6 +23,7 @@ priority, on threads of below-normal priority, and recorded in their dataset's m
 | `SchedulerConfig` | The RAM and VRAM budgets, the pool's threads (half the processors), the starvation guard (60 s), the finished jobs kept (100) |
 | `Resources` | `ram`, `vram`, `gpu`, `threads` |
 | `this_thread_priority` | The calling thread's priority: −1 is below normal |
+| `kinds::ZarrFromRawJob` | A dataset's raw frames as level 0 of a new OME-Zarr image, a channel per frame: the snap pipeline's first step (ADR-0041, amended) |
 | `kinds::PyramidJob` | An OME-Zarr image's pyramid (ADR-0044), as a job: its estimate from the image, its progress by chunks, and the image as its output. The jobs the service runs live in `kinds`, since processing crates (L3) can't use the job system (L4) |
 | `kinds::DziExportJob` | A plane of an OME-Zarr image as a static DZI pyramid on disk (ADR-0045): the descriptor and every level's tiles, rendered as the tile service does, in parallel |
 | `kinds::OmeTiffExportJob` | An OME-Zarr image as one OME-TIFF file (ADR-0046), with its dataset's manifest in the OME-XML: its estimate from the image, its progress by tiles, and the file as its output |

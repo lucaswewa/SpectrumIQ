@@ -35,6 +35,7 @@ async fn the_things_are_listed_and_described() {
     names.sort();
     let expected = [
         "camera",
+        "datasets",
         "display",
         "filter_wheel",
         "focus",

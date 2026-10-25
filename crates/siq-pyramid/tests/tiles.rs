@@ -405,3 +405,37 @@ fn tiles_are_served_to_many_at_once() {
     assert_eq!(stats.hits + stats.misses, 32);
     assert_eq!(stats.tiles, 4);
 }
+
+#[test]
+fn the_thumbnail_adds_every_channel_in_its_colour_at_the_top_level() {
+    let folder = tempfile::tempdir().unwrap();
+    let image = image(folder.path());
+    // The top level is 250 × 150: channel 0 is 0 everywhere, so the thumbnail is channel 1's
+    // green, x + y through 0 to 2000.
+    let (rgb, width, height) = composite(&image, (0, 0), 256).unwrap();
+    assert_eq!((width, height), (250, 150));
+    let top = image
+        .read_region::<u16>(2, (0, 1, 0), RectPx::new(0, 0, 250, 150))
+        .unwrap();
+    for (pixel, &value) in rgb.chunks(3).zip(&top.pixels) {
+        let green = (f64::from(value) / 2000.0 * 255.0).round().min(255.0) as u8;
+        assert_eq!(pixel, [0, green, 0], "{value}");
+    }
+    // Fitting 100 pixels halves the top level twice more: 63 × 38.
+    let (_, width, height) = composite(&image, (0, 0), 100).unwrap();
+    assert_eq!((width, height), (63, 38));
+
+    let jpeg = thumbnail(&image, (0, 0)).unwrap();
+    assert_eq!(&jpeg[..2], [0xFF, 0xD8]);
+    let sof = jpeg.windows(2).position(|w| w == [0xFF, 0xC0]).unwrap();
+    let size = |at: usize| u16::from_be_bytes([jpeg[at], jpeg[at + 1]]);
+    assert_eq!(
+        (size(sof + 7), size(sof + 5)),
+        (250, 150),
+        "the JPEG's size"
+    );
+    assert!(matches!(
+        thumbnail(&image, (0, 1)),
+        Err(TileError::NotFound(_))
+    ));
+}

@@ -400,6 +400,78 @@ Content-Type: application/json
 
 {"id": 3}
 
+# ============================== Datasets and jobs ==============================
+# A snap made into a dataset, its pyramid built as a job, then its tiles. Only `snap_to_dataset`
+# takes the global lock. Send them in order: they use the dataset made.
+
+### Snap in DAPI, then GFP, into a dataset: the raw frames, then its image and its pyramid
+# @name snapset
+POST {{api}}/datasets/snap_to_dataset
+Content-Type: application/json
+
+{"channels": [2, 3], "name": "kidney"}
+
+### Its invocation: send again until `completed`, for the dataset, its image and the pyramid's job
+# @name snappedset
+GET {{snapset.response.body.$.href}}
+
+@dataset = {{snappedset.response.body.$.output.dataset.id}}
+@data = {{host}}/api/siq/data/{{dataset}}
+
+### The jobs waiting: each one's kind, priority, estimate and times
+GET {{api}}/jobs/queue
+
+### The jobs running, with their progress: the pyramid, until it is built
+GET {{api}}/jobs/running
+
+### The datasets, newest first: ten from the first
+POST {{api}}/datasets/summary
+Content-Type: application/json
+
+{"offset": 0, "limit": 10}
+
+### Its manifest: the instrument, and the jobs that made its image
+GET {{data}}/manifest
+
+### Its thumbnail: both channels, in their colours (an image)
+GET {{data}}/thumb.jpg
+
+### The DZI descriptor of its DAPI plane
+GET {{data}}/snap/0/0/0.dzi
+
+### A tile of DZI level 10, in the channel's own window and colour
+GET {{data}}/snap/0/0/0_files/10/0_0.jpeg
+
+### The same tile in grey, from 0 to 4000, brightened, as PNG
+GET {{data}}/snap/0/0/0_files/10/0_0.png?min=0&max=4000&gamma=1.5&cmap=grey
+
+### The true value at (100, 100) of Zarr level 0
+GET {{data}}/snap/value?c=0&z=0&t=0&level=0&x=100&y=100
+
+### Export the image as OME-TIFF, to exports/snap.ome.tif: a background job, whose id it gives
+POST {{api}}/datasets/export_ome_tiff
+Content-Type: application/json
+
+{"dataset": "{{dataset}}", "image": "snap"}
+
+### Export its GFP plane as a static DZI pyramid, to exports/dzi/snap_c1_z0_t0.dzi
+POST {{api}}/datasets/export_dzi
+Content-Type: application/json
+
+{"dataset": "{{dataset}}", "image": "snap", "c": 1, "format": "jpeg"}
+
+### Cancel a job by its id: false, as there is no job 99
+POST {{api}}/jobs/cancel
+Content-Type: application/json
+
+{"id": 99}
+
+### Delete the dataset: refused while a job is working on it, true once done
+POST {{api}}/datasets/delete
+Content-Type: application/json
+
+{"dataset": "{{dataset}}"}
+
 # ============================== Invocations ==============================
 
 ### Every invocation the server keeps, with its state
