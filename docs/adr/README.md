@@ -55,3 +55,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0044](0044-pyramid-scheme.md) | The pyramid scheme: filter, level count and chunk alignment | Accepted | P4.4 |
 | [0045](0045-on-demand-dzi-from-ome-zarr.md) | Deep-zoom tiles rendered on demand from OME-Zarr | Accepted | P4.5 |
 | [0046](0046-the-ome-tiff-export-profile.md) | The OME-TIFF export profile | Accepted | P4.6 |
+| [0047](0047-synthetic-datasets-and-ground-truth.md) | Synthetic datasets and their ground-truth files | Accepted | P4.9 |

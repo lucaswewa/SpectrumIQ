@@ -1,0 +1,28 @@
+[package]
+name = "siq-datagen"
+description = "Synthetic datasets with exact ground truth: tile scans, z-stacks and bead volumes, rendered offline through the simulator's image formation."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+rayon.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+siq-devices = { path = "../../crates/siq-devices" }
+siq-pyramid = { path = "../../crates/siq-pyramid" }
+siq-sim = { path = "../../crates/siq-sim" }
+siq-storage = { path = "../../crates/siq-storage" }
+siq-synth = { path = "../../crates/siq-synth" }
+siq-types = { path = "../../crates/siq-types" }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

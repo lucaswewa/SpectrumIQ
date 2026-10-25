@@ -1,5 +1,6 @@
 //! Recording frames into a dataset and reading them back (ADR-0041): the round trip of pixels and
-//! metadata, page-aligned files and mappings, a failed write, and the free space kept.
+//! metadata, page-aligned files and mappings, a failed write, the free space kept, and a frame
+//! written from memory.
 //! REQ-DATA-001, REQ-DATA-002.
 
 mod common;
@@ -168,4 +169,33 @@ fn the_free_space_is_the_disk_s() {
     let root = tempfile::tempdir().unwrap();
     assert!(free_space(root.path()).unwrap() > 0);
     assert!(free_space(&root.path().join("not there")).is_err());
+}
+
+#[test]
+fn a_frame_made_without_the_camera_reads_back_as_a_recorded_one() {
+    let root = tempfile::tempdir().unwrap();
+    let dataset = dataset(root.path());
+    let (pool, fanout) = pool(1);
+    // A recorded frame's metadata, as the generator gives its own.
+    let meta = *publish(&pool, &fanout, 7, true).meta();
+    let (width, height) = meta.image_size();
+    let pixels: Vec<u16> = (0..width * height).map(|i| (i % 4093) as u16).collect();
+    let key = FrameKey {
+        t: 0,
+        c: 0,
+        z: 3,
+        p: 0,
+    };
+    let written = write_frame(&dataset, key, meta, &pixels).unwrap();
+    assert_eq!(
+        written.path(),
+        dataset.raw_dir().join("t0000_c00_z003_p00000.raw")
+    );
+
+    let reader = DatasetReader::open(&dataset).unwrap();
+    assert_eq!(reader.frames(), [written]);
+    let mapped = reader.frames()[0].map().unwrap();
+    assert_eq!(*mapped.meta(), meta);
+    let image = mapped.image_u16().unwrap();
+    assert_eq!(image.rows().flatten().copied().collect::<Vec<_>>(), pixels);
 }

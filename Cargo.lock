@@ -4165,6 +4165,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "siq-datagen"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "rayon",
+ "serde",
+ "serde_json",
+ "siq-devices",
+ "siq-pyramid",
+ "siq-sim",
+ "siq-storage",
+ "siq-synth",
+ "siq-types",
+ "tempfile",
+]
+
+[[package]]
 name = "siq-devices"
 version = "0.1.0"
 dependencies = [

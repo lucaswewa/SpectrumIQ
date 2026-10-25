@@ -184,8 +184,8 @@ A phase is Done once it is merged.
 | P4.5 | Tile service and DZI | 850 | P4.4, P2.3 | Done |
 | P4.6 | OME-TIFF export | 800 | P4.4 | Done |
 | P4.7 | `datasets` Thing and processing on snap | 700 | P4.3–P4.5 | Done |
-| P4.8 | Dataset browser and 2D viewer UI | 900 | P4.7, P3.2 | Review |
-| P4.9 | Synthetic dataset generator | 700 | P1.6, P4.1 | — |
+| P4.8 | Dataset browser and 2D viewer UI | 900 | P4.7, P3.2 | Done |
+| P4.9 | Synthetic dataset generator | 700 | P1.6, P4.1 | Review |
 
 ### M5 — Registration and calibration ([brief](milestones/M05-registration-calibration.md))
 

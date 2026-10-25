@@ -312,6 +312,35 @@ impl Recorder {
     }
 }
 
+/// Writes a frame of 16-bit pixels, made without the camera (such as by `siq-datagen`), into
+/// `dataset`'s `raw/` folder as the recorder would: `<key>.raw`, little-endian, row after row,
+/// then its sidecar.
+pub fn write_frame(
+    dataset: &Dataset,
+    key: FrameKey,
+    meta: FrameMeta,
+    pixels: &[u16],
+) -> Result<RawFrame, StorageError> {
+    let dir = dataset.raw_dir();
+    let raw = dir.join(format!("{key}.raw"));
+    let bytes: Vec<u8> = pixels
+        .iter()
+        .flat_map(|pixel| pixel.to_le_bytes())
+        .collect();
+    fs::write(&raw, &bytes).map_err(io_at(&raw))?;
+    let sidecar = Sidecar {
+        key,
+        bytes: bytes.len() as u64,
+        meta,
+    };
+    let json = dir.join(format!("{key}.json"));
+    write_atomically(&json, |out| {
+        serde_json::to_writer_pretty(out, &sidecar).map_err(io::Error::from)
+    })
+    .map_err(io_at(&json))?;
+    Ok(RawFrame { sidecar, path: raw })
+}
+
 /// A recorded frame: its sidecar, and its raw file.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RawFrame {

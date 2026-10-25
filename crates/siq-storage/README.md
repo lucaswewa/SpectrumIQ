@@ -12,7 +12,8 @@ images (ADR-0042), the master format of everything derived, with their OME-TIFF 
 - **Depends on:** `siq-types`, `siq-buffer`; `zarrs` (with zstd), `tiff` (its low-level BigTIFF
   encoder), `flate2`, `rayon`, `memmap2`, `sha2`, `serde_json`, `chrono`, `windows-sys`.
 - **Used by:** the service (P4.7), `siq-jobs` (P4.3), `siq-datagen` (P4.9).
-- **Phase:** P4.1; P4.2 added `zarr`, P4.6 `ometiff`, and P4.7 `write_plane` and `Catalog::delete`.
+- **Phase:** P4.1; P4.2 added `zarr`, P4.6 `ometiff`, P4.7 `write_plane` and `Catalog::delete`, and
+  P4.9 `write_frame`.
 
 ## API
 
@@ -23,6 +24,7 @@ images (ADR-0042), the master format of everything derived, with their OME-TIFF 
 | `DatasetWriter` | `start(dataset, subscriber, WriterOptions)` records every frame of a lossless subscriber on a thread of its own; `stats`, `is_finished`, `finish` → `WriterReport` |
 | `WriterOptions` | `min_free` (the bytes to keep free), each frame's `FrameKey`, the `FrameWrite` (`DirectIo`), the free-space query, and a `Catalog` to update |
 | `DatasetReader` | `open(dataset)` lists the frames with a sidecar, in key order; `RawFrame::map` → `MappedFrame`, with `image_u16`, `image_u8`, `as_bytes` and `meta` |
+| `write_frame(dataset, key, meta, pixels)` | A frame made without the camera, such as `siq-datagen`'s, written as the recorder writes one: its raw file, then its sidecar |
 | `Catalog` | `scan(data_root)`, `refresh`, `record(path)`, `list` (newest first), `get(id)`, `delete(id)` (the folder, then the entry) |
 | `free_space(path)` | The bytes this process may still write on a path's disk |
 | `zarr::ZarrImage` | An OME-Zarr image, NGFF 0.5: `create(path, ImageInfo)` and `open(path)`; `set_levels(n)` adds levels, for the pyramid (P4.4); `write_chunk(level, (t, c, z), (row, col), view)` from any thread, edge chunks clipped; `write_plane(level, (t, c, z), view)`, its chunks in parallel; `read_region(level, (t, c, z), rect)` → `Region` |

@@ -36,7 +36,7 @@ pub use manifest::{
 };
 pub use raw::{
     DatasetReader, DatasetWriter, DirectIo, FrameKey, FrameWrite, MappedFrame, RawFrame, Sidecar,
-    WriterOptions, WriterReport, WriterStats,
+    WriterOptions, WriterReport, WriterStats, write_frame,
 };
 
 /// Where long work on images reports its progress, and learns whether to stop: a pyramid's build,

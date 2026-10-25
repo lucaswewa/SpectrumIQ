@@ -79,7 +79,9 @@ Done so far:
     click-to-move and STOP (`/#/dev/control` without a server);
   - P3.5, the [desktop shell](apps/spectrumiq-desktop/README.md): a Tauri window that finds the
     local service and loads its web app (`npm run tauri dev` in `apps/spectrumiq-desktop`).
-- Milestone 4 (storage, jobs and the 2D deep-zoom viewer), under way:
+- Milestone 4 (storage, jobs and the 2D deep-zoom viewer), complete, awaiting approval: a 100 MP
+  snap is a dataset whose first tile comes 1.5 s after the snap, a 533 MP synthetic mosaic browses
+  with tiles in milliseconds, Fiji and QuPath open the OME-TIFF export, and napari the OME-Zarr:
   - P4.1, [`siq-storage`](crates/siq-storage/README.md)'s datasets, with a manifest of their
     provenance, and the recorder that writes the frames marked to save with direct I/O, straight
     from the frame pool (`--example record_sim`);
@@ -89,7 +91,17 @@ Done so far:
     the RAM and GPU budgets, at below-normal priority, with the `jobs` Thing to watch and cancel
     it (`--example jobs_demo`);
   - P4.4, [`siq-pyramid`](crates/siq-pyramid/README.md): an OME-Zarr image's levels by 2 × 2
-    mean, out of core and in parallel, as a job (`--example build_pyramid`).
+    mean, out of core and in parallel, as a job (`--example build_pyramid`);
+  - P4.5, deep-zoom tiles rendered on demand from the levels through each channel's LUT, cached,
+    and served under `/api/siq/data/`, with a static DZI export (`siq-jobs --example export_dzi`);
+  - P4.6, the OME-TIFF export: tiled BigTIFF with the pyramid as SubIFDs and the OME-XML, as a
+    job (`siq-jobs --example export_ometiff`);
+  - P4.7, the `datasets` Thing: a snap made into a dataset, its image and its pyramid, the
+    exports, and the manifest and thumbnail routes (`examples/python/snap_and_fetch_tile.py`);
+  - P4.8, the Datasets page and the Viewer: OpenSeadragon with a tiled image per channel, added
+    in their colours, each channel's LUT, z and t, the scale bar and the probe (`/#/dev/viewer2d`);
+  - P4.9, [`siq-datagen`](apps/siq-datagen/README.md): synthetic tile scans, z-stacks and bead
+    stacks with their exact ground truth (`cargo run -p siq-datagen -- tilescan --smoke`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 
