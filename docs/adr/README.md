@@ -18,7 +18,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0007](0007-pure-rust-wgpu-and-unsafe-policy.md) | Pure Rust + wgpu for algorithms; unsafe and native-code allow-list (amended in P1.1: test-only global allocators) | Accepted | planning |
 | [0008](0008-frontend-stack-and-microscope-reuse.md) | Frontend: Vue + PrimeVue (unstyled) skinned with `microscope`'s tokens, copied from `microscope@0640f99` (amended in P3.1: Reka UI stays, since PrimeVue 5 isn't MIT; the files imported) | Accepted | planning |
 | [0009](0009-visualization-stack.md) | Visualization: OpenSeadragon first, WebGL2 16-bit later; VTK.js; optional native viewer | Accepted | planning |
-| [0010](0010-streaming-tiers.md) | Streaming tiers, browser connection budget, and staged local fast paths | Accepted | planning |
+| [0010](0010-streaming-tiers.md) | Streaming tiers, browser connection budget, and staged local fast paths (amended in P3.2: as built, ADR-0037) | Accepted | planning |
 | [0011](0011-security-model.md) | Security: local accounts, roles, Hardware Control Token, audit; LAN only | Accepted | planning |
 | [0012](0012-simulation-strategy.md) | Simulation: protocol emulators, image-formation camera, ground-truth worlds (amended in P1.10b: the peripheral simulators, and the rig) | Accepted | planning |
 | [0013](0013-2d-acquisition-and-stitching-strategy.md) | 2D acquisition and stitching strategy | Accepted | planning |
@@ -45,3 +45,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0034](0034-sim-and-real-device-selection.md) | Simulated or real devices, chosen per device by the configuration (amended in P2.4: the peripherals) | Accepted | P2.3 |
 | [0035](0035-the-channel-model-and-its-devices.md) | The channel model, and how it maps onto the devices | Accepted | P2.4 |
 | [0036](0036-serving-and-embedding-the-web-app.md) | Serving and embedding the web app | Accepted | P3.1 |
+| [0037](0037-observations-over-websocket-and-the-stream-budget.md) | Observations over WebSocket, and the stream budget | Accepted | P3.2 |

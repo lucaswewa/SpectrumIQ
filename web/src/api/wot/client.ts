@@ -2,7 +2,8 @@ import { ApiError } from './errors'
 import { Invocation, sleep, type FollowOptions, type InvocationRecord } from './invocation'
 import { byteChunks, multipartBoundary, parseMultipart } from './mjpeg'
 import { parseEventStream, textChunks, type SseMessage } from './sse'
-import { formUrl, type Form, type ThingDescription } from './td'
+import { formUrl, socketUrl, type Form, type ThingDescription } from './td'
+import { ThingSocket, type Kind, type SocketFactory } from './ws'
 
 export interface ClientOptions {
   /**
@@ -14,6 +15,11 @@ export interface ClientOptions {
   headers?: () => Record<string, string>
   /** Replaces the global `fetch`, for tests. */
   fetch?: typeof fetch
+  /**
+   * Opens observation sockets: the global `WebSocket` unless given. With `null`, or where there
+   * is no `WebSocket`, observations use server-sent events (ADR-0037).
+   */
+  webSocket?: SocketFactory | null
 }
 
 export interface RequestOptions {
@@ -34,9 +40,26 @@ export interface StreamOptions {
  */
 export class WotClient {
   readonly baseUrl: URL
+  /** Each Thing's observation socket, by its URL. */
+  private readonly sockets = new Map<string, ThingSocket>()
 
   constructor(private readonly options: ClientOptions) {
     this.baseUrl = new URL(options.baseUrl, globalThis.location?.href)
+  }
+
+  /** The socket that `url` observes through, or undefined for server-sent events. */
+  socket(url: URL | undefined): ThingSocket | undefined {
+    const open =
+      this.options.webSocket === undefined
+        ? globalThis.WebSocket && ((href: string) => new WebSocket(href))
+        : this.options.webSocket
+    if (!url || !open) return undefined
+    let socket = this.sockets.get(url.href)
+    if (!socket) {
+      socket = new ThingSocket(url.href, open)
+      this.sockets.set(url.href, socket)
+    }
+    return socket
   }
 
   /** Every Thing's description, by the Thing's name. */
@@ -65,6 +88,8 @@ export class WotClient {
       headers,
       body: 'body' in init ? JSON.stringify(init.body) : undefined,
       signal: init.signal,
+      // Session cookies (M9) flow to the server that served the page.
+      credentials: 'same-origin',
     })
     if (!response.ok) throw await ApiError.fromResponse(response)
     const text = await response.text()
@@ -73,7 +98,11 @@ export class WotClient {
 
   /** Downloads `url`, such as an action's file output, or throws an ApiError. */
   async download(url: URL, init: { signal?: AbortSignal } = {}): Promise<Blob> {
-    const response = await this.fetch(url, { headers: this.headers(), signal: init.signal })
+    const response = await this.fetch(url, {
+      headers: this.headers(),
+      signal: init.signal,
+      credentials: 'same-origin',
+    })
     if (!response.ok) throw await ApiError.fromResponse(response)
     return response.blob()
   }
@@ -124,6 +153,7 @@ export class WotClient {
           const response = await this.fetch(url, {
             headers: { Accept: accept, ...this.headers() },
             signal,
+            credentials: 'same-origin',
           })
           if (!response.ok || !response.body) throw await ApiError.fromResponse(response)
           delay = 1000
@@ -200,9 +230,15 @@ export class ConsumedThing {
       .map((record) => this.follow(record, options))
   }
 
-  /** Calls `onValue` with each new value of an observable property. Returns a function that stops. */
+  /**
+   * Calls `onValue` with each new value of an observable property, over the Thing's observation
+   * socket if it has one, or server-sent events. Returns a function that stops.
+   */
   observeProperty(name: string, onValue: (value: unknown) => void, options?: StreamOptions) {
-    const url = this.url(this.td.properties?.[name]?.forms, 'observeproperty', `property "${name}"`)
+    const forms = this.td.properties?.[name]?.forms
+    const stop = this.overSocket('property', forms, 'observeproperty', name, onValue, options)
+    if (stop) return stop
+    const url = this.url(forms, 'observeproperty', `property "${name}"`)
     return this.client.stream(url, (message) => onValue(JSON.parse(message.data)), options)
   }
 
@@ -226,10 +262,29 @@ export class ConsumedThing {
     throw new Error(`${this.td.title} has no stream "${name}".`)
   }
 
-  /** Calls `onEvent` with the data of each of the event's occurrences. */
+  /** Calls `onEvent` with the data of each of the event's occurrences, as `observeProperty` does. */
   subscribeEvent(name: string, onEvent: (data: unknown) => void, options?: StreamOptions) {
-    const url = this.url(this.td.events?.[name]?.forms, 'subscribeevent', `event "${name}"`)
+    const forms = this.td.events?.[name]?.forms
+    const stop = this.overSocket('event', forms, 'subscribeevent', name, onEvent, options)
+    if (stop) return stop
+    const url = this.url(forms, 'subscribeevent', `event "${name}"`)
     return this.client.stream(url, (message) => onEvent(JSON.parse(message.data)), options)
+  }
+
+  /** Follows `name` over the Thing's socket, if a form has one: the function that stops. */
+  private overSocket(
+    kind: Kind,
+    forms: Form[] | undefined,
+    op: string,
+    name: string,
+    onValue: (value: unknown) => void,
+    options: StreamOptions = {},
+  ) {
+    const socket = this.client.socket(socketUrl(forms, op, this.td.base ?? this.client.baseUrl))
+    if (!socket) return undefined
+    const stop = socket.subscribe(kind, name, { onValue, onError: options.onError })
+    options.signal?.addEventListener('abort', stop, { once: true })
+    return stop
   }
 
   private follow(record: InvocationRecord, options: FollowOptions) {

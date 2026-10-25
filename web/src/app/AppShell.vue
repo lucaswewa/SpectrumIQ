@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { onScopeDispose } from 'vue'
 import { RouterView } from 'vue-router'
+
+import { bindToaster } from '@/stores/thing'
+import { useToast } from '@/ui/overlays'
 
 import { useAvailableDestinations } from './availability'
 import NavRail from './NavRail.vue'
@@ -8,6 +12,9 @@ import { useTabCycling } from './useTabCycling'
 
 const destinations = useAvailableDestinations()
 useTabCycling(destinations)
+// The stores' failures appear as toasts.
+bindToaster(useToast())
+onScopeDispose(() => bindToaster(undefined))
 </script>
 
 <template>

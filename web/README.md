@@ -13,20 +13,23 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
   (`docs/soup.md`).
 - **Used by:** `spectrumiq-server`, which embeds `dist/` in release builds, and the desktop shell
   (P3.5).
-- **Phase:** P3.1. Every phase of M3 adds to it.
+- **Phase:** P3.1; P3.2 added the observation sockets, the stream budget, the stores and the
+  API types. Every phase of M3 adds to it.
 
 ## Layout
 
-| Folder           | What                                                                                           |
-| ---------------- | ---------------------------------------------------------------------------------------------- |
-| `src/theme/`     | The design tokens (two layers, light and dark), and the theme store                            |
-| `src/host/`      | The `HostAdapter`: the only way to the platform (links, files, full screen)                    |
-| `src/api/wot/`   | The TD-driven client: properties, actions as invocations, SSE and MJPEG over fetch, `ApiError` |
-| `src/app/`       | The shell: the navigation rail, keyboard shortcuts, and the placeholder of pages not built yet |
-| `src/ui/`        | The components: native elements, and wrappers of Reka UI. Only this folder imports `reka-ui`   |
-| `src/router/`    | One hash route per destination of the rail, and the development galleries                      |
-| `src/system/`    | The About page                                                                                 |
-| `src/views/dev/` | The galleries: `/#/dev/components` and `/#/dev/tokens`, in development builds only             |
+| Folder           | What                                                                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/theme/`     | The design tokens (two layers, light and dark), and the theme store                                                                                    |
+| `src/host/`      | The `HostAdapter`: the only way to the platform (links, files, full screen)                                                                            |
+| `src/api/wot/`   | The TD-driven client: properties, actions as invocations, observations over each Thing's WebSocket (SSE as the fallback), MJPEG over fetch, `ApiError` |
+| `src/api/`       | `streams.ts`, the budget of 3 MJPEG streams; `generated/`, the server's OpenAPI document and its types                                                 |
+| `src/stores/`    | Pinia stores: `connection`, and `camera`, `display`, `stage`, `focus`, `imaging`, `peripherals`, mirroring their Things                                |
+| `src/app/`       | The shell: the navigation rail, keyboard shortcuts, and the placeholder of pages not built yet                                                         |
+| `src/ui/`        | The components: native elements, and wrappers of Reka UI. Only this folder imports `reka-ui`                                                           |
+| `src/router/`    | One hash route per destination of the rail, and the development galleries                                                                              |
+| `src/system/`    | The About page                                                                                                                                         |
+| `src/views/dev/` | The galleries, `/#/dev/components` and `/#/dev/tokens`, and `/#/dev/observe`: in development builds only                                               |
 
 The rail lists architecture §11's destinations. Each shows once the instrument serves the Thing it
 needs. Until its page is built, a destination says which milestone builds it.
@@ -46,7 +49,10 @@ npm run dev
    `SIQ_API_TARGET` points it elsewhere, such as `http://lab-pc:5000`.
 2. Open `/#/dev/components` and `/#/dev/tokens`. Every component and token is shown in both
    themes, side by side.
-3. Switch the theme with the system's setting, or with `localStorage['spectrumiq.theme']`: `light`,
+3. Open `/#/dev/observe`: every store's values, live. Move the stage with its buttons, and watch
+   its position follow. The browser's developer tools show one WebSocket per Thing, and no
+   event stream.
+4. Switch the theme with the system's setting, or with `localStorage['spectrumiq.theme']`: `light`,
    `dark` or `system`.
 
 To see the app as the server serves it, build it (`npm run build`). Then either start the server
@@ -62,8 +68,11 @@ with `--webapp-dir web/dist`, or build a release server, which embeds `dist/`, a
 | `npm run typecheck`    | `vue-tsc`, strict                                                                                                           |
 | `npm run test:unit`    | Vitest, in happy-dom: `tests/unit/**/*.spec.ts`                                                                             |
 | `npm run build`        | The production build in `dist/`, with `third-party-licences.txt`                                                            |
+| `npm run api:openapi`  | Writes the server's OpenAPI document to `src/api/generated/openapi.json` (needs Cargo)                                      |
+| `npm run api:types`    | Writes its types to `src/api/generated/schema.d.ts`; with `-- --check`, checks they are current                             |
 
-`cargo xtask ci` runs all five. The end-to-end tests (`npm run test:e2e`, Playwright) start with M9.
+`cargo xtask ci` runs the first five, and `api:types -- --check`. A server test fails when
+`openapi.json` is older than the server: then run `api:openapi` and `api:types`. The end-to-end tests (`npm run test:e2e`, Playwright) start with M9.
 
 ## Notes
 

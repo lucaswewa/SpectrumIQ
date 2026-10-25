@@ -55,3 +55,11 @@
 - P3.2: transport and budget tests.
 - P9.5: an e2e connection-budget scenario and a soak test.
 - P14.4 and P14.5: benchmark gates.
+
+## Amendment (P3.2, 2026-10-24): observations and the budget, as built
+
+- **Observations:** a `ThingSocket` per Thing over teta-wot's `{thing}/ws`, with fetch-SSE as the
+  fallback. The streams: a `StreamBudget` of 3 MJPEG streams, pausing hidden ones and resuming
+  them by themselves.
+- **ADR-0037** records the protocol, the reconnection, the budget's rules and the stores built on
+  them.

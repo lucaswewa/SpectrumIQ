@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 
 import AppIcon from '@/ui/AppIcon.vue'
 
+import ConnectionIndicator from './ConnectionIndicator.vue'
 import type { Destination } from './navigation'
 
 const props = defineProps<{ destinations: readonly Destination[] }>()
@@ -34,6 +35,7 @@ const groups = computed(() => [
         </RouterLink>
       </li>
     </ul>
+    <ConnectionIndicator />
   </nav>
 </template>
 

@@ -11,10 +11,10 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In progress:** Milestone 3, frontend foundations. P3.1 is the latest: the [web app](web/README.md),
-started from `microscope`'s and served by the server at `/`
-(`cargo run --release -p spectrumiq-server -- -c config/sim.toml`, then <http://127.0.0.1:5000/>
-once `web/` is built).
+**In progress:** Milestone 3, frontend foundations. P3.2 is the latest: the
+[web app](web/README.md)'s client follows each Thing over its WebSocket, keeps to a budget of
+three MJPEG streams, and mirrors the instrument in Pinia stores (`npm run dev` in `web/`, then
+`/#/dev/observe`).
 
 Done so far:
 
@@ -67,6 +67,9 @@ Done so far:
   - P2.5, [`siq-euresys-sys`](crates/siq-euresys-sys/README.md): Euresys eGrabber behind a C ABI
     of our own, which finds this PC's Coaxlink and camera, and measures its frame rate
     (`eg_discover`, `eg_fps`).
+- Milestone 3 (frontend foundations), under way:
+  - P3.1, the [web app](web/README.md), started from `microscope`'s, with its Reka UI components,
+    and served by the server at `/`.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

@@ -57,4 +57,6 @@
   that the notice is kept. They are as permissive as MIT.
 - **MPL-2.0's acceptance covers `lightningcss`** (Vite's CSS processor): it is used unmodified, at
   build time only.
+- **Python-2.0** (`argparse`, under `openapi-typescript`, development only, from P3.2) is accepted
+  too: the PSF licence is OSI-approved and permissive.
 

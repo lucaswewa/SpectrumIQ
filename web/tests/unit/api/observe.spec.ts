@@ -11,7 +11,12 @@ afterEach(() => vi.useRealTimers())
 
 function connect(routes: Parameters<typeof fakeServer>[0]) {
   const server = fakeServer(routes)
-  const client = new WotClient({ baseUrl: 'http://microscope.test/api/v1/', fetch: server.fetch })
+  // Server-sent events, the fallback when there's no observation socket (ADR-0037).
+  const client = new WotClient({
+    baseUrl: 'http://microscope.test/api/v1/',
+    fetch: server.fetch,
+    webSocket: null,
+  })
   return { thing: client.consume(stage), received: server.received }
 }
 

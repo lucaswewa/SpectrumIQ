@@ -19,7 +19,9 @@
     "format:check": "prettier --check .",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "api:openapi": "cargo run -q -p spectrumiq-server --locked -- --print-openapi > src/api/generated/openapi.json",
+    "api:types": "openapi-typescript src/api/generated/openapi.json -o src/api/generated/schema.d.ts --default-non-nullable false"
   },
   "dependencies": {
     "pinia": "^4.0.3",
@@ -40,10 +42,16 @@
     "eslint": "^10.11.0",
     "eslint-plugin-vue": "^10.11.1",
     "happy-dom": "^20.14.5",
+    "openapi-typescript": "7.13.0",
     "prettier": "^3.9.9",
     "typescript": "~6.0.3",
     "vite": "^8.3.1",
     "vitest": "^5.0.1",
     "vue-tsc": "^3.3.11"
+  },
+  "overrides": {
+    "openapi-typescript": {
+      "typescript": "$typescript"
+    }
   }
 }

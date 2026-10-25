@@ -94,3 +94,17 @@ export function formUrl(
   }
   return undefined
 }
+
+/** The URL of the first WebSocket form that performs `op` (teta-wot's `{thing}/ws`), if any. */
+export function socketUrl(
+  forms: readonly Form[] | undefined,
+  op: string,
+  base: string | URL,
+): URL | undefined {
+  for (const form of forms ?? []) {
+    if (![form.op ?? []].flat().includes(op)) continue
+    const url = new URL(form.href, base)
+    if (url.protocol === 'ws:' || url.protocol === 'wss:') return url
+  }
+  return undefined
+}

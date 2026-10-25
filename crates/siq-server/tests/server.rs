@@ -242,6 +242,17 @@ async fn the_openapi_document_has_every_affordance() {
 }
 
 #[tokio::test]
+async fn the_web_apps_openapi_document_is_current() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../web/src/api/generated/openapi.json");
+    let committed: Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    assert!(
+        committed == siq_server::openapi().await.unwrap(),
+        "web/src/api/generated/openapi.json is out of date: in web/, run          `npm run api:openapi` then `npm run api:types`"
+    );
+}
+
+#[tokio::test]
 async fn serving_answers_over_tcp_and_shutting_down_stops_live_view_first() {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
