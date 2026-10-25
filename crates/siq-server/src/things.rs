@@ -19,8 +19,8 @@ use serde::{Deserialize, Serialize};
 use siq_acquire::Mode;
 use siq_buffer::FrameLease;
 use siq_devices::{
-    Approach, CameraSettings, DeviceResult, FocusStatus, MotionState, MoveOpts, StageStatus,
-    Travel, Xyz, watch,
+    Approach, CameraSettings, DeviceError, DeviceResult, FocusStatus, MotionState, MoveOpts,
+    StageStatus, Travel, Xyz, watch,
 };
 use siq_preview::{
     Contrast, DisplaySettings, FrameStats, PreviewSink, Renderer, RoiSettings, StatsSink,
@@ -34,6 +34,7 @@ use teta_wot::prelude::{
     ActionCtx, ActionError, Blob, Event, MjpegStream, Prop, PropertyError, Thing, ThingCtx,
     ThingRef, thing_impl,
 };
+use teta_wot::validate::{LocItem, ValidationError};
 use tokio::task::JoinHandle;
 
 use crate::Instrument;
@@ -174,18 +175,25 @@ impl Camera {
         }
     }
 
+    /// Applies `change`, which writes `value`, to the camera's settings. A value the camera refuses
+    /// is the client's error (HTTP 422, with the camera's reason); any other failure is the
+    /// server's.
     async fn reconfigure(
         &self,
+        value: impl Serialize,
         change: impl FnOnce(&mut CameraSettings),
     ) -> Result<(), PropertyError> {
         let instrument = bound(&self.instrument);
         let mut settings = instrument.camera.settings();
         change(&mut settings);
-        instrument
-            .acquisition
-            .configure(settings)
-            .await
-            .map_err(failed)
+        match instrument.acquisition.configure(settings).await {
+            Err(DeviceError::InvalidArgument(why)) => {
+                let input = serde_json::to_value(value).unwrap_or_default();
+                let body = vec![LocItem::Key("body".into())];
+                Err(ValidationError::value_error(body, &why, input).into())
+            }
+            configured => configured.map_err(failed),
+        }
     }
 }
 
@@ -241,7 +249,7 @@ impl Camera {
 
     #[setter(exposure_ms)]
     async fn set_exposure_ms(&self, value: f64) -> Result<(), PropertyError> {
-        self.reconfigure(|settings| settings.exposure = Millis(value))
+        self.reconfigure(value, |settings| settings.exposure = Millis(value))
             .await
     }
 
@@ -254,7 +262,8 @@ impl Camera {
 
     #[setter(region)]
     async fn set_region(&self, value: Roi) -> Result<(), PropertyError> {
-        self.reconfigure(|settings| settings.roi = value).await
+        self.reconfigure(value, |settings| settings.roi = value)
+            .await
     }
 
     /// The binning, across and down. Changing it while live restarts the camera.
@@ -265,7 +274,8 @@ impl Camera {
 
     #[setter(binning)]
     async fn set_binning(&self, value: Binning) -> Result<(), PropertyError> {
-        self.reconfigure(|settings| settings.binning = value).await
+        self.reconfigure(value, |settings| settings.binning = value)
+            .await
     }
 
     /// The pixel format. Changing it while live restarts the camera.
@@ -276,7 +286,7 @@ impl Camera {
 
     #[setter(pixel_format)]
     async fn set_pixel_format(&self, value: PixelFormat) -> Result<(), PropertyError> {
-        self.reconfigure(|settings| settings.pixel_format = value)
+        self.reconfigure(value, |settings| settings.pixel_format = value)
             .await
     }
 

@@ -60,6 +60,35 @@ async fn the_things_are_listed_and_described() {
 }
 
 #[tokio::test]
+async fn a_value_the_camera_refuses_is_a_422_with_its_reason() {
+    let client = client().await;
+    // The simulated camera aligns regions (to 8 × 8 pixels on this small sensor): an odd first
+    // row is refused.
+    let misaligned = json!({"offset_x": 8, "offset_y": 3, "width": 64, "height": 64});
+    let refused = client.put_json("/api/v1/camera/region", &misaligned).await;
+    assert_eq!(
+        refused.status,
+        StatusCode::UNPROCESSABLE_ENTITY,
+        "{}",
+        refused.text()
+    );
+    let issue = &refused.json()["detail"][0];
+    assert_eq!(issue["type"], "value_error", "{issue}");
+    assert_eq!(issue["loc"], json!(["body"]));
+    assert!(issue["msg"].as_str().unwrap().contains("align"), "{issue}");
+    assert_eq!(issue["input"], misaligned);
+    let whole = json!({"offset_x": 0, "offset_y": 0, "width": 256, "height": 192});
+    assert_eq!(client.get("/api/v1/camera/region").await.json(), whole);
+
+    // A value the camera takes is still written.
+    let aligned = json!({"offset_x": 8, "offset_y": 8, "width": 64, "height": 64});
+    let written = client.put_json("/api/v1/camera/region", &aligned).await;
+    assert!(written.status.is_success(), "{}", written.text());
+    assert_eq!(client.get("/api/v1/camera/region").await.json(), aligned);
+    client.stop().await;
+}
+
+#[tokio::test]
 async fn a_stage_move_over_http_is_observed_until_it_arrives() {
     let client = client().await;
     let mut positions = client.events("/api/v1/stage/position").await;

@@ -89,3 +89,14 @@
 - `live_view_streams_mjpeg_and_a_snap_comes_back_as_a_jpeg`;
 - `the_global_lock_refuses_a_second_hardware_action_but_not_halt`;
 - `the_openapi_document_has_every_affordance`, with a snapshot of the paths.
+
+## Amendment (after P2.5, 2026-10-24): a refused setting is the client's error
+
+- **A camera setting the camera refuses answers HTTP 422, not 500.** The camera's setters turn
+  `DeviceError::InvalidArgument` into teta-wot's `PropertyError::Invalid`: a pydantic-style
+  `value_error` at `body`, with the camera's reason and the value sent. A region not aligned to the
+  sensor's grid is one example.
+- **Other failures stay `PropertyError::Failed`, HTTP 500:** a device that doesn't answer, or a
+  restart that fails.
+- **Verification:** the `siq-server` `server` test
+  `a_value_the_camera_refuses_is_a_422_with_its_reason`.

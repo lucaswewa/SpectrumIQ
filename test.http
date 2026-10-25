@@ -430,6 +430,12 @@ Content-Type: application/json
 
 {"mode": "structured_illumination", "pattern": {"orientation": 3, "phase": 0}}
 
+### A region the camera refuses, not aligned to 8 × 2 pixels: 422, with the camera's reason
+PUT {{api}}/camera/region
+Content-Type: application/json
+
+{"offset_x": 3776, "offset_y": 2835, "width": 4096, "height": 3072}
+
 ### A pixel format the camera doesn't offer: 422, with the formats it offers
 PUT {{api}}/camera/pixel_format
 Content-Type: application/json

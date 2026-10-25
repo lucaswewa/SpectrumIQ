@@ -69,6 +69,15 @@ The peripherals' Things are served only if their `[peripherals]` section is pres
 | `GET /api/siq/system/metrics` | Every metric by name, as `{"kind": "gauge", "value": …}`, `{"kind": "counter", …}` or `{"kind": "histogram", "count", "sum", "buckets"}`: the pool, the previews' latencies, and the acquisition's rate and losses |
 | `GET /api/siq/system/memory` | The pool's slots by state and their size; the process's working set, its peak and its private bytes; the configured budgets, all in bytes |
 
+### Errors
+
+- **A value that doesn't fit a property's or action's schema** answers 422, from teta-wot.
+- **A camera setting the camera refuses** also answers 422, with the camera's reason, as a
+  `value_error` at `body`. A region not aligned to the sensor's grid is one example (ADR-0033,
+  amended).
+- **Other failures** answer 500.
+- **An action that fails** ends its invocation in `error`, with the reason.
+
 Positions are in µm in the stage frame (ADR-0018). Each Thing's TD is at `/api/v1/{thing}/`, and
 the interactive docs are at `/docs`.
 
