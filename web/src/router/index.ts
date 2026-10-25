@@ -8,11 +8,13 @@ import {
 
 import PlannedPage from '@/app/PlannedPage.vue'
 import { DESTINATIONS } from '@/app/navigation'
+import LivePage from '@/live/LivePage.vue'
 import AboutPage from '@/system/AboutPage.vue'
 
 /** The pages that are built; every other destination shows what will come (`PlannedPage`). */
 const PAGES: Record<string, Component> = {
   about: AboutPage,
+  live: LivePage,
 }
 
 /** One route per destination in the rail. */
@@ -40,6 +42,11 @@ const devRoutes: RouteRecordRaw[] = import.meta.env.DEV
         path: '/dev/observe',
         name: 'dev-observe',
         component: () => import('@/views/dev/ObserveView.vue'),
+      },
+      {
+        path: '/dev/live',
+        name: 'dev-live',
+        component: () => import('@/views/dev/LiveDemoView.vue'),
       },
     ]
   : []

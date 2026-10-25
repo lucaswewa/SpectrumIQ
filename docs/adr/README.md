@@ -46,3 +46,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0035](0035-the-channel-model-and-its-devices.md) | The channel model, and how it maps onto the devices | Accepted | P2.4 |
 | [0036](0036-serving-and-embedding-the-web-app.md) | Serving and embedding the web app | Accepted | P3.1 |
 | [0037](0037-observations-over-websocket-and-the-stream-budget.md) | Observations over WebSocket, and the stream budget | Accepted | P3.2 |
+| [0038](0038-live-view-layout-and-stream-rules.md) | The Live view's layout, and when its streams open and close | Accepted | P3.3 |

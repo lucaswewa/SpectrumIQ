@@ -14,7 +14,7 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
 - **Used by:** `spectrumiq-server`, which embeds `dist/` in release builds, and the desktop shell
   (P3.5).
 - **Phase:** P3.1; P3.2 added the observation sockets, the stream budget, the stores and the
-  API types. Every phase of M3 adds to it.
+  API types; P3.3 the Live page. Every phase of M3 adds to it.
 
 ## Layout
 
@@ -28,6 +28,7 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
 | `src/app/`       | The shell: the navigation rail, keyboard shortcuts, and the placeholder of pages not built yet                                                         |
 | `src/ui/`        | The components: native elements, and wrappers of Reka UI. Only this folder imports `reka-ui`                                                           |
 | `src/router/`    | One hash route per destination of the rail, and the development galleries                                                                              |
+| `src/live/`      | The Live page: the overview and the ROI streams, the ROI dragged on the overview, the display and camera controls, the histogram, the focus readout    |
 | `src/system/`    | The About page                                                                                                                                         |
 | `src/views/dev/` | The galleries, `/#/dev/components` and `/#/dev/tokens`, and `/#/dev/observe`: in development builds only                                               |
 
@@ -49,10 +50,13 @@ npm run dev
    `SIQ_API_TARGET` points it elsewhere, such as `http://lab-pc:5000`.
 2. Open `/#/dev/components` and `/#/dev/tokens`. Every component and token is shown in both
    themes, side by side.
-3. Open `/#/dev/observe`: every store's values, live. Move the stage with its buttons, and watch
+3. Open `/#/dev/live`: the Live page against a fake camera drawn in the browser, which needs no
+   server. With the server, `/#/live` is the real one: start live view, drag on the overview to
+   choose the ROI, and move the histogram's markers.
+4. Open `/#/dev/observe`: every store's values, live. Move the stage with its buttons, and watch
    its position follow. The browser's developer tools show one WebSocket per Thing, and no
    event stream.
-4. Switch the theme with the system's setting, or with `localStorage['spectrumiq.theme']`: `light`,
+5. Switch the theme with the system's setting, or with `localStorage['spectrumiq.theme']`: `light`,
    `dark` or `system`.
 
 To see the app as the server serves it, build it (`npm run build`). Then either start the server
