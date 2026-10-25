@@ -3,8 +3,9 @@
 //! SpectrumIQ's own routes in front.
 //!
 //! - **Things,** under `/api/v1/`: `camera`, `display`, `stage`, `focus`, the fitted peripherals
-//!   (`illumination`, `filter_wheel`, `objective`, `modality`) and `imaging`. The global lock is
-//!   on: hardware actions and writes take it, and `stage.halt` and `focus.halt` don't.
+//!   (`illumination`, `filter_wheel`, `objective`, `modality`), `imaging` and `jobs`. The global
+//!   lock is on: hardware actions and writes take it, and `stage.halt`, `focus.halt` and
+//!   `jobs.cancel` don't.
 //! - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`.
 //! - **The web app** at `/` and `/assets/…`, embedded in release builds (ADR-0036).
 //!
@@ -39,6 +40,7 @@ use tracing::{info, warn};
 
 pub mod devices;
 pub mod imaging;
+pub mod jobs;
 pub mod peripherals;
 pub mod things;
 pub mod webapp;
@@ -47,7 +49,9 @@ pub use teta_wot::server::shutdown_signal;
 
 use devices::Peripherals;
 use imaging::Imaging;
+use jobs::Jobs;
 use peripherals::{FilterWheel, Illumination, ModalityUnit, Objective};
+use siq_jobs::{Scheduler, SchedulerConfig};
 use things::{Camera, Display, Focus, LatestStats, Stage};
 
 /// The prefix of the Things' routes.
@@ -74,13 +78,18 @@ pub struct Instrument {
     pub state: Arc<TrueState>,
     /// The metrics.
     pub registry: Registry,
+    /// The background jobs (ADR-0043).
+    pub jobs: Arc<Scheduler>,
     slot_bytes: usize,
     started: Instant,
 }
 
 impl Instrument {
-    /// Stops live view, then any motion: the hardware is safe before the Things stop.
+    /// Stops live view, then any motion: the hardware is safe before the Things stop. The jobs
+    /// are cancelled, and waited for.
     pub async fn shutdown(&self) {
+        let jobs = Arc::clone(&self.jobs);
+        let stopping = tokio::task::spawn_blocking(move || jobs.shutdown());
         if let Err(error) = self.acquisition.stop().await {
             warn!(%error, "live view didn't stop");
         }
@@ -90,6 +99,7 @@ impl Instrument {
                 warn!(%error, "the {device} didn't stop");
             }
         }
+        let _ = stopping.await;
     }
 
     fn health(&self) -> Value {
@@ -172,7 +182,9 @@ fn things(camera: Camera, fitted: impl Fn(&str) -> bool) -> ThingServerBuilder {
     if fitted("modality") {
         builder = builder.thing("modality", ModalityUnit::default());
     }
-    builder.thing("imaging", Imaging::default())
+    builder
+        .thing("imaging", Imaging::default())
+        .thing("jobs", Jobs::default())
 }
 
 /// The service: the Things' server, and the instrument behind it.
@@ -215,6 +227,12 @@ impl Service {
             clock,
             Some(&registry),
         )?;
+        let budgets = &config.memory;
+        let schedule = SchedulerConfig::new(
+            (budgets.job_ram_gb * 1e9) as u64,
+            (budgets.job_vram_gb * 1e9) as u64,
+        );
+        let jobs = Arc::new(Scheduler::new(schedule, Some(&registry)).map_err(anyhow::Error::msg)?);
         let instrument = Arc::new(Instrument {
             config,
             camera: devices.camera,
@@ -226,6 +244,7 @@ impl Service {
             peripherals: devices.peripherals.clone(),
             state: devices.state,
             registry,
+            jobs,
             slot_bytes: full,
             started: Instant::now(),
         });

@@ -5,22 +5,23 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
 
 - **Devices,** simulated or real, chosen per device (ADR-0034): the camera, the GRBL stage, the
   ASCII focus drive, and the fitted peripherals (simulated until P10.5).
-- **Engines:** the acquisition (`siq-acquire`) and the previews (`siq-preview`), shared by the
-  Things as the `Instrument` service.
+- **Engines:** the acquisition (`siq-acquire`), the previews (`siq-preview`) and the jobs
+  (`siq-jobs`), shared by the Things as the `Instrument` service.
 - **Things,** under `/api/v1/` (ADR-0033):
   - `camera`, `display`, `stage` and `focus`;
   - the fitted peripherals: `illumination`, `filter_wheel`, `objective` and `modality`;
-  - `imaging`, the channels (ADR-0035).
+  - `imaging`, the channels (ADR-0035);
+  - `jobs`, the background jobs (ADR-0043).
 
-  The global lock is on, and the `halt` actions bypass it.
+  The global lock is on, and the `halt` actions and `jobs.cancel` bypass it.
 - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`, with teta-wot's router
   as the fallback (ADR-0003, amended).
 - **The web app** at `/`, `/assets/…`, `/favicon.svg` and `/third-party-licences.txt` (ADR-0036):
   - `web/dist` is embedded in release builds, and read from disk in debug builds;
   - `Service::with_webapp(WebApp::Dir(folder))` serves another build;
   - without a build, a placeholder page.
-- **The lifecycle:** start the Things, serve, and on shutdown stop live view and motion before
-  the Things.
+- **The lifecycle:** start the Things, serve, and on shutdown stop live view and motion, and
+  cancel the jobs and wait for them, before the Things.
 
 This is the only crate that depends on teta-wot.
 
@@ -29,13 +30,13 @@ This is the only crate that depends on teta-wot.
 - **Layer:** L5 Service.
 - **Depends on:**
   - teta-wot v0.1.0 (git), and `tower` for `oneshot`;
-  - `siq-acquire`, `siq-preview`;
+  - `siq-acquire`, `siq-preview`, `siq-jobs`;
   - `siq-devices`, `siq-grbl`, `siq-ascii`, `siq-serial`, `siq-sim`;
   - `siq-config`, `siq-telemetry`, `siq-buffer`, `siq-imgproc`, `siq-synth`, `siq-types`;
   - `tokio`, `serde`, `schemars`, `anyhow`, `tracing`.
 - **Used by:** `apps/spectrumiq-server`, the service binary.
 - **Phase:** P2.3; P2.4 added the peripherals, the channels, and the metrics and memory routes;
-  P3.1 the web app.
+  P3.1 the web app; P4.3 the `jobs` Thing.
 
 ## API
 
@@ -64,6 +65,7 @@ This is the only crate that depends on teta-wot.
 | `objective` | `position`, `moving` (observable); `objectives`, `current` | `select(position)`, which also sets the frames' objective | `changed` |
 | `modality` | `modality`, `moving` (observable); `modes`, `patterns` | `set_modality(mode, pattern?)` | `changed` |
 | `imaging` | `channel` (observable); `channels` | `select_channel(id)`: every light off, the filter, the exposure and colour, the light, then the frames' channel | `channel_changed` |
+| `jobs` | `queue`, `running` (observable): each job's id, kind, priority, state, progress, estimate and times | `cancel(id)` | — |
 
 The peripherals' Things are served only if their `[peripherals]` section is present.
 

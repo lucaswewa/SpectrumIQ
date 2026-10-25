@@ -21,6 +21,7 @@ siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }
 siq-grbl = { path = "../siq-grbl" }
 siq-imgproc = { path = "../siq-imgproc" }
+siq-jobs = { path = "../siq-jobs" }
 siq-preview = { path = "../siq-preview" }
 siq-serial = { path = "../siq-serial" }
 siq-sim = { path = "../siq-sim" }

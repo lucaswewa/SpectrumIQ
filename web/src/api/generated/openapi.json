@@ -3676,6 +3676,195 @@
           }
         }
       }
+    },
+    "/api/v1/jobs/cancel": {
+      "get": {
+        "summary": "All invocations of cancel.",
+        "description": "List all the invocations of cancel that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_jobs_cancel_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of cancel.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Cancels job `id`: a waiting one at once, a running one as soon as it stops. False if it",
+        "description": "## Cancels job `id`: a waiting one at once, a running one as soon as it stops. False if it\n\nCancels job `id`: a waiting one at once, a running one as soon as it stops. False if it\nisn't waiting or running. It doesn't wait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_jobs_cancel_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/jobs_cancel_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/jobs_cancel_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/jobs_cancel_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/queue": {
+      "get": {
+        "summary": "The jobs waiting, in the order they will be considered.",
+        "description": "## The jobs waiting, in the order they will be considered.\n\nThe jobs waiting, in the order they will be considered.",
+        "operationId": "get_property_api_v1_jobs_queue_get",
+        "responses": {
+          "200": {
+            "description": "Value of queue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/jobs_queue_value"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each new value as JSON in a `data:` line. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/running": {
+      "get": {
+        "summary": "The jobs running, oldest first.",
+        "description": "## The jobs running, oldest first.\n\nThe jobs running, oldest first.",
+        "operationId": "get_property_api_v1_jobs_running_get",
+        "responses": {
+          "200": {
+            "description": "Value of running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/jobs_running_value"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each new value as JSON in a `data:` line. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/properties": {
+      "get": {
+        "summary": "Read All Properties",
+        "description": "Every property of `jobs` (`readallproperties`), or their changes (`observeallproperties`).",
+        "operationId": "read_all_properties_api_v1_jobs_properties_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Each property's value, by name."
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each observable property's new values, as events named after it. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/actions": {
+      "get": {
+        "summary": "Query All Actions",
+        "description": "The invocations of each action of `jobs`, newest first (`queryallactions`).",
+        "operationId": "query_all_actions_api_v1_jobs_actions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/InvocationSummary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/": {
+      "get": {
+        "summary": "Thing Description",
+        "description": "The W3C Thing Description of `jobs`: its properties, actions and events, and how to use them.",
+        "operationId": "things_jobs_api_v1_jobs__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThingDescription"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8072,6 +8261,478 @@
           "input",
           "log"
         ]
+      },
+      "jobs_cancel_input": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "jobs_cancel_output": {
+        "type": "boolean"
+      },
+      "jobs_cancel_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/jobs_cancel_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/jobs_cancel_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "jobs_queue_value": {
+        "type": "array",
+        "items": {
+          "description": "What is known of a job.",
+          "type": "object",
+          "properties": {
+            "id": {
+              "description": "Its number.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "kind": {
+              "description": "What it is.",
+              "type": "string"
+            },
+            "priority": {
+              "description": "How soon it should run.",
+              "oneOf": [
+                {
+                  "description": "Exports and other work nobody waits for.",
+                  "const": "background",
+                  "type": "string"
+                },
+                {
+                  "description": "Processing after acquisition.",
+                  "const": "normal",
+                  "type": "string"
+                },
+                {
+                  "description": "Work someone is waiting to see, such as a snap's pyramid.",
+                  "const": "interactive",
+                  "type": "string"
+                }
+              ]
+            },
+            "state": {
+              "description": "Where it is.",
+              "oneOf": [
+                {
+                  "description": "Waiting to be admitted.",
+                  "const": "queued",
+                  "type": "string"
+                },
+                {
+                  "description": "Running.",
+                  "const": "running",
+                  "type": "string"
+                },
+                {
+                  "description": "Finished.",
+                  "const": "done",
+                  "type": "string"
+                },
+                {
+                  "description": "Ended with an error.",
+                  "const": "failed",
+                  "type": "string"
+                },
+                {
+                  "description": "Cancelled, before it ran or while it ran.",
+                  "const": "cancelled",
+                  "type": "string"
+                }
+              ]
+            },
+            "progress": {
+              "description": "How far it got, from 0 to 1.",
+              "type": "number"
+            },
+            "estimate": {
+              "description": "What it said it needs.",
+              "type": "object",
+              "properties": {
+                "ram": {
+                  "description": "RAM, in bytes.",
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "vram": {
+                  "description": "GPU memory, in bytes.",
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "gpu": {
+                  "description": "Whether it uses the GPU: one such job runs at a time.",
+                  "type": "boolean"
+                },
+                "threads": {
+                  "description": "The threads it can keep busy, for information.",
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "ram",
+                "vram",
+                "gpu",
+                "threads"
+              ]
+            },
+            "exceeded": {
+              "description": "Whether it used more than it said: it was let go on, and counted.",
+              "type": "boolean"
+            },
+            "dataset": {
+              "description": "The dataset it works on.",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "queued": {
+              "description": "When it was submitted.",
+              "format": "date-time",
+              "type": "string"
+            },
+            "started": {
+              "description": "When it started.",
+              "oneOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "finished": {
+              "description": "When it finished, failed or was cancelled.",
+              "oneOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "message": {
+              "description": "The last thing it logged.",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "error": {
+              "description": "Why it failed.",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "priority",
+            "state",
+            "progress",
+            "estimate",
+            "exceeded",
+            "queued"
+          ]
+        }
+      },
+      "jobs_running_value": {
+        "type": "array",
+        "items": {
+          "description": "What is known of a job.",
+          "type": "object",
+          "properties": {
+            "id": {
+              "description": "Its number.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "kind": {
+              "description": "What it is.",
+              "type": "string"
+            },
+            "priority": {
+              "description": "How soon it should run.",
+              "oneOf": [
+                {
+                  "description": "Exports and other work nobody waits for.",
+                  "const": "background",
+                  "type": "string"
+                },
+                {
+                  "description": "Processing after acquisition.",
+                  "const": "normal",
+                  "type": "string"
+                },
+                {
+                  "description": "Work someone is waiting to see, such as a snap's pyramid.",
+                  "const": "interactive",
+                  "type": "string"
+                }
+              ]
+            },
+            "state": {
+              "description": "Where it is.",
+              "oneOf": [
+                {
+                  "description": "Waiting to be admitted.",
+                  "const": "queued",
+                  "type": "string"
+                },
+                {
+                  "description": "Running.",
+                  "const": "running",
+                  "type": "string"
+                },
+                {
+                  "description": "Finished.",
+                  "const": "done",
+                  "type": "string"
+                },
+                {
+                  "description": "Ended with an error.",
+                  "const": "failed",
+                  "type": "string"
+                },
+                {
+                  "description": "Cancelled, before it ran or while it ran.",
+                  "const": "cancelled",
+                  "type": "string"
+                }
+              ]
+            },
+            "progress": {
+              "description": "How far it got, from 0 to 1.",
+              "type": "number"
+            },
+            "estimate": {
+              "description": "What it said it needs.",
+              "type": "object",
+              "properties": {
+                "ram": {
+                  "description": "RAM, in bytes.",
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "vram": {
+                  "description": "GPU memory, in bytes.",
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "gpu": {
+                  "description": "Whether it uses the GPU: one such job runs at a time.",
+                  "type": "boolean"
+                },
+                "threads": {
+                  "description": "The threads it can keep busy, for information.",
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "ram",
+                "vram",
+                "gpu",
+                "threads"
+              ]
+            },
+            "exceeded": {
+              "description": "Whether it used more than it said: it was let go on, and counted.",
+              "type": "boolean"
+            },
+            "dataset": {
+              "description": "The dataset it works on.",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "queued": {
+              "description": "When it was submitted.",
+              "format": "date-time",
+              "type": "string"
+            },
+            "started": {
+              "description": "When it started.",
+              "oneOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "finished": {
+              "description": "When it finished, failed or was cancelled.",
+              "oneOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "message": {
+              "description": "The last thing it logged.",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "error": {
+              "description": "Why it failed.",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "priority",
+            "state",
+            "progress",
+            "estimate",
+            "exceeded",
+            "queued"
+          ]
+        }
       }
     }
   }

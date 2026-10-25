@@ -222,7 +222,11 @@ async fn without_peripherals_only_imaging_is_added_and_a_channel_sets_the_camera
     let things = client.get("/api/v1/things/").await.json();
     let mut names: Vec<_> = things.as_object().unwrap().keys().cloned().collect();
     names.sort();
-    assert_eq!(names, ["camera", "display", "focus", "imaging", "stage"]);
+    // `jobs` is served whatever is fitted.
+    assert_eq!(
+        names,
+        ["camera", "display", "focus", "imaging", "jobs", "stage"]
+    );
     let brightfield = invoke(&client, "/api/v1/imaging/select_channel", json!({"id": 1})).await;
     assert_eq!(brightfield["name"], "Brightfield");
     let exposure = instrument.config.channels[0].exposure;

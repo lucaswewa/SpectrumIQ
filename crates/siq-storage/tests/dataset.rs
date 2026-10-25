@@ -63,6 +63,7 @@ fn a_dataset_has_its_folders_and_a_manifest_with_its_provenance() {
                 inputs: vec!["zarr/mosaic.ome.zarr/0".to_owned()],
                 outputs: vec![],
                 state: ProcessingState::Done,
+                progress: 1.0,
                 started: None,
                 finished: None,
                 error: None,

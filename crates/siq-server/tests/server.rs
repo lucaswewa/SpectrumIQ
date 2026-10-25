@@ -40,6 +40,7 @@ async fn the_things_are_listed_and_described() {
         "focus",
         "illumination",
         "imaging",
+        "jobs",
         "modality",
         "objective",
         "stage",

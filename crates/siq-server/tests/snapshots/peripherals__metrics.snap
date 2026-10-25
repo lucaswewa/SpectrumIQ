@@ -11,6 +11,7 @@ expression: kinds
   "camera.pool.free_slots": "gauge",
   "camera.pool.in_use_high_water": "gauge",
   "camera.pool.lease_ms": "histogram",
+  "jobs.estimates_exceeded": "counter",
   "preview.overview.latency_ms": "histogram",
   "preview.overview.work_ms": "histogram",
   "preview.roi.latency_ms": "histogram",

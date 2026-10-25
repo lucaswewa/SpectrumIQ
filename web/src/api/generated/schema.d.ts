@@ -2605,6 +2605,141 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of cancel.
+         * @description List all the invocations of cancel that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_jobs_cancel_get"];
+        put?: never;
+        /**
+         * Cancels job `id`: a waiting one at once, a running one as soon as it stops. False if it
+         * @description ## Cancels job `id`: a waiting one at once, a running one as soon as it stops. False if it
+         *
+         *     Cancels job `id`: a waiting one at once, a running one as soon as it stops. False if it
+         *     isn't waiting or running. It doesn't wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_jobs_cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The jobs waiting, in the order they will be considered.
+         * @description ## The jobs waiting, in the order they will be considered.
+         *
+         *     The jobs waiting, in the order they will be considered.
+         */
+        get: operations["get_property_api_v1_jobs_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The jobs running, oldest first.
+         * @description ## The jobs running, oldest first.
+         *
+         *     The jobs running, oldest first.
+         */
+        get: operations["get_property_api_v1_jobs_running_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read All Properties
+         * @description Every property of `jobs` (`readallproperties`), or their changes (`observeallproperties`).
+         */
+        get: operations["read_all_properties_api_v1_jobs_properties_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Query All Actions
+         * @description The invocations of each action of `jobs`, newest first (`queryallactions`).
+         */
+        get: operations["query_all_actions_api_v1_jobs_actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jobs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Thing Description
+         * @description The W3C Thing Description of `jobs`: its properties, actions and events, and how to use them.
+         */
+        get: operations["things_jobs_api_v1_jobs__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3604,6 +3739,106 @@ export interface components {
             log: components["schemas"]["LogRecordModel"][];
             error?: components["schemas"]["ProblemDetails"] | null;
         };
+        jobs_cancel_input: {
+            id: number;
+        };
+        jobs_cancel_output: boolean;
+        jobs_cancel_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["jobs_cancel_input"];
+            output?: components["schemas"]["jobs_cancel_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        jobs_queue_value: {
+            /** @description Its number. */
+            id: number;
+            /** @description What it is. */
+            kind: string;
+            /** @description How soon it should run. */
+            priority: "background" | "normal" | "interactive";
+            /** @description Where it is. */
+            state: "queued" | "running" | "done" | "failed" | "cancelled";
+            /** @description How far it got, from 0 to 1. */
+            progress: number;
+            /** @description What it said it needs. */
+            estimate: {
+                /** @description RAM, in bytes. */
+                ram: number;
+                /** @description GPU memory, in bytes. */
+                vram: number;
+                /** @description Whether it uses the GPU: one such job runs at a time. */
+                gpu: boolean;
+                /** @description The threads it can keep busy, for information. */
+                threads: number;
+            };
+            /** @description Whether it used more than it said: it was let go on, and counted. */
+            exceeded: boolean;
+            /** @description The dataset it works on. */
+            dataset?: string | null;
+            /**
+             * Format: date-time
+             * @description When it was submitted.
+             */
+            queued: string;
+            /** @description When it started. */
+            started?: string | null;
+            /** @description When it finished, failed or was cancelled. */
+            finished?: string | null;
+            /** @description The last thing it logged. */
+            message?: string | null;
+            /** @description Why it failed. */
+            error?: string | null;
+        }[];
+        jobs_running_value: {
+            /** @description Its number. */
+            id: number;
+            /** @description What it is. */
+            kind: string;
+            /** @description How soon it should run. */
+            priority: "background" | "normal" | "interactive";
+            /** @description Where it is. */
+            state: "queued" | "running" | "done" | "failed" | "cancelled";
+            /** @description How far it got, from 0 to 1. */
+            progress: number;
+            /** @description What it said it needs. */
+            estimate: {
+                /** @description RAM, in bytes. */
+                ram: number;
+                /** @description GPU memory, in bytes. */
+                vram: number;
+                /** @description Whether it uses the GPU: one such job runs at a time. */
+                gpu: boolean;
+                /** @description The threads it can keep busy, for information. */
+                threads: number;
+            };
+            /** @description Whether it used more than it said: it was let go on, and counted. */
+            exceeded: boolean;
+            /** @description The dataset it works on. */
+            dataset?: string | null;
+            /**
+             * Format: date-time
+             * @description When it was submitted.
+             */
+            queued: string;
+            /** @description When it started. */
+            started?: string | null;
+            /** @description When it finished, failed or was cancelled. */
+            finished?: string | null;
+            /** @description The last thing it logged. */
+            message?: string | null;
+            /** @description Why it failed. */
+            error?: string | null;
+        }[];
     };
     responses: never;
     parameters: never;
@@ -7011,6 +7246,173 @@ export interface operations {
         };
     };
     things_imaging_api_v1_imaging__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThingDescription"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_jobs_cancel_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of cancel. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_jobs_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["jobs_cancel_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["jobs_cancel_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["jobs_cancel_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_jobs_queue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of queue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["jobs_queue_value"];
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    get_property_api_v1_jobs_running_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of running */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["jobs_running_value"];
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    read_all_properties_api_v1_jobs_properties_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    query_all_actions_api_v1_jobs_actions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: components["schemas"]["InvocationSummary"][];
+                    };
+                };
+            };
+        };
+    };
+    things_jobs_api_v1_jobs__get: {
         parameters: {
             query?: never;
             header?: never;

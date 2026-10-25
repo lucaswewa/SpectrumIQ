@@ -93,6 +93,17 @@ expression: descriptions
       "channel_changed"
     ]
   },
+  "jobs": {
+    "title": "Jobs",
+    "properties": [
+      "queue",
+      "running"
+    ],
+    "actions": [
+      "cancel"
+    ],
+    "events": []
+  },
   "modality": {
     "title": "ModalityUnit",
     "properties": [

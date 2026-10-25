@@ -114,6 +114,9 @@ pub struct ProcessingRecord {
     pub outputs: Vec<String>,
     /// How it went.
     pub state: ProcessingState,
+    /// How far it got, from 0 to 1.
+    #[serde(default)]
+    pub progress: f64,
     /// When it started.
     pub started: Option<DateTime<Utc>>,
     /// When it finished, failed or was cancelled.
