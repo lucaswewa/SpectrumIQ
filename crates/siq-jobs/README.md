@@ -10,7 +10,7 @@ priority, on threads of below-normal priority, and recorded in their dataset's m
 - **Depends on:** `siq-storage` (the records), `siq-pyramid` (its job), `siq-telemetry`,
   `siq-types`; `rayon`, `tokio` (`watch`), `windows-sys`.
 - **Used by:** `siq-server` (the `jobs` Thing); the jobs of P4.4 and later.
-- **Phase:** P4.3; P4.4 added `kinds::PyramidJob`.
+- **Phase:** P4.3; P4.4 added `kinds::PyramidJob`, and P4.5 `kinds::DziExportJob`.
 
 ## API
 
@@ -23,6 +23,7 @@ priority, on threads of below-normal priority, and recorded in their dataset's m
 | `Resources` | `ram`, `vram`, `gpu`, `threads` |
 | `this_thread_priority` | The calling thread's priority: −1 is below normal |
 | `kinds::PyramidJob` | An OME-Zarr image's pyramid (ADR-0044), as a job: its estimate from the image, its progress by chunks, and the image as its output. The jobs the service runs live in `kinds`, since processing crates (L3) can't use the job system (L4) |
+| `kinds::DziExportJob` | A plane of an OME-Zarr image as a static DZI pyramid on disk (ADR-0045): the descriptor and every level's tiles, rendered as the tile service does, in parallel |
 
 **Unsafe code** (ADR-0007): `priority` calls `SetThreadPriority` and `GetThreadPriority` on the
 current thread's pseudo-handle, with its `SAFETY` comments.
@@ -32,6 +33,7 @@ current thread's pseudo-handle, with its `SAFETY` comments.
 | Example | What it shows | Run |
 |---|---|---|
 | `jobs_demo` | Six synthetic jobs of different sizes and priorities: backfill, the GPU rule, priority, the starvation guard, a job bigger than the budget | `cargo run -p siq-jobs --example jobs_demo` |
+| `export_dzi` | A synthetic dataset's pyramid, then its DZI export, through the scheduler, and their records | `cargo run --release -p siq-jobs --example export_dzi` |
 
 Every example also runs in smoke mode (`SIQ_SMOKE=1`) in `cargo xtask ci`.
 

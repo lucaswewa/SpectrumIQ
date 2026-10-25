@@ -53,3 +53,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0042](0042-the-ome-zarr-profile.md) | The OME-Zarr profile | Accepted | P4.2 |
 | [0043](0043-job-scheduling-and-memory-admission.md) | Job scheduling and memory admission | Accepted | P4.3 |
 | [0044](0044-pyramid-scheme.md) | The pyramid scheme: filter, level count and chunk alignment | Accepted | P4.4 |
+| [0045](0045-on-demand-dzi-from-ome-zarr.md) | Deep-zoom tiles rendered on demand from OME-Zarr | Accepted | P4.5 |

@@ -240,8 +240,8 @@ overview, stats and binning passes into one read of the frame.
 | `/`, `/assets/…` | Web app (embedded with `rust-embed` in release builds, from disk in debug builds) |
 | `/api/siq/auth/{login,logout,me,local}` | Sessions (P9.1) |
 | `/api/siq/users…`, `/api/siq/audit…` | Admin (P9.1, P9.3) |
-| `/api/siq/data/{dataset}/dzi/{channel}/{plane}.dzi` and `…_files/{level}/{col}_{row}.{jpg,png}?min&max&gamma&cmap` | Deep-zoom tiles rendered on demand from OME-Zarr (P4.5) |
-| `/api/siq/data/{dataset}/value?x&y&c&z&level` | Pixel probe (true 16-bit values) |
+| `/api/siq/data/{dataset}/{image}/{c}/{z}/{t}.dzi` and `…/{t}_files/{level}/{col}_{row}.{jpeg,png}?min&max&gamma&cmap` | Deep-zoom tiles of a dataset's OME-Zarr image, rendered on demand (P4.5, ADR-0045) |
+| `/api/siq/data/{dataset}/{image}/value?x&y&c&z&t&level` | Pixel probe (true values) |
 | `/api/siq/data/{dataset}/heightmap`, `…/volume`, `…/points` | Reduced 3D payloads for VTK.js (binary, P11.4, P12.5) |
 | `/api/siq/data/{dataset}/raw16/{level}/{col}_{row}` | 16-bit tiles for the WebGL2 renderer (P14.1) |
 | `/api/siq/system/{health,metrics,memory}` | Health and metrics |

@@ -11,6 +11,10 @@
 //!   thread, whatever the image's size.
 //!
 //! The work runs on the calling rayon pool: a job's, through `pool.install`.
+//!
+//! [`tiles`] renders deep-zoom tiles from the levels, on demand (ADR-0045).
+
+pub mod tiles;
 
 use std::sync::atomic::{AtomicU64, Ordering};
 

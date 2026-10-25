@@ -6,7 +6,8 @@
 //!   (`illumination`, `filter_wheel`, `objective`, `modality`), `imaging` and `jobs`. The global
 //!   lock is on: hardware actions and writes take it, and `stage.halt`, `focus.halt` and
 //!   `jobs.cancel` don't.
-//! - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`.
+//! - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`; and under
+//!   `/api/siq/data/`, a dataset's deep-zoom tiles and pixel values (ADR-0045).
 //! - **The web app** at `/` and `/assets/…`, embedded in release builds (ADR-0036).
 //!
 //! teta-wot's router serves every other request.
@@ -38,6 +39,7 @@ use tokio::net::TcpListener;
 use tower::ServiceExt;
 use tracing::{info, warn};
 
+mod data;
 pub mod devices;
 pub mod imaging;
 pub mod jobs;
@@ -52,6 +54,8 @@ use imaging::Imaging;
 use jobs::Jobs;
 use peripherals::{FilterWheel, Illumination, ModalityUnit, Objective};
 use siq_jobs::{Scheduler, SchedulerConfig};
+use siq_pyramid::tiles::TileService;
+use siq_storage::Catalog;
 use things::{Camera, Display, Focus, LatestStats, Stage};
 
 /// The prefix of the Things' routes.
@@ -80,6 +84,10 @@ pub struct Instrument {
     pub registry: Registry,
     /// The background jobs (ADR-0043).
     pub jobs: Arc<Scheduler>,
+    /// The datasets of `[server] data_root` (ADR-0041).
+    pub catalog: Arc<Catalog>,
+    /// The deep-zoom tiles, within `[memory] tile_cache_mb` (ADR-0045).
+    pub tiles: Arc<TileService>,
     slot_bytes: usize,
     started: Instant,
 }
@@ -233,6 +241,8 @@ impl Service {
             (budgets.job_vram_gb * 1e9) as u64,
         );
         let jobs = Arc::new(Scheduler::new(schedule, Some(&registry)).map_err(anyhow::Error::msg)?);
+        let catalog = Arc::new(Catalog::scan(&config.server.data_root)?);
+        let tiles = Arc::new(TileService::new(budgets.tile_cache_mb as usize * 1_000_000));
         let instrument = Arc::new(Instrument {
             config,
             camera: devices.camera,
@@ -245,6 +255,8 @@ impl Service {
             state: devices.state,
             registry,
             jobs,
+            catalog,
+            tiles,
             slot_bytes: full,
             started: Instant::now(),
         });
@@ -286,6 +298,7 @@ impl Service {
     /// don't match.
     pub fn router(&self) -> Router {
         routes(&self.instrument)
+            .merge(data::routes(&self.instrument))
             .merge(webapp::routes(self.webapp.clone()))
             .fallback_service(self.server.router())
     }

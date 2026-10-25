@@ -23,8 +23,10 @@ siq-grbl = { path = "../siq-grbl" }
 siq-imgproc = { path = "../siq-imgproc" }
 siq-jobs = { path = "../siq-jobs" }
 siq-preview = { path = "../siq-preview" }
+siq-pyramid = { path = "../siq-pyramid" }
 siq-serial = { path = "../siq-serial" }
 siq-sim = { path = "../siq-sim" }
+siq-storage = { path = "../siq-storage" }
 siq-synth = { path = "../siq-synth" }
 siq-telemetry = { path = "../siq-telemetry" }
 siq-types = { path = "../siq-types" }
@@ -35,9 +37,10 @@ tracing.workspace = true
 
 [dev-dependencies]
 http-body-util.workspace = true
-tempfile.workspace = true
 insta.workspace = true
+png.workspace = true
 siq-acquire = { path = "../siq-acquire" }
+tempfile.workspace = true
 teta-wot = { workspace = true, features = ["testing"] }
 tokio = { workspace = true, features = ["io-util", "macros", "net", "rt", "sync", "time"] }
 

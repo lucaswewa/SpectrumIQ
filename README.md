@@ -11,10 +11,10 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In progress:** Milestone 4, storage, jobs and the 2D deep-zoom viewer. P4.4 is the latest:
-[`siq-pyramid`](crates/siq-pyramid/README.md), which builds an OME-Zarr image's levels by 2 × 2
-mean, out of core and in parallel, as a job: a 400 MP image's in about a second
-(`cargo run --release -p siq-pyramid --example build_pyramid`).
+**In progress:** Milestone 4, storage, jobs and the 2D deep-zoom viewer. P4.5 is the latest:
+deep-zoom tiles, rendered on demand from a dataset's OME-Zarr levels with the LUT asked for, cached,
+and served under `/api/siq/data/` for OpenSeadragon, and a static DZI export as a job
+(`cargo run --release -p siq-jobs --example export_dzi`).
 
 Done so far:
 
@@ -87,7 +87,9 @@ Done so far:
     threads and read by region, which napari opens (`--example zarr_write_read`);
   - P4.3, [`siq-jobs`](crates/siq-jobs/README.md): heavy processing in the background, within
     the RAM and GPU budgets, at below-normal priority, with the `jobs` Thing to watch and cancel
-    it (`--example jobs_demo`).
+    it (`--example jobs_demo`);
+  - P4.4, [`siq-pyramid`](crates/siq-pyramid/README.md): an OME-Zarr image's levels by 2 × 2
+    mean, out of core and in parallel, as a job (`--example build_pyramid`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

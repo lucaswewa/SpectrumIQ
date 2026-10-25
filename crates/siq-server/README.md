@@ -30,13 +30,14 @@ This is the only crate that depends on teta-wot.
 - **Layer:** L5 Service.
 - **Depends on:**
   - teta-wot v0.1.0 (git), and `tower` for `oneshot`;
-  - `siq-acquire`, `siq-preview`, `siq-jobs`;
+  - `siq-acquire`, `siq-preview`, `siq-jobs`, `siq-pyramid`, `siq-storage`;
   - `siq-devices`, `siq-grbl`, `siq-ascii`, `siq-serial`, `siq-sim`;
   - `siq-config`, `siq-telemetry`, `siq-buffer`, `siq-imgproc`, `siq-synth`, `siq-types`;
   - `tokio`, `serde`, `schemars`, `anyhow`, `tracing`.
 - **Used by:** `apps/spectrumiq-server`, the service binary.
 - **Phase:** P2.3; P2.4 added the peripherals, the channels, and the metrics and memory routes;
-  P3.1 the web app; P4.3 the `jobs` Thing.
+  P3.1 the web app; P4.3 the `jobs` Thing; P4.5 the data routes, with the catalog and the tile
+  cache.
 
 ## API
 
@@ -76,6 +77,20 @@ The peripherals' Things are served only if their `[peripherals]` section is pres
 | `GET /api/siq/system/health` | `status`, `version`, `uptime_s`, and the camera's model |
 | `GET /api/siq/system/metrics` | Every metric by name, as `{"kind": "gauge", "value": …}`, `{"kind": "counter", …}` or `{"kind": "histogram", "count", "sum", "buckets"}`: the pool, the previews' latencies, and the acquisition's rate and losses |
 | `GET /api/siq/system/memory` | The pool's slots by state and their size; the process's working set, its peak and its private bytes; the configured budgets, all in bytes |
+
+### The data routes (ADR-0045)
+
+`{dataset}` is a dataset's id in the catalog of `[server] data_root`; `{image}` is an image of its
+`zarr/` folder, without `.ome.zarr`.
+
+| Route | What |
+|---|---|
+| `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}.dzi` | The plane's DZI descriptor |
+| `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}_files/{level}/{col}_{row}.{jpeg\|png}` | A tile, rendered on demand and cached within `tile_cache_mb`, with `min`, `max`, `gamma` and `cmap` (`grey`, `inverted`, `rrggbb`) in the query, each the channel's own if not given; an ETag, and 304 when it matches |
+| `GET /api/siq/data/{dataset}/{image}/value?c&z&t&level&x&y` | `{"value", "level", "x", "y"}`: the true value of a pixel of a Zarr level |
+
+An unknown dataset, image, plane, level or tile answers 404, and a mapping that isn't valid 400,
+each with `{"detail": …}`.
 
 ### Errors
 

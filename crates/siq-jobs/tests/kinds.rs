@@ -3,8 +3,9 @@
 
 use std::time::Duration;
 
-use siq_jobs::kinds::PyramidJob;
+use siq_jobs::kinds::{DziExportJob, PyramidJob};
 use siq_jobs::*;
+use siq_pyramid::tiles::{DziGeometry, TileFormat};
 use siq_storage::zarr::{ChannelInfo, ImageInfo, SampleType, Size5, ZarrImage};
 use siq_storage::{Dataset, DatasetKind, NewDataset, ProcessingState};
 use siq_types::{OwnedImage, RectPx};
@@ -73,4 +74,50 @@ fn a_dataset_s_pyramid_is_built_as_a_job_and_recorded() {
     );
     assert_eq!(record.outputs, ["zarr/snap.ome.zarr"]);
     assert_eq!(record.params["top"], 256);
+
+    // Then its DZI export: every level's tiles, and the descriptor.
+    let out = dataset.exports_dir().join("dzi");
+    let export = DziExportJob {
+        image: path.clone(),
+        plane: (0, 0, 0),
+        lut: None,
+        format: TileFormat::Jpeg,
+        out: out.clone(),
+        name: "snap".to_owned(),
+    };
+    let id = jobs.submit(
+        Box::new(export),
+        Priority::Background,
+        Some(dataset.path().to_owned()),
+    );
+    assert_eq!(
+        jobs.wait(id, Duration::from_secs(30)).unwrap().state,
+        JobState::Done
+    );
+    let geometry = DziGeometry {
+        width: 1000,
+        height: 700,
+    };
+    let mut written = 0;
+    for level in 0..=geometry.max_level() {
+        let (cols, rows) = geometry.tiles(level);
+        for (col, row) in (0..rows).flat_map(|row| (0..cols).map(move |col| (col, row))) {
+            let tile =
+                std::fs::read(out.join(format!("snap_files/{level}/{col}_{row}.jpeg"))).unwrap();
+            assert_eq!(&tile[..2], [0xFF, 0xD8]);
+            written += 1;
+        }
+    }
+    assert_eq!(
+        written,
+        4 * 3 + 2 * 2 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1,
+        "levels 10 to 0"
+    );
+    let descriptor = std::fs::read_to_string(out.join("snap.dzi")).unwrap();
+    assert!(descriptor.contains(r#"<Size Width="1000" Height="700"/>"#));
+    let reopened = Dataset::open(dataset.path()).unwrap();
+    assert_eq!(
+        reopened.manifest().history[1].outputs,
+        ["exports/dzi/snap.dzi"]
+    );
 }

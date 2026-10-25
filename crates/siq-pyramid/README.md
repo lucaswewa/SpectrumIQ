@@ -1,14 +1,17 @@
 # siq-pyramid
 
 Multiscale pyramids (ADR-0044): an OME-Zarr image's levels 1 and up, built from level 0 by 2 × 2
-mean, out of core and in parallel. The DZI tile service (P4.5) follows in the same crate.
+mean, out of core and in parallel; and deep-zoom tiles rendered from them on demand, for
+OpenSeadragon (ADR-0045).
 
 ## Place in the architecture
 
 - **Layer:** L3 Processing.
-- **Depends on:** `siq-storage` (the OME-Zarr images), `siq-types`; `rayon`.
-- **Used by:** `siq-jobs` (`kinds::PyramidJob`).
-- **Phase:** P4.4.
+- **Depends on:** `siq-storage` (the OME-Zarr images), `siq-imgproc` (the display tables),
+  `siq-types`; `rayon`, `lru`, `jpeg-encoder`, `png`.
+- **Used by:** `siq-jobs` (`kinds::PyramidJob`, `kinds::DziExportJob`), `siq-server` (the data
+  routes).
+- **Phase:** P4.4; P4.5 added `tiles`.
 
 ## API
 
@@ -21,6 +24,11 @@ mean, out of core and in parallel. The DZI tile service (P4.5) follows in the sa
 | `mean_2x2(view)` | A view halved, by the 2 × 2 mean, edges included |
 | `Mean` | `u16` (rounded to the nearest) and `f32` |
 | `TOP` | 256: the top level's largest size |
+| `tiles::DziGeometry` | OpenSeadragon's DZI levels and tiles: `max_level`, `level_size`, `tiles`, `tile_rect`, `descriptor` |
+| `tiles::render(image, TileAt, lut, format)` | A tile: its level's region (halved from the top for coarser levels), through a `TileLut`, encoded as JPEG or PNG |
+| `tiles::TileLut` | `min`, `max`, `gamma`, `colormap`; `check`; `channel_lut(image, c)` gives a channel's own |
+| `tiles::value(image, plane, level, x, y)` | The true value of a pixel |
+| `tiles::TileService` | `new(budget)`; `tile`, `descriptor`, `image`, `stats`: tiles cached by bytes, LRU, with ETags that follow the image's generation |
 
 ## Examples
 
@@ -42,7 +50,10 @@ None.
 - the level count, and the metadata as built;
 - cancelling;
 - the peak memory of a build, measured by a counting allocator (`tests/memory.rs`, the only test
-  in its binary).
+  in its binary);
+- tiles: the DZI geometry against OpenSeadragon's (a property test), tiles decoded back, levels
+  beyond the top, bad mappings and missing tiles, the probe, the cache's eviction and ETags, and
+  concurrent requests.
 
 ## Limitations
 

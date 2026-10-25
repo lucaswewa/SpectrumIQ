@@ -30,6 +30,8 @@ insta = { version = "1.48", features = ["json"] }
 http-body-util = "0.1.5"
 # Preview JPEGs. Its licence includes IJG, allowed with its attribution (ADR-0028).
 jpeg-encoder = "0.7.1"
+# The deep-zoom tile cache. Already in the lockfile, through zarrs.
+lru = "0.16"
 # Reading raw frames back, mapped. 0.9.12 is under two weeks old.
 memmap2 = "0.9.11"
 proptest = "1.11"
