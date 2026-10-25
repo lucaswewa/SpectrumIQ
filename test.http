@@ -1,0 +1,446 @@
+# ----------------------------------------------------------------------------------------------
+# Requests for spectrumiq-server, for the VS Code REST Client extension (humao.rest-client):
+# "Send Request" above each one. Start the service first, with the simulated instrument:
+#
+#     cargo run --release -p spectrumiq-server -- -c config/sim.toml
+#
+# - **Actions** (POST) answer 201 with an invocation. Its `href` gives the state, which is
+#   `pending`, `running`, `completed` or `error`, and the `output` when completed. The requests
+#   named with `# @name` let the next ones use their answer: send them in order.
+# - **Hardware actions take the global lock.** While one runs, another answers GlobalLockBusy.
+#   `stage/halt`, `focus/halt` and the display don't take it.
+# - **Streams and events never end:** open those URLs in a browser, or `curl -N`. They are left
+#   out here, except the viewers, which are pages.
+# ----------------------------------------------------------------------------------------------
+
+@host = http://127.0.0.1:5000
+@api = {{host}}/api/v1
+
+### Root
+GET http://127.0.0.1:5000/api/v1/camera/pixel_format
+
+# ============================== The system ==============================
+
+### Health: status, version, uptime and the camera's model
+GET {{host}}/api/siq/system/health
+
+### Metrics: every metric by name (the pool, the previews' latencies, the acquisition's rate)
+GET {{host}}/api/siq/system/metrics
+
+### Memory: the frame pool, the process's working set, and the budgets, in bytes
+GET {{host}}/api/siq/system/memory
+
+### The OpenAPI document of every Thing
+GET {{host}}/openapi.json
+
+### The interactive API docs (a page: open it in a browser)
+GET {{host}}/docs
+
+### The Thing directory (WoT discovery)
+GET {{host}}/.well-known/wot
+
+### The Things, with their descriptions
+GET {{api}}/things/
+
+# ============================== The camera ==============================
+
+### The camera's Thing Description
+GET {{api}}/camera/
+
+### The sensor: size, pixel pitch and pixel formats
+GET {{api}}/camera/sensor
+
+### Its statistics: mode, rate, frames published and lost
+GET {{api}}/camera/stats
+
+### The exposure, in ms
+GET {{api}}/camera/exposure_ms
+
+### Set the exposure to 20 ms
+PUT {{api}}/camera/exposure_ms
+Content-Type: application/json
+
+20.0
+
+### The frame rate the camera can reach now, in Hz
+GET {{api}}/camera/frame_rate
+
+### The sensor region read out
+GET {{api}}/camera/region
+
+### Read out a 4096 × 3072 region in the middle of the sensor (regions align to 8 × 2 pixels)
+PUT {{api}}/camera/region
+Content-Type: application/json
+
+{"offset_x": 3776, "offset_y": 2834, "width": 4096, "height": 3072}
+
+### Read out the whole sensor again
+PUT {{api}}/camera/region
+Content-Type: application/json
+
+{"offset_x": 0, "offset_y": 0, "width": 11648, "height": 8742}
+
+### The binning
+GET {{api}}/camera/binning
+
+### Bin 2 × 2
+PUT {{api}}/camera/binning
+Content-Type: application/json
+
+{"horizontal": 2, "vertical": 2}
+
+### No binning
+PUT {{api}}/camera/binning
+Content-Type: application/json
+
+{"horizontal": 1, "vertical": 1}
+
+### Set the pixel format to 12 bits
+PUT {{api}}/camera/pixel_format
+Content-Type: application/json
+
+"Mono12"
+
+### Set the pixel format back to 14 bits
+PUT {{api}}/camera/pixel_format
+Content-Type: application/json
+
+"Mono14"
+
+### Start live view
+POST {{api}}/camera/start_live
+
+### The overview stream's viewer (a page: open it in a browser while live)
+GET {{api}}/camera/overview/viewer
+
+### The ROI stream's viewer (a page: open it in a browser while live)
+GET {{api}}/camera/roi/viewer
+
+### Snap a frame once the stage and focus are still
+# @name snap
+POST {{api}}/camera/snap
+Content-Type: application/json
+
+{}
+
+### The snap's invocation: send again until `completed`
+# @name snapped
+GET {{snap.response.body.$.href}}
+
+### The snap's JPEG
+GET {{snapped.response.body.$.output.href}}
+
+### Snap a frame marked for the recorder
+POST {{api}}/camera/snap
+Content-Type: application/json
+
+{"save": true}
+
+### Stop live view
+POST {{api}}/camera/stop_live
+
+# ============================== The display ==============================
+# The live previews' contrast, colours and ROI. None of these takes the global lock.
+
+### The display mapping
+GET {{api}}/display/lut
+
+### A fixed window from 200 to 9000, gamma 1.5, in green
+PUT {{api}}/display/lut
+Content-Type: application/json
+
+{"contrast": {"kind": "manual", "min": 200, "max": 9000, "gamma": 1.5}, "colormap": {"colour": [63, 255, 111]}}
+
+### Inverted grey
+PUT {{api}}/display/lut
+Content-Type: application/json
+
+{"contrast": {"kind": "manual", "min": 0, "max": 16383, "gamma": 1.0}, "colormap": "inverted"}
+
+### Automatic, from the 0.1th to the 99.9th percentile, in grey (the default)
+PUT {{api}}/display/lut
+Content-Type: application/json
+
+{"contrast": {"kind": "auto", "low_pct": 0.1, "high_pct": 99.9}, "colormap": "grey"}
+
+### Fix the window once, from the latest frame's percentiles (needs live view)
+POST {{api}}/display/auto_contrast_once
+
+### The ROI preview's region and zoom
+GET {{api}}/display/roi_region
+
+### The ROI preview over a 2048 × 1536 region, at half zoom
+PUT {{api}}/display/roi_region
+Content-Type: application/json
+
+{"region": {"x": 4800, "y": 3600, "width": 2048, "height": 1536}, "zoom": "half"}
+
+### The ROI preview in the middle of the frame, at native zoom (the default)
+PUT {{api}}/display/roi_region
+Content-Type: application/json
+
+{"region": null, "zoom": "native"}
+
+### The ROI's histogram: 256 bins, the window, and the focus measure (null before live view)
+GET {{api}}/display/histogram
+
+### The focus measure: the mean squared Sobel gradient of the ROI
+GET {{api}}/display/focus_measure
+
+# ============================== The stage ==============================
+# Positions in µm, in the stage frame: x from -100000 to 0, y from -75000 to 0, z from -20000 to 0.
+
+### The position
+GET {{api}}/stage/position
+
+### The motion state: idle, moving, jogging, homing or alarm
+GET {{api}}/stage/state
+
+### Whether it is homed
+GET {{api}}/stage/homed
+
+### The travel limits
+GET {{api}}/stage/limits
+
+### The speed, in µm/s (0: the controller's maximum)
+GET {{api}}/stage/speed
+
+### Move at 20 mm/s
+PUT {{api}}/stage/speed
+Content-Type: application/json
+
+20000.0
+
+### Move at the controller's maximum
+PUT {{api}}/stage/speed
+Content-Type: application/json
+
+0.0
+
+### Move to (-2000, -1000, 0)
+# @name moved
+POST {{api}}/stage/move_to
+Content-Type: application/json
+
+{"x": -2000.0, "y": -1000.0, "z": 0.0}
+
+### The move's invocation: its output is the stage's status once it arrives
+GET {{moved.response.body.$.href}}
+
+### Move by (-500, +250) µm, each axis arriving from its configured side
+POST {{api}}/stage/move_by
+Content-Type: application/json
+
+{"dx": -500.0, "dy": 250.0, "unidirectional": true}
+
+### Start a long move: 90 mm in x
+# @name far
+POST {{api}}/stage/move_to
+Content-Type: application/json
+
+{"x": -90000.0, "y": 0.0, "z": 0.0}
+
+### Cancel it: the stage stops where it is (send within 2 s of the move)
+DELETE {{far.response.body.$.href}}
+
+### Jog at 5 mm/s in -x, until halted
+POST {{api}}/stage/jog
+Content-Type: application/json
+
+{"vx": -5000.0}
+
+### Halt: stops any motion; it doesn't wait for the global lock
+POST {{api}}/stage/halt
+
+### Home every axis
+POST {{api}}/stage/home
+
+# ============================== The focus drive ==============================
+# Positions in µm, from 0 to 12000.
+
+### The position
+GET {{api}}/focus/position
+
+### The motion state
+GET {{api}}/focus/state
+
+### Whether it is homed
+GET {{api}}/focus/homed
+
+### The travel limits
+GET {{api}}/focus/limits
+
+### Move to 500 µm
+POST {{api}}/focus/move_to
+Content-Type: application/json
+
+{"z": 500.0}
+
+### Move by -25 µm, arriving from the configured side
+POST {{api}}/focus/move_by
+Content-Type: application/json
+
+{"dz": -25.0, "unidirectional": true}
+
+### Halt
+POST {{api}}/focus/halt
+
+# ============================== The illumination ==============================
+
+### The sources, by index
+GET {{api}}/illumination/sources
+
+### Each source's level, from 0 to 1 (the simulator starts with all at full)
+GET {{api}}/illumination/levels
+
+### Set the 470 nm source to 60 %
+POST {{api}}/illumination/set_level
+Content-Type: application/json
+
+{"source": "470nm", "level": 0.6}
+
+### Turn the white source off
+POST {{api}}/illumination/set_level
+Content-Type: application/json
+
+{"source": "white", "level": 0.0}
+
+# ============================== The filter wheel ==============================
+
+### The filters, by position
+GET {{api}}/filter_wheel/filters
+
+### The filter in the light path (null while the wheel turns, or before the first move)
+GET {{api}}/filter_wheel/position
+
+### Whether it is turning
+GET {{api}}/filter_wheel/moving
+
+### Turn to position 2 (GFP), the shorter way round
+POST {{api}}/filter_wheel/select
+Content-Type: application/json
+
+{"position": 2}
+
+# ============================== The objective turret ==============================
+
+### The configured objectives
+GET {{api}}/objective/objectives
+
+### The objective in the light path
+GET {{api}}/objective/current
+
+### Its turret position
+GET {{api}}/objective/position
+
+### Turn to the 20× (turret position 1): frames are labelled with it once it arrives
+POST {{api}}/objective/select
+Content-Type: application/json
+
+{"position": 1}
+
+### Back to the 10× (turret position 0)
+POST {{api}}/objective/select
+Content-Type: application/json
+
+{"position": 0}
+
+# ============================== The modality unit ==============================
+
+### The modes it offers
+GET {{api}}/modality/modes
+
+### The structured-illumination patterns it can show
+GET {{api}}/modality/patterns
+
+### The mode in place, with its pattern
+GET {{api}}/modality/modality
+
+### Confocal
+POST {{api}}/modality/set_modality
+Content-Type: application/json
+
+{"mode": "confocal"}
+
+### Structured illumination, orientation 1, phase 2
+POST {{api}}/modality/set_modality
+Content-Type: application/json
+
+{"mode": "structured_illumination", "pattern": {"orientation": 1, "phase": 2}}
+
+### Back to widefield
+POST {{api}}/modality/set_modality
+Content-Type: application/json
+
+{"mode": "widefield"}
+
+# ============================== The channels ==============================
+
+### The channels: each one's light, filter, exposure and display colour
+GET {{api}}/imaging/channels
+
+### The channel in use (null before one is selected)
+GET {{api}}/imaging/channel
+
+### Brightfield: every light off, the empty filter, 10 ms, grey, then white at 40 %
+POST {{api}}/imaging/select_channel
+Content-Type: application/json
+
+{"id": 1}
+
+### DAPI
+POST {{api}}/imaging/select_channel
+Content-Type: application/json
+
+{"id": 2}
+
+### GFP
+POST {{api}}/imaging/select_channel
+Content-Type: application/json
+
+{"id": 3}
+
+# ============================== Invocations ==============================
+
+### Every invocation the server keeps, with its state
+GET {{api}}/action_invocations
+
+# ============================== Expected refusals ==============================
+# Each of these fails: the response, or the invocation's state, says why.
+
+### A channel that isn't configured: the invocation ends in error
+# @name nochannel
+POST {{api}}/imaging/select_channel
+Content-Type: application/json
+
+{"id": 9}
+
+### ... its error
+GET {{nochannel.response.body.$.href}}
+
+### A source that doesn't exist: the invocation ends in error
+POST {{api}}/illumination/set_level
+Content-Type: application/json
+
+{"source": "UV", "level": 1.0}
+
+### A pattern outside the set (3 orientations): the invocation ends in error
+POST {{api}}/modality/set_modality
+Content-Type: application/json
+
+{"mode": "structured_illumination", "pattern": {"orientation": 3, "phase": 0}}
+
+### A pixel format the camera doesn't offer: 422, with the formats it offers
+PUT {{api}}/camera/pixel_format
+Content-Type: application/json
+
+"Mono9"
+
+### An action without its input: 422, with the fields missing
+POST {{api}}/stage/move_to
+Content-Type: application/json
+
+{"x": -1000.0}
+
+### A Thing that isn't served: 404
+GET {{api}}/microscope/

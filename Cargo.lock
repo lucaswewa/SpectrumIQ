@@ -1409,6 +1409,7 @@ name = "siq-euresys-sys"
 version = "0.1.0"
 dependencies = [
  "cc",
+ "tiff",
 ]
 
 [[package]]

@@ -62,6 +62,14 @@ typedef enum SiqEgFound {
     SIQ_EG_FOUND_CAMERA = 2
 } SiqEgFound;
 
+/* What siq_eg_list lists. */
+typedef enum SiqEgList {
+    /* The module's features available now. */
+    SIQ_EG_LIST_FEATURES = 0,
+    /* The entries of enumeration `feature` available now. */
+    SIQ_EG_LIST_ENUM_ENTRIES = 1
+} SiqEgList;
+
 /* The counts of a discovery. */
 typedef struct SiqEgCounts {
     int32_t interfaces;
@@ -152,6 +160,10 @@ SiqEgStatus siq_eg_set_float(SiqEgGrabber *grabber, SiqEgModule module, const ch
 SiqEgStatus siq_eg_set_string(SiqEgGrabber *grabber, SiqEgModule module, const char *feature,
                               const char *value);
 SiqEgStatus siq_eg_execute(SiqEgGrabber *grabber, SiqEgModule module, const char *command);
+/* Lists `what` in `module`, one name a line; `feature` is the enumeration, or ignored. As
+ * siq_eg_discovery_info for the buffer. */
+SiqEgStatus siq_eg_list(SiqEgGrabber *grabber, SiqEgModule module, SiqEgList what,
+                        const char *feature, char *buf, size_t len, size_t *needed);
 
 /* Announces `count` buffers of `size` bytes each, at `ptrs`, and queues them to be filled. Our
  * memory is filled by DMA: it must stay valid, and locked, until the grabber is closed. Revokes

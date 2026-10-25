@@ -67,6 +67,11 @@ fn every_constant_of_the_header_is_bound_with_its_value() {
         ("SIQ_EG_FOUND_INTERFACE", i64::from(SIQ_EG_FOUND_INTERFACE)),
         ("SIQ_EG_FOUND_GRABBER", i64::from(SIQ_EG_FOUND_GRABBER)),
         ("SIQ_EG_FOUND_CAMERA", i64::from(SIQ_EG_FOUND_CAMERA)),
+        ("SIQ_EG_LIST_FEATURES", i64::from(SIQ_EG_LIST_FEATURES)),
+        (
+            "SIQ_EG_LIST_ENUM_ENTRIES",
+            i64::from(SIQ_EG_LIST_ENUM_ENTRIES),
+        ),
     ]
     .into();
     // `NAME = 1,` in an enum, or `#define NAME 1u`.
@@ -98,7 +103,7 @@ fn every_function_of_the_header_is_bound() {
         .flat_map(|returns| names(&header, returns))
         .collect();
     let bound = names(&read("src/bindings.rs"), "pub fn ");
-    assert_eq!(declared.len(), 22, "{declared:?}");
+    assert_eq!(declared.len(), 23, "{declared:?}");
     assert_eq!(declared, bound);
 }
 

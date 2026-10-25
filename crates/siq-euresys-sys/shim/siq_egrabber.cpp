@@ -374,6 +374,33 @@ SiqEgStatus siq_eg_execute(SiqEgGrabber *grabber, SiqEgModule module, const char
     });
 }
 
+SiqEgStatus siq_eg_list(SiqEgGrabber *grabber, SiqEgModule module, SiqEgList what,
+                        const char *feature, char *buf, size_t len, size_t *needed) {
+    return guard([&] {
+        require(grabber != nullptr, "no grabber");
+        std::string query;
+        switch (what) {
+        case SIQ_EG_LIST_FEATURES:
+            query = query::features();
+            break;
+        case SIQ_EG_LIST_ENUM_ENTRIES:
+            require(feature != nullptr, "no enumeration");
+            query = query::enumEntries(feature);
+            break;
+        default:
+            require(false, "no such list");
+        }
+        std::string text;
+        on_module(module, [&](auto tag) {
+            for (const std::string &name :
+                 grabber->grabber.getStringList<Module<decltype(tag)>>(query)) {
+                text += name + "\n";
+            }
+        });
+        return copy_out(text, buf, len, needed);
+    });
+}
+
 SiqEgStatus siq_eg_announce_user_buffers(SiqEgGrabber *grabber, void *const *ptrs, size_t size,
                                          size_t count) {
     return guard([&] {

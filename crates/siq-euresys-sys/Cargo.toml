@@ -16,8 +16,16 @@ sdk = ["dep:cc"]
 [build-dependencies]
 cc = { workspace = true, optional = true }
 
+[dev-dependencies]
+# The raw frame `eg_fps` saves.
+tiff.workspace = true
+
 [[example]]
 name = "eg_discover"
+required-features = ["sdk"]
+
+[[example]]
+name = "eg_fps"
 required-features = ["sdk"]
 
 [lints]

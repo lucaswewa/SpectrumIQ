@@ -22,6 +22,9 @@ pub const SIQ_EG_FOUND_INTERFACE: SiqEgFound = 0;
 pub const SIQ_EG_FOUND_GRABBER: SiqEgFound = 1;
 pub const SIQ_EG_FOUND_CAMERA: SiqEgFound = 2;
 pub type SiqEgFound = ::std::os::raw::c_int;
+pub const SIQ_EG_LIST_FEATURES: SiqEgList = 0;
+pub const SIQ_EG_LIST_ENUM_ENTRIES: SiqEgList = 1;
+pub type SiqEgList = ::std::os::raw::c_int;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct SiqEgCounts {
@@ -180,6 +183,15 @@ unsafe extern "C" {
         grabber: *mut SiqEgGrabber,
         module: SiqEgModule,
         command: *const ::std::os::raw::c_char,
+    ) -> SiqEgStatus;
+    pub fn siq_eg_list(
+        grabber: *mut SiqEgGrabber,
+        module: SiqEgModule,
+        what: SiqEgList,
+        feature: *const ::std::os::raw::c_char,
+        buf: *mut ::std::os::raw::c_char,
+        len: usize,
+        needed: *mut usize,
     ) -> SiqEgStatus;
     pub fn siq_eg_announce_user_buffers(
         grabber: *mut SiqEgGrabber,

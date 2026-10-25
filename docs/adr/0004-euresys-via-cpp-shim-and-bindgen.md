@@ -70,6 +70,7 @@ eGrabber 25.02.0.40 is installed at `C:\Program Files\Euresys\eGrabber`.
 | Discovery | `siq_eg_discover(system, &counts)`, `siq_eg_discovery_info(system, found, index, buf, len, &needed)` | Counts of interfaces, grabbers and cameras, and `key=value` lines for each |
 | Grabber | `siq_eg_open(system, camera, &grabber)`, `siq_eg_close` | A discovered camera, opened as `EGrabber<CallbackOnDemand>` |
 | Features | `siq_eg_get_int`, `_float`, `_string`, `siq_eg_set_int`, `_float`, `_string`, `siq_eg_execute` | By name, in one of four modules: interface, device, stream, remote |
+| Lists | `siq_eg_list(module, what, feature, buf, len, &needed)` | A module's available features, or an enumeration's available entries, one per line. Added after P2.5, for `eg_fps` |
 | Buffers | `siq_eg_announce_user_buffers(ptrs, size, count)`, `siq_eg_requeue(index)` | Our memory, filled by DMA. The user pointer carries our index |
 | Acquisition | `siq_eg_start(frames)`, `siq_eg_stop`, `siq_eg_pop(timeout_ms, &info)`, `siq_eg_cancel_pop` | `info` is a `SiqBufferInfo`; 0 frames means until stopped |
 | Counters | `siq_eg_counters(&counters)` | GenTL's `STREAM_INFO_NUM_*`: `underrun` is frames lost for want of a buffer |
@@ -120,6 +121,14 @@ eGrabber 25.02.0.40 is installed at `C:\Program Files\Euresys\eGrabber`.
     format `BayerGB8`, and a payload of 103,628,800 bytes.
   - It is a colour (Bayer) camera, not the 14-bit mono camera of REQ-ACQ-001. This is open
     question 1 of the plan.
+  - Its formats are `BayerGB8`, `BayerGB10` and `BayerGB12`, and `SensorBitDepth` is 12 bits.
+    - It has no `TriggerMode`. It is triggered with `ExposureMode = TimedTriggerControl` and
+      `TriggerSource = Trigger`, the CoaXPress link.
+    - The Coaxlink triggers it in RC mode, at each `StartCycle`.
+  - `eg_fps` measured 12.28 frames/s at a 1 ms exposure in `BayerGB12`: a frame every 81.4 ms,
+    with nothing lost. With readout overlap, the camera ignores triggers that come during readout.
+    - The frames arrive as 12-bit values in the low bits of 16, in the GB mosaic.
+    - The link is `CXP12_X2`.
 - **Playlink (`playlink.cti`) works without hardware.** It offers one virtual camera, "Logo":
   - 720 × 720 at 30 frames/s, in `CustomJFIF` (PFNC namespace, custom code `0x83000001`);
   - its licence status is "NotOK", which didn't stop acquisition;

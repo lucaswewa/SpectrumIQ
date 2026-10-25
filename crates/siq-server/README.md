@@ -90,6 +90,10 @@ library only:
 - `examples/python/live_soak.py` runs live view with both previews streaming, by default for
   10 minutes, and fails if a frame is lost.
 
+[`test.http`](../../test.http), at the repository's root, has a request for every route and
+affordance, for VS Code's REST Client extension. It includes expected refusals. The requests named
+with `# @name` feed the ones after them: the snap's state and JPEG, and cancelling a move.
+
 ## Features
 
 None.
