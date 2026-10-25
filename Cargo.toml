@@ -33,6 +33,8 @@ png = "0.18.1"
 rayon = "1.12"
 # Dialect templates compile to regexes. regex-automata and regex-syntax are already in the lockfile.
 regex = "1.13.1"
+# The web app's build, embedded in release builds of the server and read from disk in debug ones.
+rust-embed = "8.13"
 schemars = { version = "1.2", features = ["preserve_order", "indexmap2", "uuid1"] }
 serde = { version = "1.0.229", features = ["derive"] }
 # float_roundtrip: parse every f64 back exactly (calibrations, poses), not to within one ULP.

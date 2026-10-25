@@ -11,15 +11,10 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In review:** Milestone 2, acquisition, live preview and the first server. Its last phase, P2.5,
-is [`siq-euresys-sys`](crates/siq-euresys-sys/README.md): Euresys eGrabber behind a C ABI of our
-own. It finds this PC's Coaxlink and camera
-(`cargo run -p siq-euresys-sys --features sdk --example eg_discover`).
-
-Each of M2's exit criteria is met:
-- `live_and_move.py` sees the stage move;
-- 10 minutes of simulated live view lost no frames, with both previews streaming;
-- the shim builds against the SDK, and `eg_discover` runs.
+**In progress:** Milestone 3, frontend foundations. P3.1 is the latest: the [web app](web/README.md),
+started from `microscope`'s and served by the server at `/`
+(`cargo run --release -p spectrumiq-server -- -c config/sim.toml`, then <http://127.0.0.1:5000/>
+once `web/` is built).
 
 Done so far:
 
@@ -56,7 +51,9 @@ Done so far:
   - P1.10a, [`siq-ascii`](crates/siq-ascii/README.md)'s data-driven dialects: a device's ASCII
     protocol described by a TOML file, and `siq-sim`'s emulator of any dialect;
   - P1.10b, the ASCII focus driver in `siq-ascii`, and the peripheral simulators in `siq-sim`.
-- Milestone 2 (acquisition, live preview and the first server), under way:
+- Milestone 2 (acquisition, live preview and the first server), complete: 10 minutes of simulated
+  live view lose no frames with both previews streaming, a script sees the stage move, and the
+  Euresys shim builds against the SDK:
   - P2.1, [`siq-acquire`](crates/siq-acquire/README.md), the acquisition engine: live view,
     settle-aware snaps and sequences, with every frame numbered and stamped with its pose and
     context;
@@ -66,7 +63,10 @@ Done so far:
     [`spectrumiq-server`](apps/spectrumiq-server/README.md): the simulated instrument served over
     HTTP, with its camera, display, stage and focus Things;
   - P2.4, the peripherals, the channels, and the metrics and memory routes in `siq-server`
-    (`python examples/python/channels.py`).
+    (`python examples/python/channels.py`);
+  - P2.5, [`siq-euresys-sys`](crates/siq-euresys-sys/README.md): Euresys eGrabber behind a C ABI
+    of our own, which finds this PC's Coaxlink and camera, and measures its frame rate
+    (`eg_discover`, `eg_fps`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

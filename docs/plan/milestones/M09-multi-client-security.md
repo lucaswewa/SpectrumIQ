@@ -130,8 +130,8 @@ token is handed over.
 - **Role-aware controls:** disabled with an explanation, rather than hidden, for viewers.
 - **Control token bar:** the holder; request, release, and take-over; banners when someone else is
   operating.
-- **Admin pages:** user CRUD, and an audit viewer built on a new `AppDataTable` wrapper (PrimeVue
-  DataTable, unstyled + tokens).
+- **Admin pages:** user CRUD, and an audit viewer built on a new `AppDataTable` wrapper (TanStack
+  Table, headless, styled with the tokens: ADR-0008, amended in P3.1).
 - **Tauri local auto-login** through the `HostAdapter`.
 
 **Tests**

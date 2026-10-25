@@ -1,0 +1,45 @@
+/*
+ * The box shared by TextField, NumberField and AppSelect's trigger: compact,
+ * square-cornered, 40 px tall (30 px small). Not scoped: each of those
+ * components includes this file with <style src="./input.css">.
+ */
+
+.ui-input {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--control-height-md);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--color-control-border);
+  border-radius: 0;
+  background: var(--color-control-bg);
+  color: var(--color-control-text);
+  font: inherit;
+  font-size: var(--font-size-md);
+  transition: border-color var(--duration-fast) var(--easing-standard);
+}
+
+.ui-input--sm {
+  height: var(--control-height-sm);
+  font-size: var(--font-size-sm);
+}
+
+.ui-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.ui-input:hover:not(:disabled) {
+  border-color: var(--color-control-border-hover);
+}
+
+.ui-input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+  box-shadow: inset 0 0 0 var(--border-width) var(--color-danger);
+}
+
+.ui-input:disabled {
+  border-color: var(--color-border);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}

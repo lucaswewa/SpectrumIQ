@@ -5,8 +5,10 @@
 //! - **Things,** under `/api/v1/`: `camera`, `display`, `stage`, `focus`, the fitted peripherals
 //!   (`illumination`, `filter_wheel`, `objective`, `modality`) and `imaging`. The global lock is
 //!   on: hardware actions and writes take it, and `stage.halt` and `focus.halt` don't.
-//! - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`. teta-wot's router
-//!   serves every other request.
+//! - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`.
+//! - **The web app** at `/` and `/assets/…`, embedded in release builds (ADR-0036).
+//!
+//! teta-wot's router serves every other request.
 //! - **The lifecycle,** as teta-wot's `serve_with`, but with the routes merged, and live view and
 //!   motion stopped before the Things are.
 //!
@@ -39,6 +41,7 @@ pub mod devices;
 pub mod imaging;
 pub mod peripherals;
 pub mod things;
+pub mod webapp;
 
 pub use teta_wot::server::shutdown_signal;
 
@@ -176,6 +179,7 @@ fn things(camera: Camera, fitted: impl Fn(&str) -> bool) -> ThingServerBuilder {
 pub struct Service {
     server: ThingServer,
     instrument: Arc<Instrument>,
+    webapp: webapp::WebApp,
 }
 
 impl Service {
@@ -235,7 +239,12 @@ impl Service {
             }
         };
         let server = things(camera, fitted).service(instrument.clone()).build()?;
-        Ok(Self { server, instrument })
+        let webapp = webapp::WebApp::Embedded;
+        Ok(Self {
+            server,
+            instrument,
+            webapp,
+        })
     }
 
     /// The instrument.
@@ -243,14 +252,23 @@ impl Service {
         &self.instrument
     }
 
+    /// Serves the web app from `source` instead of the build compiled in.
+    pub fn with_webapp(mut self, source: webapp::WebApp) -> Self {
+        self.webapp = source;
+        self
+    }
+
     /// The Things' server and the instrument, apart: for an in-process test client.
     pub fn into_parts(self) -> (ThingServer, Arc<Instrument>) {
         (self.server, self.instrument)
     }
 
-    /// Every route: SpectrumIQ's first, and teta-wot's for any request they don't match.
+    /// Every route: SpectrumIQ's and the web app's first, and teta-wot's for any request they
+    /// don't match.
     pub fn router(&self) -> Router {
-        routes(&self.instrument).fallback_service(self.server.router())
+        routes(&self.instrument)
+            .merge(webapp::routes(self.webapp.clone()))
+            .fallback_service(self.server.router())
     }
 
     /// Starts the Things, serves on `listener` until `shutdown` completes, then shuts down: live
@@ -262,7 +280,9 @@ impl Service {
         shutdown: impl Future<Output = ()> + Send + 'static,
     ) -> anyhow::Result<()> {
         let router = self.router();
-        let Self { server, instrument } = self;
+        let Self {
+            server, instrument, ..
+        } = self;
         let (runtime, grace) = (Arc::clone(server.runtime()), server.shutdown_grace());
         drop(server);
         runtime

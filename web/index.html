@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>SpectrumIQ</title>
+    <script>
+      // Applies the saved theme before the app loads, so the page never shows
+      // the wrong one first. It must agree with src/theme/store.ts, which takes
+      // over once the app starts; a unit test checks that it does.
+      ;(function () {
+        var preference = 'system'
+        try {
+          preference = window.localStorage.getItem('spectrumiq.theme') || 'system'
+        } catch (e) {
+          // Storage can be unavailable (blocked, or private browsing).
+        }
+        var dark =
+          preference === 'dark' ||
+          (preference !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,65 @@
+/*
+ * The drop-down lists of AppSelect and MultiSelect: their trigger, which is
+ * also an input box (input.css), and the list of options. Not scoped: the
+ * list is rendered at the end of <body>. Each includes this file with
+ * <style src="./select.css">.
+ */
+.app-select {
+  display: block;
+}
+
+.app-select__trigger {
+  gap: var(--space-1);
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-select__trigger[data-placeholder] .app-select__value {
+  color: var(--color-text-muted);
+}
+
+.app-select__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-select__list {
+  z-index: var(--z-menu);
+  min-width: var(--reka-select-trigger-width);
+  max-height: var(--reka-select-content-available-height);
+  padding: var(--space-1) 0;
+  overflow: auto;
+  border: var(--border-width) solid var(--color-border-strong);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-md);
+}
+
+.app-select__option {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-2);
+  outline: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.app-select__option[data-highlighted] {
+  background: var(--color-accent-subtle);
+}
+
+.app-select__option[data-state='checked'] {
+  color: var(--color-accent-text);
+}
+
+.app-select__option[data-disabled] {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}

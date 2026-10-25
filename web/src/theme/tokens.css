@@ -1,0 +1,246 @@
+/*
+ * Design tokens (ADR-0011).
+ *
+ * Two layers:
+ * - palette tokens (--palette-*) are raw colours, used only to define the
+ *   semantic tokens below;
+ * - semantic tokens (--color-*, --font-*, --space-*, ...) are what components use.
+ *
+ * Theme-dependent tokens are defined for [data-theme='light'] and
+ * [data-theme='dark']. The theme store sets data-theme on <html>; any element
+ * can set it to show its contents in one theme (the tokens page does).
+ *
+ * src/theme/tokens.ts lists every token, and a unit test keeps the two in step
+ * and checks the colour contrasts.
+ */
+
+:root {
+  /* Palette: the accent, magenta at hue 326 and saturation 72%. The comment is the HSL lightness. */
+  --palette-accent-50: #fbe9f3; /* 95 */
+  --palette-accent-100: #f6cae3; /* 88 */
+  --palette-accent-200: #ef9fcc; /* 78 */
+  --palette-accent-300: #ea7bba; /* 70 */
+  --palette-accent-400: #e250a3; /* 60 */
+  --palette-accent-500: #ce2283; /* 47 */
+  --palette-accent-600: #b41d73; /* 41 */
+  --palette-accent-700: #95185f; /* 34 */
+  --palette-accent-800: #6b1145; /* 25 */
+  --palette-accent-900: #420b2a; /* 15 */
+
+  /* Palette: neutral greys. */
+  --palette-neutral-0: #ffffff;
+  --palette-neutral-25: #fafafa;
+  --palette-neutral-50: #f2f2f2;
+  --palette-neutral-100: #e8e8e8;
+  --palette-neutral-200: #dcdcdc;
+  --palette-neutral-300: #c4c4c4;
+  --palette-neutral-400: #a8a8a8;
+  --palette-neutral-500: #8c8c8c;
+  --palette-neutral-600: #7a7a7a;
+  --palette-neutral-700: #5c5c5c;
+  --palette-neutral-750: #3a3a3a;
+  --palette-neutral-800: #2b2b2b;
+  --palette-neutral-850: #2a2a2a;
+  --palette-neutral-900: #232323;
+  --palette-neutral-925: #1f1f1f;
+  --palette-neutral-950: #1a1a1a;
+
+  /* Palette: status colours, a darker and a lighter one each. */
+  --palette-red-600: #c42b2b;
+  --palette-red-300: #ff7a7a;
+  --palette-amber-700: #8a5300;
+  --palette-amber-300: #f2b84b;
+  --palette-green-700: #26732b;
+  --palette-green-300: #6cc070;
+  --palette-blue-700: #1f5fb8;
+  --palette-blue-300: #74b3f5;
+
+  /* Typography: system fonts only, so nothing is downloaded (Segoe UI on Windows). */
+  --font-family-sans:
+    'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-family-display:
+    'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'Cascadia Mono', Consolas, ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-3xl: 30px;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+
+  /* Spacing: a 4 px grid. */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Radii. */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-full: 9999px;
+
+  /* Controls: compact, as the reference's. */
+  --control-height-sm: 30px;
+  --control-height-md: 40px;
+  --control-padding-x: 12px;
+  --icon-size-xs: 16px;
+  --icon-size-sm: 20px;
+  --icon-size-md: 24px;
+  --border-width: 1px;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* Layout. */
+  --rail-width: 84px;
+  --rail-item-height: 64px;
+  --pane-width-narrow: 180px;
+  --pane-width-wide: 400px;
+
+  /* Annotations over images (ADR-0036): the same in both themes, as the
+     images are, with a dark halo so they show on light and dark ones. */
+  --color-annotation: var(--palette-amber-300);
+  --color-annotation-halo: rgb(0 0 0 / 65%);
+  --annotation-stroke-width: 1.5px;
+  --annotation-halo-width: 4px;
+
+  /* Layers. */
+  --z-rail: 10;
+  --z-dropdown: 100;
+  --z-dialog: 1000;
+  /* Menus and selects, which can open from a dialog. */
+  --z-menu: 1050;
+  --z-toast: 1100;
+
+  /* Motion: none when the user asks for reduced motion. */
+  --duration-fast: 100ms;
+  --duration-normal: 200ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+  }
+}
+
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Surfaces. */
+  --color-bg: var(--palette-neutral-0);
+  --color-surface-rail: var(--palette-neutral-50);
+  --color-surface-panel: var(--palette-neutral-25);
+  --color-surface-raised: var(--palette-neutral-0);
+  --color-surface-sunken: var(--palette-neutral-50);
+  --color-image-backdrop: var(--palette-neutral-0);
+  --color-overlay: rgb(0 0 0 / 40%);
+  --color-capture-flash: var(--palette-neutral-0);
+
+  /* Text. */
+  --color-text: var(--palette-neutral-950);
+  --color-text-muted: var(--palette-neutral-700);
+  --color-text-heading: var(--palette-accent-600);
+  --color-text-disabled: var(--palette-neutral-500);
+
+  /* Lines. */
+  --color-border: var(--palette-neutral-200);
+  --color-border-strong: var(--palette-neutral-300);
+
+  /* Form controls. */
+  --color-control-bg: var(--palette-neutral-0);
+  --color-control-border: var(--palette-neutral-500);
+  --color-control-border-hover: var(--palette-neutral-700);
+  --color-control-text: var(--palette-neutral-950);
+
+  /* The accent: fills carry --color-on-accent; --color-accent-text is for text and borders. */
+  --color-accent: var(--palette-accent-500);
+  --color-accent-hover: var(--palette-accent-600);
+  --color-accent-pressed: var(--palette-accent-700);
+  --color-accent-text: var(--palette-accent-600);
+  --color-accent-subtle: var(--palette-accent-50);
+  --color-on-accent: var(--palette-neutral-0);
+
+  /* The navigation rail. */
+  --color-rail-text: var(--palette-neutral-700);
+  --color-rail-hover-bg: var(--palette-neutral-100);
+  --color-rail-active-bg: var(--palette-accent-500);
+  --color-rail-active-text: var(--palette-neutral-0);
+
+  /* Focus and status. */
+  --color-focus: var(--palette-accent-600);
+  --color-danger: var(--palette-red-600);
+  --color-warning: var(--palette-amber-700);
+  --color-success: var(--palette-green-700);
+  --color-info: var(--palette-blue-700);
+
+  /* Elevation. */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 12%);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 14%);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 18%);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-bg: var(--palette-neutral-925);
+  --color-surface-rail: var(--palette-neutral-800);
+  --color-surface-panel: var(--palette-neutral-900);
+  --color-surface-raised: var(--palette-neutral-850);
+  --color-surface-sunken: var(--palette-neutral-950);
+  --color-image-backdrop: var(--palette-neutral-925);
+  --color-overlay: rgb(0 0 0 / 60%);
+  --color-capture-flash: var(--palette-neutral-0);
+
+  --color-text: var(--palette-neutral-100);
+  --color-text-muted: var(--palette-neutral-400);
+  --color-text-heading: var(--palette-neutral-100);
+  --color-text-disabled: var(--palette-neutral-600);
+
+  --color-border: var(--palette-neutral-750);
+  --color-border-strong: var(--palette-neutral-700);
+
+  --color-control-bg: var(--palette-neutral-850);
+  --color-control-border: var(--palette-neutral-600);
+  --color-control-border-hover: var(--palette-neutral-400);
+  --color-control-text: var(--palette-neutral-100);
+
+  --color-accent: var(--palette-accent-500);
+  --color-accent-hover: var(--palette-accent-600);
+  --color-accent-pressed: var(--palette-accent-700);
+  --color-accent-text: var(--palette-accent-300);
+  --color-accent-subtle: var(--palette-accent-900);
+  --color-on-accent: var(--palette-neutral-0);
+
+  --color-rail-text: var(--palette-neutral-100);
+  --color-rail-hover-bg: var(--palette-neutral-750);
+  --color-rail-active-bg: var(--palette-accent-500);
+  --color-rail-active-text: var(--palette-neutral-0);
+
+  --color-focus: var(--palette-accent-300);
+  --color-danger: var(--palette-red-300);
+  --color-warning: var(--palette-amber-300);
+  --color-success: var(--palette-green-300);
+  --color-info: var(--palette-blue-300);
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 50%);
+  --shadow-lg: 0 12px 32px rgb(0 0 0 / 60%);
+}

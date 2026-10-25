@@ -116,14 +116,14 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 | REQ-VIS-002 | Client-side 16-bit rendering with window/level (later). | Q | P14.1 | |
 | REQ-VIS-003 | 3D visualization with VTK.js (height maps, volumes, isosurfaces, point clouds) on desktop and in the browser. | G | P11.4, P12.5, P13.3 | |
 | REQ-VIS-004 | A native winit+wgpu 3D viewer for very large volumes (desktop, later, optional). | G | P14.6, P14.7 | |
-| REQ-VIS-005 | One Vue codebase for Tauri and the browser, with `microscope`'s look and feel. | G | P3.1, P3.5, P4.8, P9.4, P11.4 | |
+| REQ-VIS-005 | One Vue codebase for Tauri and the browser, with `microscope`'s look and feel. | G | P3.1, P3.5, P4.8, P9.4, P11.4 | The web app, in P3.1: `microscope@0640f99`'s web app imported (ADR-0008, amended: its Reka UI components kept), with SpectrumIQ's rail, and served by the server at `/` (ADR-0036). Its copied tests pass unchanged where they don't name `microscope`'s pages, including the token contrast of both themes (`web/tests/unit/theme/tokens.spec.ts`, `ui/*.spec.ts`); `siq-server` `webapp` tests the serving. Checked by hand in Edge, in both themes. The Tauri shell follows in P3.5 |
 
 ## Network and architecture (NET)
 
 | ID | Requirement | Source | Phases | Verified by |
 |---|---|---|---|---|
 | REQ-NET-001 | The core runs as a separate service process; the desktop and browsers are clients. | G, Q | P2.3, P3.5, P15.1 | The service, in P2.3: `spectrumiq-server` serves the instrument over HTTP, with SpectrumIQ's routes in front of teta-wot's, and shuts down with live view and motion stopped first (`siq-server` `server`: `serving_answers_over_tcp_and_shutting_down_stops_live_view_first`, `siq_routes_come_first_and_the_things_after`). The desktop shell follows in P3.5, and the Windows service in P15.1 |
-| REQ-NET-002 | The HTTP/WS API comes from teta-wot (TDs + OpenAPI). | G | P2.3, P3.1, P3.2, P6.5 | The Things, in P2.3: `camera`, `display`, `stage` and `focus` under `/api/v1/`, with TDs, observable properties, the global lock, and an OpenAPI document (`siq-server` `server`: `the_things_are_listed_and_described`, `the_openapi_document_has_every_affordance`, `the_global_lock_refuses_a_second_hardware_action_but_not_halt`; `spectrumiq-server --print-openapi`). The client follows in P3.1 |
+| REQ-NET-002 | The HTTP/WS API comes from teta-wot (TDs + OpenAPI). | G | P2.3, P3.1, P3.2, P6.5 | The Things, in P2.3: `camera`, `display`, `stage` and `focus` under `/api/v1/`, with TDs, observable properties, the global lock, and an OpenAPI document (`siq-server` `server`: `the_things_are_listed_and_described`, `the_openapi_document_has_every_affordance`, `the_global_lock_refuses_a_second_hardware_action_but_not_halt`; `spectrumiq-server --print-openapi`). The client, in P3.1: `microscope`'s TD-driven client imported (`web/src/api/wot/`, with its unit tests against a fake server: `web/tests/unit/api/*.spec.ts`), and the web app served beside the API, which stays teta-wot's (`siq-server` `webapp`: `the_api_is_untouched`). Its WebSocket observations follow in P3.2 |
 | REQ-NET-003 | Tiles are served on demand over HTTP. | G | P4.5, P4.7 | |
 | REQ-NET-004 | Lab LAN deployment. | Q | P9.1, P15.1 | |
 | REQ-NET-005 | A local fast path for the desktop, staged and gated by benchmarks. | G, Q | P3.5, P14.4, P14.5 | |

@@ -10,6 +10,7 @@ publish.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+rust-embed.workspace = true
 schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -27,12 +28,13 @@ siq-synth = { path = "../siq-synth" }
 siq-telemetry = { path = "../siq-telemetry" }
 siq-types = { path = "../siq-types" }
 teta-wot.workspace = true
-tokio = { workspace = true, features = ["macros", "net", "rt", "signal", "sync", "time"] }
+tokio = { workspace = true, features = ["fs", "macros", "net", "rt", "signal", "sync", "time"] }
 tower.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
 http-body-util.workspace = true
+tempfile.workspace = true
 insta.workspace = true
 siq-acquire = { path = "../siq-acquire" }
 teta-wot = { workspace = true, features = ["testing"] }

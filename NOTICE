@@ -1,0 +1,31 @@
+SpectrumIQ
+Copyright (c) 2026 Lucas Wang
+Licensed under the MIT License (see LICENSE).
+
+This software includes third-party material:
+
+microscope
+  The web app (web/) started from the microscope project's web app
+  (https://github.com/lucaswewa/microscope), copied at commit 0640f99 and
+  adapted since: its configuration, theme, host adapter, Web of Things
+  client, app shell, UI components, router, development galleries, and
+  their unit tests (docs/impl-notes/P3.1.md lists the files).
+  Copyright (c) 2026 Lucas Wang. Licensed under the MIT License.
+
+Material Symbols
+  Icons by Google (https://github.com/google/material-design-icons), used
+  through the @material-symbols/svg-400 package
+  (https://github.com/marella/material-symbols), and the favicon, which is
+  the "center_focus_strong" icon in the accent colour.
+  Licensed under the Apache License, Version 2.0:
+  https://www.apache.org/licenses/LICENSE-2.0
+  The web app bundles the icons it uses, unmodified but for the favicon's
+  colour.
+
+teta-wot
+  The Web of Things framework the server is built on
+  (https://github.com/lucaswewa/teta-wot).
+  Copyright (c) 2026 Lucas Wang. Licensed under the MIT License.
+
+The web app's build holds the licence of every npm package it bundles, in
+third-party-licences.txt; docs/soup.md lists every third-party component.

@@ -405,12 +405,13 @@ therefore has one code path for everything.
   - the layout primitives (`ControlPane` at 180/400 px, `MainView`);
   - `DeepZoom.vue` (OpenSeadragon);
   - the overlay layers.
-- **Components:** PrimeVue in **unstyled mode with pass-through presets** styled only by the tokens.
-  - Wrappers in `src/ui/` keep `microscope`'s component APIs: `AppSelect`, `AppAccordion`,
-    `AppDialog`, `AppMenu`, `AppSlider`, `AppTooltip`, `MultiSelect`, `AppPagination`, and later
-    `AppDataTable` and `AppTree`.
+- **Components:** `microscope`'s wrappers in `src/ui/` on **Reka UI** (MIT), styled only by the
+  tokens (ADR-0008, amended in P3.1: PrimeVue 5 is no longer MIT, so it isn't used).
+  - The wrappers keep `microscope`'s component APIs: `AppSelect`, `AppAccordion`, `AppDialog`,
+    `AppMenu`, `AppSlider`, `AppTooltip`, `MultiSelect`, `AppPagination`.
+  - Later, `AppDataTable` on TanStack Table (MIT, headless) and `AppTree` on Reka UI's `Tree`.
   - Copied pages and new pages therefore look and behave like `microscope`.
-  - `reka-ui` is not used. Only `src/ui/` imports PrimeVue.
+  - Only `src/ui/` imports Reka UI.
 - **Navigation rail:**
   - top: Live, Mosaic, Scan, Datasets, Viewer, 3D, Jobs;
   - bottom: Calibration, Settings, Admin, Logging, About.

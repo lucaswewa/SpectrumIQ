@@ -15,6 +15,10 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
   The global lock is on, and the `halt` actions bypass it.
 - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`, with teta-wot's router
   as the fallback (ADR-0003, amended).
+- **The web app** at `/`, `/assets/…`, `/favicon.svg` and `/third-party-licences.txt` (ADR-0036):
+  - `web/dist` is embedded in release builds, and read from disk in debug builds;
+  - `Service::with_webapp(WebApp::Dir(folder))` serves another build;
+  - without a build, a placeholder page.
 - **The lifecycle:** start the Things, serve, and on shutdown stop live view and motion before
   the Things.
 
@@ -30,7 +34,8 @@ This is the only crate that depends on teta-wot.
   - `siq-config`, `siq-telemetry`, `siq-buffer`, `siq-imgproc`, `siq-synth`, `siq-types`;
   - `tokio`, `serde`, `schemars`, `anyhow`, `tracing`.
 - **Used by:** `apps/spectrumiq-server`, the service binary.
-- **Phase:** P2.3; P2.4 added the peripherals, the channels, and the metrics and memory routes.
+- **Phase:** P2.3; P2.4 added the peripherals, the channels, and the metrics and memory routes;
+  P3.1 the web app.
 
 ## API
 
@@ -38,7 +43,8 @@ This is the only crate that depends on teta-wot.
 |---|---|
 | `Service::build(config)` | Opens the devices, starts the acquisition and previews, and makes the Things |
 | `service.serve(listener, shutdown)` | Serves until `shutdown` completes, then shuts down |
-| `service.router()` | Every route: SpectrumIQ's first, teta-wot's after |
+| `service.router()` | Every route: SpectrumIQ's and the web app's first, teta-wot's after |
+| `service.with_webapp(source)`, `webapp::WebApp` | Where the web app comes from: `Embedded` (the default) or `Dir(folder)` |
 | `service.instrument()`, `service.into_parts()` | The `Instrument` (devices and engines), and the Things' server apart, for tests |
 | `openapi()` | The Things' OpenAPI document, made without devices |
 | `devices::open(config, clock)` | The devices alone, with the fitted `Peripherals` |
@@ -109,7 +115,7 @@ None.
 
 ## Testing
 
-`cargo test -p siq-server` runs two binaries, with `config/sim.toml` on a 256 × 192 sensor,
+`cargo test -p siq-server` runs three binaries, with `config/sim.toml` on a 256 × 192 sensor,
 through teta-wot's in-process `TestClient`.
 
 `server`:
@@ -129,6 +135,13 @@ through teta-wot's in-process `TestClient`.
   the new light only after its filter;
 - an instrument without peripherals: only `imaging` is added, and a channel still sets the camera;
 - the metrics' names, with a snapshot, and the memory route.
+
+`webapp`, from a build in a temporary folder:
+
+- the page and its assets, with their media types and caching;
+- paths that would leave the build, refused;
+- the placeholder without a build;
+- the API untouched.
 
 ## Limitations
 

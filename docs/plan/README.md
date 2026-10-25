@@ -55,7 +55,7 @@ Decided with the owner on 2026-10-23, and recorded in ADRs 0001–0016:
 | Algorithms | Pure Rust + wgpu. Native code only by ADR | 0007 |
 | Stitching | Translation-only + global calibration; phase correlation; weighted LS pose graph; shading from calibration frames **and** retrospectively | 0013 |
 | 3D | DFF, deconvolution, sectioning and light field, all in scope. Light-field geometry and sectioning hardware are undecided, hence pluggable traits | 0014 |
-| Frontend | Vue 3 + Vite + TS + Pinia. **PrimeVue (unstyled + pass-through) skinned with `microscope`'s tokens.** `microscope@0640f99`'s web app is copied and adapted. `microscope`'s backend is not reused | 0008 |
+| Frontend | Vue 3 + Vite + TS + Pinia. **`microscope`'s components on Reka UI, skinned with its tokens** (PrimeVue was planned, but version 5 is no longer MIT: ADR-0008, amended). `microscope@0640f99`'s web app is copied and adapted. `microscope`'s backend is not reused | 0008 |
 | 2D viewer | OpenSeadragon with server LUT tiles first; WebGL2 16-bit renderer later | 0009 |
 | 3D viewer | VTK.js; native winit+wgpu viewer later (optional) | 0009 |
 | Live streams | MJPEG overview + native-resolution ROI first; H.264 (Media Foundation / NVENC) later; WS observations for the connection budget | 0010 |
@@ -161,13 +161,13 @@ A phase is Done once it is merged.
 | P2.2 | Preview pipelines | 700 | P1.5, P2.1 | Done |
 | P2.3 | Service core: camera, display, stage, focus Things | 900 | P0.3b, P1.9, P1.10b, P2.2 | Done |
 | P2.4 | Peripherals, channels and system routes | 600 | P2.3 | Done |
-| P2.5 | Euresys shim and bindings (risk spike) | 700 | P0.1 | Review |
+| P2.5 | Euresys shim and bindings (risk spike) | 700 | P0.1 | Done |
 
 ### M3 — Frontend foundations ([brief](milestones/M03-frontend-foundations.md))
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P3.1 | Import the microscope web app and the PrimeVue skin | 800 | P2.3 | — |
+| P3.1 | Import the microscope web app (Reka UI kept: ADR-0008, amended) | 800 | P2.3 | Review |
 | P3.2 | API client: WS observations, connection budget, stores | 800 | P3.1 | — |
 | P3.3 | Live view | 850 | P3.2 | — |
 | P3.4 | Stage, focus and peripheral control | 800 | P3.3 | — |
@@ -317,7 +317,7 @@ A phase is Done once it is merged.
 | R5 | Browser 6-connection limit (HTTP/1.1) | WS observations, stream budget, binary multiplex later | ADR-0010, P3.2, P9.5 |
 | R6 | GRBL status latency and jitter, plus open-loop error | Stop-and-go; paint only stationary frames in live stitching; global alignment | ADR-0013 |
 | R7 | NGFF 0.5 not readable by a target tool | Fall back to 0.4; OME-TIFF export | P4.2 |
-| R8 | PrimeVue unstyled skinning effort, and keeping the `microscope` look | Wrappers with `microscope`'s APIs; galleries; both-theme review | P3.1 |
+| R8 | Keeping the `microscope` look, and widgets Reka UI lacks (data tables, trees) | `microscope`'s wrappers kept; new ones on TanStack Table and Reka UI's Tree; galleries; both-theme review | P3.1, M9 |
 | R9 | Mini-ITX PCIe lanes shared by GPU and grabber limit DMA throughput | Measure DMA throughput at bring-up; 1.8 GB/s needs about PCIe 3.0 x4 | P10.2 |
 | R10 | GPU FFT complexity | CPU reference first; equivalence tests | P12.2, P12.3 |
 | R11 | No libclang on the build machine | Pre-generated, committed bindings | P2.5 |

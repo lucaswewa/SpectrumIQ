@@ -16,7 +16,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0005](0005-memory-model-and-out-of-core.md) | Memory model: pinned frame pool, streaming and out-of-core processing | Accepted | planning |
 | [0006](0006-data-formats.md) | Data formats: OME-Zarr master, raw scratch, OME-TIFF and DZI derived (amended in P0.2: exact float round trips) | Accepted | planning |
 | [0007](0007-pure-rust-wgpu-and-unsafe-policy.md) | Pure Rust + wgpu for algorithms; unsafe and native-code allow-list (amended in P1.1: test-only global allocators) | Accepted | planning |
-| [0008](0008-frontend-stack-and-microscope-reuse.md) | Frontend: Vue + PrimeVue (unstyled) skinned with `microscope`'s tokens, copied from `microscope@0640f99` | Accepted | planning |
+| [0008](0008-frontend-stack-and-microscope-reuse.md) | Frontend: Vue + PrimeVue (unstyled) skinned with `microscope`'s tokens, copied from `microscope@0640f99` (amended in P3.1: Reka UI stays, since PrimeVue 5 isn't MIT; the files imported) | Accepted | planning |
 | [0009](0009-visualization-stack.md) | Visualization: OpenSeadragon first, WebGL2 16-bit later; VTK.js; optional native viewer | Accepted | planning |
 | [0010](0010-streaming-tiers.md) | Streaming tiers, browser connection budget, and staged local fast paths | Accepted | planning |
 | [0011](0011-security-model.md) | Security: local accounts, roles, Hardware Control Token, audit; LAN only | Accepted | planning |
@@ -36,7 +36,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0025](0025-cpu-kernel-strategy.md) | CPU kernel strategy: rayon row bands, plain loops first, caller-owned buffers | Accepted | P1.5 |
 | [0026](0026-simulated-camera-fidelity-and-the-noiseless-cache.md) | Simulated-camera fidelity versus performance, and the noiseless cache (amended in P1.7: timing, triggering and `TrueState`) | Accepted | P1.6 |
 | [0027](0027-protocol-level-emulation-and-the-serial-transport.md) | Protocol-level emulation, and the serial transport abstraction (amended in P1.9: resets as GRBL's) | Accepted | P1.8 |
-| [0028](0028-licence-exceptions-mpl-and-ijg.md) | Licence exceptions: MPL-2.0 for unmodified dependencies, and IJG with attribution | Accepted | P1.8 |
+| [0028](0028-licence-exceptions-mpl-and-ijg.md) | Licence exceptions: MPL-2.0 for unmodified dependencies, and IJG with attribution (amended in P3.1: 0BSD and BlueOak-1.0.0) | Accepted | P1.8 |
 | [0029](0029-grbl-motion-completion-polling-stop-and-recovery.md) | GRBL motion completion, status polling, and stop and recovery | Accepted | P1.9 |
 | [0030](0030-data-driven-ascii-dialects.md) | Data-driven ASCII dialects: templates for both directions, and the dialect emulator (amended in P1.10b: the focus driver) | Accepted | P1.10a |
 | [0031](0031-frame-pose-association-and-context-stamping.md) | Frame↔pose time association, and context stamping | Accepted | P2.1 |
@@ -44,3 +44,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0033](0033-thing-decomposition-and-naming.md) | Thing decomposition and naming: camera, display, stage and focus (amended after P2.5: a refused setting is a 422) | Accepted | P2.3 |
 | [0034](0034-sim-and-real-device-selection.md) | Simulated or real devices, chosen per device by the configuration (amended in P2.4: the peripherals) | Accepted | P2.3 |
 | [0035](0035-the-channel-model-and-its-devices.md) | The channel model, and how it maps onto the devices | Accepted | P2.4 |
+| [0036](0036-serving-and-embedding-the-web-app.md) | Serving and embedding the web app | Accepted | P3.1 |

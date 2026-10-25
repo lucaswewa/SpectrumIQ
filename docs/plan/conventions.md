@@ -171,7 +171,8 @@ hardware/ignored tests), and limitations.
   - hash routing (`createWebHashHistory`);
   - no platform APIs outside `src/host/` (`HostAdapter`: browser and Tauri implementations);
   - styles use only the design tokens in `src/theme/tokens.css`;
-  - **only `src/ui/` imports `primevue`**, and pages use the `src/ui/` wrappers;
+  - **only `src/ui/` imports `reka-ui`**, and pages use the `src/ui/` wrappers (ADR-0008, amended:
+    PrimeVue 5 is no longer MIT);
   - components never call `fetch`; they go through `src/api/` and the Pinia stores;
   - every asset is bundled (no CDN), so the app works offline in Tauri;
   - every UI change is checked in both themes, and the dev galleries (`/#/dev/components`,

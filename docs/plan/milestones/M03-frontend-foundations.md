@@ -26,6 +26,9 @@ It runs in a browser and inside the Tauri desktop shell.
 **Goal.** Start the frontend from `microscope`'s web app, and replace its `reka-ui` widgets with
 PrimeVue (unstyled + pass-through) behind the same component API.
 
+> **Amended in P3.1 (ADR-0008):** PrimeVue 5 is no longer MIT, so the owner chose to keep
+> `reka-ui` and the copied wrappers as they are. The PrimeVue items below don't apply.
+
 **Scope**
 
 - **Commit A, the import (not counted):** copy from `c:\repos\microscope` at `0640f99`:

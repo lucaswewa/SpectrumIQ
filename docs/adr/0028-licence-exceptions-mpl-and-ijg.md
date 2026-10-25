@@ -45,3 +45,16 @@
 
 - `cargo deny check licenses` passes with the two additions, when cargo-deny is installed.
 - `docs/soup.md` lists `serialport` with MPL-2.0.
+
+## Amendment (P3.1, 2026-10-24): 0BSD and BlueOak-1.0.0
+
+- **The web app's npm tree** (P3.1) brings two permissive licences that the allow-list of
+  conventions §7 doesn't name:
+  - **0BSD** (`tslib`): in `reka-ui`'s tree, though not in the bundle;
+  - **BlueOak-1.0.0** (`glob`, `lru-cache`, `minimatch`, `minipass`, `path-scurry`): development
+    tools only.
+- **Both are accepted.** Each is OSI-approved and permissive: they grant every use, and ask at most
+  that the notice is kept. They are as permissive as MIT.
+- **MPL-2.0's acceptance covers `lightningcss`** (Vite's CSS processor): it is used unmodified, at
+  build time only.
+
