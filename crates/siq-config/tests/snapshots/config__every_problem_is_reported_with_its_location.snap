@@ -5,7 +5,7 @@ expression: report
 turret.toml:14:19: objectives[1].turret_position: objectives[0].turret_position has it too
 turret.toml:20:19: objectives[2].turret_position: must be a turret position, 0 to 1
 syntax.toml:2:8: string values must be quoted, expected literal string
-typo.toml:2:1: unknown field `prot`, expected one of `bind`, `port`, `data_root`, `scratch`
+typo.toml:2:1: unknown field `prot`, expected one of `bind`, `port`, `data_root`, `scratch`, `min_free_gb`
 type.toml:2:8: invalid type: string "5000", expected u16
 missing section.toml:1:1: missing field `stage`
 unknown kind.toml:4:8: unknown variant `basler`, expected `sim` or `euresys`

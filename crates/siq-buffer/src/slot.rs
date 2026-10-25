@@ -31,7 +31,7 @@ use std::time::Duration;
 use siq_telemetry::{Gauge, Histogram};
 use siq_types::{Clock, FrameMeta, ImageView, ImageViewMut, Timestamp};
 
-use crate::alloc::{Region, WorkingSetReservation};
+use crate::alloc::{PAGE, Region, WorkingSetReservation};
 use crate::pool::ReleaseSink;
 
 /// A type a slot can be viewed as: no padding, and every bit pattern a valid value.
@@ -344,6 +344,20 @@ impl FrameLease {
         let len = payload_len(&self.meta).expect("checked when published");
         // SAFETY: the slot is Leased while this lease lives, so nothing writes it (module docs).
         // `len` fits the slot, as checked when published.
+        unsafe { std::slice::from_raw_parts(ptr, len) }
+    }
+
+    /// The image's bytes rounded up to whole pages, as unbuffered (direct) I/O writes them, from
+    /// the slot's page-aligned start. The bytes after the image are whatever the slot holds: zeros,
+    /// or an earlier frame's pixels.
+    pub fn as_padded_bytes(&self) -> &[u8] {
+        let (ptr, slot) = self.pool.bytes(self.slot);
+        let len = payload_len(&self.meta)
+            .expect("checked when published")
+            .next_multiple_of(PAGE);
+        debug_assert!(len <= slot, "slots are whole pages, and hold the image");
+        // SAFETY: as `as_bytes`. A slot is whole pages that hold the image, so the image rounded
+        // up to a page fits it, and its memory is always initialized: it was zeroed when allocated.
         unsafe { std::slice::from_raw_parts(ptr, len) }
     }
 

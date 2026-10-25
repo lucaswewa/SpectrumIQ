@@ -7,7 +7,8 @@ expression: config
     "bind": "127.0.0.1",
     "port": 5000,
     "data_root": "data",
-    "scratch": "scratch"
+    "scratch": "scratch",
+    "min_free_gb": 20.0
   },
   "memory": {
     "pool_slots": 12,

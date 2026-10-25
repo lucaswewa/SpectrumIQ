@@ -111,6 +111,30 @@ fn views_follow_the_pixel_format() {
 }
 
 #[test]
+fn the_padded_bytes_round_the_image_up_to_whole_pages_for_direct_io() {
+    let pool = heap_pool(1, 3 * PAGE);
+    let mut guard = pool.try_acquire_free().unwrap();
+    guard.bytes_mut().fill(7);
+    // 4097 pixels of u16: 8194 bytes, so three pages, from the slot's page-aligned start.
+    let lease = guard.publish(meta(1, 4097, 1)).unwrap();
+    assert_eq!(lease.as_bytes().len(), 8194);
+    let padded = lease.as_padded_bytes();
+    assert_eq!((padded.len(), padded.as_ptr().addr() % PAGE), (3 * PAGE, 0));
+    assert!(
+        padded.iter().all(|&b| b == 7),
+        "the slot's bytes, the image's and after it"
+    );
+    drop(lease);
+    // A whole page of pixels has nothing to pad.
+    let page = pool
+        .try_acquire_free()
+        .unwrap()
+        .publish(meta(2, 2048, 1))
+        .unwrap();
+    assert_eq!(page.as_padded_bytes().len(), PAGE);
+}
+
+#[test]
 fn slots_are_whole_pages_and_page_aligned() {
     let pool = heap_pool(3, 5000);
     assert_eq!((pool.slots(), pool.slot_bytes()), (3, 2 * PAGE));

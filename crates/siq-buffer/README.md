@@ -33,7 +33,7 @@ No allocation and no copy happen on the frame path. The designs are in
 | `FramePool::new(&PoolConfig, clock, registry)` | Allocates `slots` slots of at least `slot_bytes` each (rounded to pages), from `Backend::Heap` or `Backend::WindowsLocked` |
 | `try_acquire_free()`, `take_all_free()` | `FillGuard`s for Free slots: to fill, or to announce to a grabber |
 | `FillGuard` | `bytes_mut`, `pixels_mut::<u8 or u16>`, `image_mut(width, height)`, `as_mut_ptr` (for DMA), and `publish(meta)` → `FrameLease`. Dropping it frees the slot |
-| `FrameLease` | `meta`, `as_bytes`, `image::<u8 or u16>()`. `clone` is an atomic increment. The last drop goes to the release sink |
+| `FrameLease` | `meta`, `as_bytes`, `as_padded_bytes` (rounded up to whole pages, for direct I/O; P4.1), `image::<u8 or u16>()`. `clone` is an atomic increment. The last drop goes to the release sink |
 | `ReleaseSink`, `ReturnToPool` | Where released slots go; `set_release_sink` and `reset_release_sink` |
 | `stats()` → `PoolStats` | Free, filling, leased, and the high-water mark |
 | `working_set()` | The process's minimum and maximum working set |

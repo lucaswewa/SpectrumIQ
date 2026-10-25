@@ -40,7 +40,7 @@ The shipped files are the reference:
 
 | Section | Keys (default) |
 |---|---|
-| `[server]` | `bind` (`127.0.0.1`), `port` (5000), `data_root` (`data`), `scratch` (`scratch`) |
+| `[server]` | `bind` (`127.0.0.1`), `port` (5000), `data_root` (`data`), `scratch` (`scratch`), `min_free_gb` (20) |
 | `[memory]` | `pool_slots` (12), `job_ram_gb` (14), `job_vram_gb` (4), `tile_cache_mb` (1024) |
 | `[log]` | `filter` (`info`), `console` (true), `directory` (none), `keep_days` (30) |
 | `[camera]` | `kind = "sim"`: `width` (11648), `height` (8742), `pixel_format` (`Mono14`), `frame_rate` (9), `pixel_size` (3.76 µm). `kind = "euresys"`: `interface` (0), `device` (0), `features` |

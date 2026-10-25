@@ -15,7 +15,8 @@ expression: schema
         "bind": "127.0.0.1",
         "port": 5000,
         "data_root": "data",
-        "scratch": "scratch"
+        "scratch": "scratch",
+        "min_free_gb": 20.0
       }
     },
     "memory": {
@@ -128,6 +129,12 @@ expression: schema
           "description": "Scratch space for raw frames, on a fast NVMe drive.",
           "type": "string",
           "default": "scratch"
+        },
+        "min_free_gb": {
+          "description": "The disk space to keep free where datasets are recorded, in GB: recording won't start\nbelow it, and stops before a frame would go below it (ADR-0041).",
+          "type": "number",
+          "format": "double",
+          "default": 20.0
         }
       },
       "additionalProperties": false

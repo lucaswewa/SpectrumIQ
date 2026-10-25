@@ -49,3 +49,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0038](0038-live-view-layout-and-stream-rules.md) | The Live view's layout, and when its streams open and close | Accepted | P3.3 |
 | [0039](0039-input-mapping-and-motion-control-safety.md) | Input mapping and safety rules for motion control | Accepted | P3.4 |
 | [0040](0040-desktop-shell-loads-the-local-service-s-web-app.md) | The desktop shell loads the web app from the local service | Accepted | P3.5 |
+| [0041](0041-dataset-layout-and-raw-scratch-format.md) | Dataset layout, and the raw scratch format | Accepted | P4.1 |

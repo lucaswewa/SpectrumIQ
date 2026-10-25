@@ -11,10 +11,10 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In progress:** Milestone 3, frontend foundations. P3.5 is the latest: the
-[desktop shell](apps/spectrumiq-desktop/README.md), a Tauri window that finds the local service,
-starts the simulated instrument in development builds, and loads the same web app browsers do
-(`npm run tauri dev` in `apps/spectrumiq-desktop`).
+**In progress:** Milestone 4, storage, jobs and the 2D deep-zoom viewer. P4.1 is the latest:
+[`siq-storage`](crates/siq-storage/README.md)'s datasets, with a manifest of their provenance, and
+the recorder that writes the frames marked to save with direct I/O, straight from the frame pool
+(`cargo run --release -p siq-storage --example record_sim`).
 
 Done so far:
 
@@ -67,7 +67,8 @@ Done so far:
   - P2.5, [`siq-euresys-sys`](crates/siq-euresys-sys/README.md): Euresys eGrabber behind a C ABI
     of our own, which finds this PC's Coaxlink and camera, and measures its frame rate
     (`eg_discover`, `eg_fps`).
-- Milestone 3 (frontend foundations), under way:
+- Milestone 3 (frontend foundations), complete: the web app runs from the simulated instrument in
+  Edge and in the desktop shell:
   - P3.1, the [web app](web/README.md), started from `microscope`'s, with its Reka UI components,
     and served by the server at `/`;
   - P3.2, its client: one WebSocket per Thing, a budget of three MJPEG streams, and Pinia stores
@@ -75,7 +76,9 @@ Done so far:
   - P3.3, the Live page: the overview and the ROI streams, the ROI chosen on the overview, and the
     display and camera controls;
   - P3.4, the stage, the focus and the peripherals on the Live page, with the keys, the wheel,
-    click-to-move and STOP (`/#/dev/control` without a server).
+    click-to-move and STOP (`/#/dev/control` without a server);
+  - P3.5, the [desktop shell](apps/spectrumiq-desktop/README.md): a Tauri window that finds the
+    local service and loads its web app (`npm run tauri dev` in `apps/spectrumiq-desktop`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

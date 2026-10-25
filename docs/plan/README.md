@@ -171,13 +171,13 @@ A phase is Done once it is merged.
 | P3.2 | API client: WS observations, connection budget, stores | 800 | P3.1 | Done |
 | P3.3 | Live view | 850 | P3.2 | Done |
 | P3.4 | Stage, focus and peripheral control | 800 | P3.3 | Done |
-| P3.5 | Tauri desktop shell | 600 | P3.2 | Review |
+| P3.5 | Tauri desktop shell | 600 | P3.2 | Done |
 
 ### M4 — Storage, jobs and the 2D deep-zoom viewer ([brief](milestones/M04-storage-jobs-viewer.md))
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P4.1 | Datasets and raw scratch writer | 800 | P2.1 | — |
+| P4.1 | Datasets and raw scratch writer | 800 | P2.1 | Review |
 | P4.2 | OME-Zarr I/O | 850 | P4.1 | — |
 | P4.3 | Job system | 850 | P0.3b, P4.1 | — |
 | P4.4 | Pyramid builder | 600 | P4.2, P4.3 | — |

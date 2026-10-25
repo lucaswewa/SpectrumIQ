@@ -1,0 +1,34 @@
+[package]
+name = "siq-storage"
+description = "Datasets on disk: their layout and manifest, the raw frame recorder, the frames read back, and the catalog."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+chrono.workspace = true
+memmap2.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+siq-buffer = { path = "../siq-buffer" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+tracing.workspace = true
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+siq-acquire = { path = "../siq-acquire" }
+siq-config = { path = "../siq-config" }
+siq-devices = { path = "../siq-devices" }
+siq-sim = { path = "../siq-sim" }
+siq-synth = { path = "../siq-synth" }
+siq-telemetry = { path = "../siq-telemetry" }
+tempfile.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time"] }
+
+[lints]
+workspace = true

@@ -82,6 +82,11 @@ pub(crate) fn validate(config: &InstrumentConfig) -> Problems {
     let mut p = Problems::default();
     let memory = &config.memory;
     p.check(config.server.port != 0, at!["server", "port"], "can't be 0");
+    p.check(
+        not_negative(config.server.min_free_gb),
+        at!["server", "min_free_gb"],
+        "can't be negative",
+    );
     let slots = memory.pool_slots;
     let message = format!("must be 2 to 64 frames, not {slots}");
     p.check(

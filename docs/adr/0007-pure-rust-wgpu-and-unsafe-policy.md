@@ -56,3 +56,10 @@ written with `unsafe`. Such a test may allow `unsafe_code` in its own file, if:
 - each block has a `SAFETY` comment.
 
 The first is `siq-buffer`'s `tests/no_alloc.rs`. Production code is unaffected.
+
+## Amendment (P4.1, 2026-10-25): mapping recorded frames
+
+`siq-storage::raw::map` may use `unsafe` to map a recorded raw frame with `memmap2`, and to view
+its bytes as `u16`. ADR-0041 gives the argument: the file is open sharing reading only for as long
+as it is mapped, so nothing can change it meanwhile. `siq-storage::disk` is a small Windows-API
+module, which this ADR already allows. Both are listed in the crate's README.

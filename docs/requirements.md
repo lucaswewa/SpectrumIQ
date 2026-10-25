@@ -63,12 +63,12 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 
 | ID | Requirement | Source | Phases | Verified by |
 |---|---|---|---|---|
-| REQ-DATA-001 | Datasets with a manifest and full provenance (instrument and calibration snapshots, plan, processing history). | D | P4.1, P4.7, P6.1 | |
-| REQ-DATA-002 | A raw frames + JSON sidecar scratch format, written with direct I/O at NVMe speed. | G, Q | P4.1 | |
+| REQ-DATA-001 | Datasets with a manifest and full provenance (instrument and calibration snapshots, plan, processing history). | D | P4.1, P4.7, P6.1 | The manifest, in P4.1 (ADR-0041): versioned, with the id, kind, user, provenance, the instrument and calibration snapshots with their SHA-256, the plan and the processing history, written atomically (`siq-storage` `manifest::tests`: `a_manifest_reads_back_as_written_and_refuses_another_format_or_a_newer_version`, `an_interrupted_write_leaves_the_previous_manifest_intact`; `tests/dataset.rs`: `a_dataset_has_its_folders_and_a_manifest_with_its_provenance`). The dataset API follows in P4.7, and plans in P6.1 |
+| REQ-DATA-002 | A raw frames + JSON sidecar scratch format, written with direct I/O at NVMe speed. | G, Q | P4.1 | The recorder, in P4.1 (ADR-0041): each frame's pixels written unbuffered and write-through from its page-aligned slot, then its JSON sidecar; read back mapped; stopping cleanly on a full disk or below the free space to keep (`siq-storage` `tests/raw.rs`: `the_frames_marked_to_save_come_back_as_recorded`, `a_full_disk_stops_the_recording_keeping_what_was_written`, `the_writer_keeps_the_free_space_it_is_told_to`). `record_sim`: 20 frames of 11648 × 8742 at 4.3 GB/s on this PC's NVMe drive |
 | REQ-DATA-003 | OME-Zarr multiscale master storage. | Q | P4.2, P4.4, P11.3 | |
 | REQ-DATA-004 | OME-TIFF / BigTIFF export. | Q | P4.6 | |
 | REQ-DATA-005 | DZI pyramids, rendered on demand and exportable to disk. | G | P4.4, P4.5 | |
-| REQ-DATA-006 | Only selected frames are saved; there is no continuous full-rate recording requirement. | Q | P4.1 | |
+| REQ-DATA-006 | Only selected frames are saved; there is no continuous full-rate recording requirement. | Q | P4.1 | In P4.1 (ADR-0041): the recorder takes a lossless subscriber whose filter takes the frames marked to save, and only those are written (`siq-storage` `tests/raw.rs`: `the_frames_marked_to_save_come_back_as_recorded`; `record_sim`, through the acquisition engine's `capture_next(n, save)`) |
 
 ## Calibration (CAL)
 
