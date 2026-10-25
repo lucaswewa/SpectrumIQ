@@ -7,10 +7,10 @@ priority, on threads of below-normal priority, and recorded in their dataset's m
 ## Place in the architecture
 
 - **Layer:** L4 Engines.
-- **Depends on:** `siq-storage` (the records), `siq-telemetry`, `siq-types`; `rayon`, `tokio`
-  (`watch`), `windows-sys`.
+- **Depends on:** `siq-storage` (the records), `siq-pyramid` (its job), `siq-telemetry`,
+  `siq-types`; `rayon`, `tokio` (`watch`), `windows-sys`.
 - **Used by:** `siq-server` (the `jobs` Thing); the jobs of P4.4 and later.
-- **Phase:** P4.3.
+- **Phase:** P4.3; P4.4 added `kinds::PyramidJob`.
 
 ## API
 
@@ -22,6 +22,7 @@ priority, on threads of below-normal priority, and recorded in their dataset's m
 | `SchedulerConfig` | The RAM and VRAM budgets, the pool's threads (half the processors), the starvation guard (60 s), the finished jobs kept (100) |
 | `Resources` | `ram`, `vram`, `gpu`, `threads` |
 | `this_thread_priority` | The calling thread's priority: −1 is below normal |
+| `kinds::PyramidJob` | An OME-Zarr image's pyramid (ADR-0044), as a job: its estimate from the image, its progress by chunks, and the image as its output. The jobs the service runs live in `kinds`, since processing crates (L3) can't use the job system (L4) |
 
 **Unsafe code** (ADR-0007): `priority` calls `SetThreadPriority` and `GetThreadPriority` on the
 current thread's pseudo-handle, with its `SAFETY` comments.

@@ -179,8 +179,8 @@ A phase is Done once it is merged.
 |---|---|---|---|---|
 | P4.1 | Datasets and raw scratch writer | 800 | P2.1 | Done |
 | P4.2 | OME-Zarr I/O | 850 | P4.1 | Done |
-| P4.3 | Job system | 850 | P0.3b, P4.1 | Review |
-| P4.4 | Pyramid builder | 600 | P4.2, P4.3 | — |
+| P4.3 | Job system | 850 | P0.3b, P4.1 | Done |
+| P4.4 | Pyramid builder | 600 | P4.2, P4.3 | Review |
 | P4.5 | Tile service and DZI | 850 | P4.4, P2.3 | — |
 | P4.6 | OME-TIFF export | 800 | P4.4 | — |
 | P4.7 | `datasets` Thing and processing on snap | 700 | P4.3–P4.5 | — |

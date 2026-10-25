@@ -1,0 +1,25 @@
+[package]
+name = "siq-pyramid"
+description = "Multiscale pyramids: an OME-Zarr image's levels by 2 x 2 mean, out of core and in parallel."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+rayon.workspace = true
+siq-storage = { path = "../siq-storage" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+rayon.workspace = true
+serde_json.workspace = true
+siq-buffer = { path = "../siq-buffer" }
+tempfile.workspace = true
+
+[lints]
+workspace = true

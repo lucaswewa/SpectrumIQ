@@ -226,39 +226,33 @@ impl ZarrImage {
         }
         std::fs::create_dir_all(path).map_err(crate::io_at(path))?;
         let store = store(path)?;
-        let group = GroupBuilder::new()
-            .attributes(info.attributes())
-            .build(store.clone(), "/")
-            .map_err(|error| wrong(&error.to_string()))?;
-        group
-            .store_metadata()
-            .map_err(|error| wrong(&error.to_string()))?;
+        write_group(&store, path, &info)?;
         let levels = (0..info.levels)
-            .map(|level| {
-                let chunk = vec![1, 1, 1, info.chunk, info.chunk];
-                let shape = info.size(level).to_vec();
-                let mut builder = match info.sample {
-                    SampleType::U16 => ArrayBuilder::new(shape, chunk, data_type::uint16(), 0u16),
-                    SampleType::F32 => ArrayBuilder::new(shape, chunk, data_type::float32(), 0f32),
-                };
-                let array = builder
-                    .bytes_to_bytes_codecs(vec![Arc::new(ZstdCodec::new(ZSTD_LEVEL, false))])
-                    .dimension_names(Some(AXES))
-                    .build(store.clone(), &format!("/{level}"))
-                    .map_err(|error| wrong(&error.to_string()))?;
-                // Without zarrs's own attribute: the metadata is NGFF's and Zarr's only.
-                let options = ArrayMetadataOptions::default().with_include_zarrs_metadata(false);
-                array
-                    .store_metadata_opt(&options)
-                    .map_err(|error| wrong(&error.to_string()))?;
-                Ok(array)
-            })
+            .map(|level| make_level(&store, path, &info, level))
             .collect::<Result<_, StorageError>>()?;
         Ok(Self {
             path: path.to_owned(),
             info,
             levels,
         })
+    }
+
+    /// Gives the image `levels` levels, if it has fewer: the new ones are made empty, and the
+    /// metadata lists them all, as the pyramid builder needs. Levels are never removed.
+    pub fn set_levels(&mut self, levels: usize) -> Result<(), StorageError> {
+        if levels <= self.info.levels {
+            return Ok(());
+        }
+        let store = store(&self.path)?;
+        let mut info = self.info.clone();
+        info.levels = levels;
+        for level in self.info.levels..levels {
+            self.levels
+                .push(make_level(&store, &self.path, &info, level)?);
+        }
+        write_group(&store, &self.path, &info)?;
+        self.info = info;
+        Ok(())
     }
 
     /// Opens the image at `path`: an NGFF 0.5 multiscale image with the axes `tczyx`.
@@ -401,6 +395,47 @@ impl std::fmt::Debug for ZarrImage {
             .field("info", &self.info)
             .finish_non_exhaustive()
     }
+}
+
+/// Writes the group's metadata: NGFF's, for `info`.
+fn write_group(
+    store: &Arc<FilesystemStore>,
+    path: &Path,
+    info: &ImageInfo,
+) -> Result<(), StorageError> {
+    let wrong = |error: &dyn std::fmt::Display| zarr_error(path, &error.to_string());
+    let group = GroupBuilder::new()
+        .attributes(info.attributes())
+        .build(store.clone(), "/")
+        .map_err(|error| wrong(&error))?;
+    group.store_metadata().map_err(|error| wrong(&error))
+}
+
+/// Makes level `level`'s array, empty, with its metadata.
+fn make_level(
+    store: &Arc<FilesystemStore>,
+    path: &Path,
+    info: &ImageInfo,
+    level: usize,
+) -> Result<Array<FilesystemStore>, StorageError> {
+    let wrong = |error: &dyn std::fmt::Display| zarr_error(path, &error.to_string());
+    let chunk = vec![1, 1, 1, info.chunk, info.chunk];
+    let shape = info.size(level).to_vec();
+    let mut builder = match info.sample {
+        SampleType::U16 => ArrayBuilder::new(shape, chunk, data_type::uint16(), 0u16),
+        SampleType::F32 => ArrayBuilder::new(shape, chunk, data_type::float32(), 0f32),
+    };
+    let array = builder
+        .bytes_to_bytes_codecs(vec![Arc::new(ZstdCodec::new(ZSTD_LEVEL, false))])
+        .dimension_names(Some(AXES))
+        .build(store.clone(), &format!("/{level}"))
+        .map_err(|error| wrong(&error))?;
+    // Without zarrs's own attribute: the metadata is NGFF's and Zarr's only.
+    let options = ArrayMetadataOptions::default().with_include_zarrs_metadata(false);
+    array
+        .store_metadata_opt(&options)
+        .map_err(|error| wrong(&error))?;
+    Ok(array)
 }
 
 fn store(path: &Path) -> Result<Arc<FilesystemStore>, StorageError> {

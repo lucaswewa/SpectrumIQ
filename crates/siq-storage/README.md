@@ -25,7 +25,7 @@ crate.
 | `DatasetReader` | `open(dataset)` lists the frames with a sidecar, in key order; `RawFrame::map` → `MappedFrame`, with `image_u16`, `image_u8`, `as_bytes` and `meta` |
 | `Catalog` | `scan(data_root)`, `refresh`, `record(path)`, `list` (newest first), `get(id)` |
 | `free_space(path)` | The bytes this process may still write on a path's disk |
-| `zarr::ZarrImage` | An OME-Zarr image, NGFF 0.5: `create(path, ImageInfo)` and `open(path)`; `write_chunk(level, (t, c, z), (row, col), view)` from any thread, edge chunks clipped; `read_region(level, (t, c, z), rect)` → `Region` |
+| `zarr::ZarrImage` | An OME-Zarr image, NGFF 0.5: `create(path, ImageInfo)` and `open(path)`; `set_levels(n)` adds levels, for the pyramid (P4.4); `write_chunk(level, (t, c, z), (row, col), view)` from any thread, edge chunks clipped; `read_region(level, (t, c, z), rect)` → `Region` |
 | `zarr::ImageInfo` | The name, `SampleType` (`U16`, `F32`), level 0's `Size5`, the levels, the chunk, the pixel size and origin in µm, and the `ChannelInfo`s (label, colour, window); `size(level)` and `chunks(level)` |
 
 A frame's files are `raw/t0000_c00_z000_p00012.raw` (its pixels, little-endian, padded to whole

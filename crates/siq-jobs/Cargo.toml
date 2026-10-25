@@ -14,6 +14,7 @@ rayon.workspace = true
 schemars = { workspace = true, features = ["chrono04"] }
 serde.workspace = true
 serde_json.workspace = true
+siq-pyramid = { path = "../siq-pyramid" }
 siq-storage = { path = "../siq-storage" }
 siq-telemetry = { path = "../siq-telemetry" }
 siq-types = { path = "../siq-types" }
@@ -23,6 +24,7 @@ tracing.workspace = true
 windows-sys = { workspace = true, features = ["Win32_System_Threading"] }
 
 [dev-dependencies]
+siq-types = { path = "../siq-types" }
 tempfile.workspace = true
 
 [lints]

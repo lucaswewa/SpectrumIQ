@@ -11,10 +11,10 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In progress:** Milestone 4, storage, jobs and the 2D deep-zoom viewer. P4.3 is the latest:
-[`siq-jobs`](crates/siq-jobs/README.md), which runs heavy processing in the background within
-the RAM and GPU budgets, by priority and at below-normal priority, with the `jobs` Thing to watch
-and cancel them (`cargo run -p siq-jobs --example jobs_demo`).
+**In progress:** Milestone 4, storage, jobs and the 2D deep-zoom viewer. P4.4 is the latest:
+[`siq-pyramid`](crates/siq-pyramid/README.md), which builds an OME-Zarr image's levels by 2 × 2
+mean, out of core and in parallel, as a job: a 400 MP image's in about a second
+(`cargo run --release -p siq-pyramid --example build_pyramid`).
 
 Done so far:
 
@@ -84,7 +84,10 @@ Done so far:
     provenance, and the recorder that writes the frames marked to save with direct I/O, straight
     from the frame pool (`--example record_sim`);
   - P4.2, OME-Zarr images in `siq-storage`, NGFF 0.5 on Zarr v3, written by chunk from many
-    threads and read by region, which napari opens (`--example zarr_write_read`).
+    threads and read by region, which napari opens (`--example zarr_write_read`);
+  - P4.3, [`siq-jobs`](crates/siq-jobs/README.md): heavy processing in the background, within
+    the RAM and GPU budgets, at below-normal priority, with the `jobs` Thing to watch and cancel
+    it (`--example jobs_demo`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

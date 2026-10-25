@@ -4219,6 +4219,7 @@ dependencies = [
  "schemars 1.2.2",
  "serde",
  "serde_json",
+ "siq-pyramid",
  "siq-storage",
  "siq-telemetry",
  "siq-types",
@@ -4250,6 +4251,20 @@ dependencies = [
  "thiserror 2.0.21",
  "tokio",
  "tracing",
+]
+
+[[package]]
+name = "siq-pyramid"
+version = "0.1.0"
+dependencies = [
+ "insta",
+ "rayon",
+ "serde_json",
+ "siq-buffer",
+ "siq-storage",
+ "siq-types",
+ "tempfile",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
