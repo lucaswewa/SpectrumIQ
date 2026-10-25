@@ -1,0 +1,36 @@
+---
+source: crates/siq-storage/tests/ometiff.rs
+expression: xml
+---
+<?xml version="1.0" encoding="UTF-8"?>
+<OME xmlns="http://www.openmicroscopy.org/Schemas/OME/2016-06" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd" Creator="SpectrumIQ 0.1.0">
+  <Image ID="Image:0" Name="kidney – section 3 &lt;A&amp;B&gt;">
+    <AcquisitionDate>2026-10-25T09:30:00Z</AcquisitionDate>
+    <Description>kidney (snap dataset 0199a3c2-7d1e-7b40-9a55-3f2e8c1d0b6a)</Description>
+    <Pixels ID="Pixels:0" DimensionOrder="XYZCT" Type="uint16" SizeX="1300" SizeY="1100" SizeZ="2" SizeC="2" SizeT="1" PhysicalSizeX="0.376" PhysicalSizeY="0.376" PhysicalSizeZ="2" BigEndian="false" Interleaved="false">
+      <Channel ID="Channel:0:0" Name="DAPI" SamplesPerPixel="1" Color="65535"/>
+      <Channel ID="Channel:0:1" Name="GFP" SamplesPerPixel="1" Color="16711935"/>
+      <TiffData IFD="0" FirstZ="0" FirstC="0" FirstT="0" PlaneCount="1"/>
+      <TiffData IFD="1" FirstZ="1" FirstC="0" FirstT="0" PlaneCount="1"/>
+      <TiffData IFD="2" FirstZ="0" FirstC="1" FirstT="0" PlaneCount="1"/>
+      <TiffData IFD="3" FirstZ="1" FirstC="1" FirstT="0" PlaneCount="1"/>
+      <Plane TheZ="0" TheC="0" TheT="0" PositionX="250" PositionXUnit="µm" PositionY="-500" PositionYUnit="µm" PositionZ="10" PositionZUnit="µm"/>
+      <Plane TheZ="1" TheC="0" TheT="0" PositionX="250" PositionXUnit="µm" PositionY="-500" PositionYUnit="µm" PositionZ="12" PositionZUnit="µm"/>
+      <Plane TheZ="0" TheC="1" TheT="0" PositionX="250" PositionXUnit="µm" PositionY="-500" PositionYUnit="µm" PositionZ="10" PositionZUnit="µm"/>
+      <Plane TheZ="1" TheC="1" TheT="0" PositionX="250" PositionXUnit="µm" PositionY="-500" PositionYUnit="µm" PositionZ="12" PositionZUnit="µm"/>
+    </Pixels>
+    <AnnotationRef ID="Annotation:0"/>
+  </Image>
+  <StructuredAnnotations>
+    <MapAnnotation ID="Annotation:0" Namespace="spectrumiq.dataset">
+      <Value>
+        <M K="dataset">0199a3c2-7d1e-7b40-9a55-3f2e8c1d0b6a</M>
+        <M K="kind">snap</M>
+        <M K="user">operator</M>
+        <M K="software">spectrumiq</M>
+        <M K="version">0.1.0</M>
+        <M K="host">scope-1</M>
+      </Value>
+    </MapAnnotation>
+  </StructuredAnnotations>
+</OME>

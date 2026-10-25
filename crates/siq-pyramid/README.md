@@ -20,7 +20,7 @@ OpenSeadragon (ADR-0045).
 | `build(image, top, control)` | Adds the levels `top` needs, and builds them from level 0, a chunk row at a time, its chunks in parallel on the calling rayon pool |
 | `levels_for(width, height, top)` | Level 0 and each halving until both fit `top` |
 | `estimate(info, threads)` | The RAM a build takes at its peak |
-| `Control` | `progress(done)` and `cancelled()`; `()` is a control that does neither |
+| `Control` | `progress(done)` and `cancelled()`; `()` is a control that does neither. It is `siq-storage`'s, re-exported: its exports take one too |
 | `mean_2x2(view)` | A view halved, by the 2 × 2 mean, edges included |
 | `Mean` | `u16` (rounded to the nearest) and `f32` |
 | `TOP` | 256: the top level's largest size |

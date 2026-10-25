@@ -25,6 +25,9 @@ cc = "1.5.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 clap = { version = "4.6", features = ["derive"] }
 criterion = "0.8.2"
+# Deflate, for OME-TIFF tiles. Already in the lockfile, through png and tiff, at the version pinned in
+# P1.4.
+flate2 = "1.1"
 insta = { version = "1.48", features = ["json"] }
 # Reading streamed bodies in the server's tests: teta-wot's version.
 http-body-util = "0.1.5"

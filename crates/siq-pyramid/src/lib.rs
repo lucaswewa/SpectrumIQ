@@ -26,22 +26,8 @@ use siq_types::{ImageView, RectPx};
 /// The largest size, in pixels, of the top level both ways: about a deep-zoom tile.
 pub const TOP: u64 = 256;
 
-/// Where a build reports its progress, and learns whether to stop.
-pub trait Control: Sync {
-    /// The share done, from 0 to 1.
-    fn progress(&self, done: f64);
-    /// Whether to stop.
-    fn cancelled(&self) -> bool;
-}
-
-/// Nobody to report to, and no stopping.
-impl Control for () {
-    fn progress(&self, _: f64) {}
-
-    fn cancelled(&self) -> bool {
-        false
-    }
-}
+/// Where a build reports its progress, and learns whether to stop: storage's, which exports share.
+pub use siq_storage::Control;
 
 /// Why a build stopped.
 #[derive(Debug, thiserror::Error)]

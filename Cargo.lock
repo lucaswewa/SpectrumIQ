@@ -4225,6 +4225,7 @@ dependencies = [
  "siq-types",
  "tempfile",
  "thiserror 2.0.21",
+ "tiff",
  "tokio",
  "tracing",
  "windows-sys 0.61.2",
@@ -4339,6 +4340,7 @@ name = "siq-storage"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "flate2",
  "insta",
  "memmap2",
  "rayon",
@@ -4355,6 +4357,7 @@ dependencies = [
  "siq-types",
  "tempfile",
  "thiserror 2.0.21",
+ "tiff",
  "tokio",
  "tracing",
  "windows-sys 0.61.2",

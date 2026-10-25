@@ -26,6 +26,7 @@ windows-sys = { workspace = true, features = ["Win32_System_Threading"] }
 [dev-dependencies]
 siq-types = { path = "../siq-types" }
 tempfile.workspace = true
+tiff.workspace = true
 
 [lints]
 workspace = true

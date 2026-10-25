@@ -10,6 +10,8 @@
 //! - A [`Catalog`] indexes the datasets of a data root.
 //! - [`zarr`] reads and writes OME-Zarr images (ADR-0042): the master format of everything
 //!   derived from the frames.
+//! - [`ometiff`] exports an OME-Zarr image as OME-TIFF (ADR-0046), for Fiji, QuPath and other
+//!   tools.
 //!
 //! The unsafe code is in two small modules, listed in the README: `disk` (the free space, from
 //! Windows) and `raw::map` (a recorded frame mapped read-only).
@@ -18,6 +20,7 @@ mod catalog;
 mod dataset;
 mod disk;
 mod manifest;
+pub mod ometiff;
 mod raw;
 pub mod zarr;
 
@@ -35,6 +38,24 @@ pub use raw::{
     DatasetReader, DatasetWriter, DirectIo, FrameKey, FrameWrite, MappedFrame, RawFrame, Sidecar,
     WriterOptions, WriterReport, WriterStats,
 };
+
+/// Where long work on images reports its progress, and learns whether to stop: a pyramid's build,
+/// or an export.
+pub trait Control: Sync {
+    /// The share done, from 0 to 1.
+    fn progress(&self, done: f64);
+    /// Whether to stop.
+    fn cancelled(&self) -> bool;
+}
+
+/// Nobody to report to, and no stopping.
+impl Control for () {
+    fn progress(&self, _: f64) {}
+
+    fn cancelled(&self) -> bool {
+        false
+    }
+}
 
 /// Why storage failed.
 #[derive(Debug, thiserror::Error)]
@@ -73,6 +94,17 @@ pub enum StorageError {
         /// What went wrong.
         why: String,
     },
+    /// A TIFF file couldn't be written.
+    #[error("{}: {why}", path.display())]
+    Tiff {
+        /// The file.
+        path: PathBuf,
+        /// What went wrong.
+        why: String,
+    },
+    /// The work was asked to stop, and what it wrote is removed.
+    #[error("cancelled")]
+    Cancelled,
     /// A folder isn't a dataset this version can read.
     #[error("{} isn't a dataset this version reads: {why}", path.display())]
     NotADataset {

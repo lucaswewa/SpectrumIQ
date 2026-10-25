@@ -3,16 +3,16 @@
 Datasets on disk (ADR-0041): the folder layout of architecture §8.1 and its manifest, with full
 provenance; the raw frame recorder, writing the frames marked to save with direct I/O straight
 from the frame pool; the frames read back, memory-mapped; the catalog of a data root; and OME-Zarr
-images (ADR-0042), the master format of everything derived. OME-TIFF (P4.6) follows in the same
-crate.
+images (ADR-0042), the master format of everything derived, with their OME-TIFF export
+(ADR-0046) for Fiji, QuPath and other tools.
 
 ## Place in the architecture
 
 - **Layer:** L1 Core.
-- **Depends on:** `siq-types`, `siq-buffer`; `zarrs` (with zstd), `memmap2`, `sha2`, `serde_json`,
-  `chrono`, `windows-sys`.
+- **Depends on:** `siq-types`, `siq-buffer`; `zarrs` (with zstd), `tiff` (its low-level BigTIFF
+  encoder), `flate2`, `rayon`, `memmap2`, `sha2`, `serde_json`, `chrono`, `windows-sys`.
 - **Used by:** the service (P4.7), `siq-jobs` (P4.3), `siq-datagen` (P4.9).
-- **Phase:** P4.1; P4.2 added `zarr`.
+- **Phase:** P4.1; P4.2 added `zarr`, and P4.6 `ometiff`.
 
 ## API
 
@@ -27,6 +27,11 @@ crate.
 | `free_space(path)` | The bytes this process may still write on a path's disk |
 | `zarr::ZarrImage` | An OME-Zarr image, NGFF 0.5: `create(path, ImageInfo)` and `open(path)`; `set_levels(n)` adds levels, for the pyramid (P4.4); `write_chunk(level, (t, c, z), (row, col), view)` from any thread, edge chunks clipped; `read_region(level, (t, c, z), rect)` → `Region` |
 | `zarr::ImageInfo` | The name, `SampleType` (`U16`, `F32`), level 0's `Size5`, the levels, the chunk, the pixel size and origin in µm, and the `ChannelInfo`s (label, colour, window); `size(level)` and `chunks(level)` |
+| `ometiff::export(image, manifest, out, compression, control)` | The image as one OME-TIFF file: BigTIFF, an IFD per plane in `XYZCT` order with its other levels as SubIFDs, tiles of 512, and the OME-XML. Tiles are encoded in parallel on the calling rayon pool, in batches; the file is written as `<out>.part` and renamed once whole |
+| `ometiff::ome_xml(info, manifest)` | The OME-XML (2016-06) written: the image, its channels and planes, and the manifest's date, description and provenance |
+| `ometiff::TiffCompression` | `Deflate` (the default) or `None` |
+| `ometiff::estimate(info, threads)` | The most memory an export holds |
+| `Control` | Where long work reports its progress, and learns whether to stop: an export's, and the pyramid builder's (`siq-pyramid` re-exports it) |
 
 A frame's files are `raw/t0000_c00_z000_p00012.raw` (its pixels, little-endian, padded to whole
 pages) and `.json` (its `Sidecar`: key, length and `FrameMeta`), written after the pixels.
@@ -58,7 +63,10 @@ None.
   stopping the recording cleanly, and the free space kept;
 - the catalog: newest first, frames counted, broken folders left out, updates and refresh;
 - OME-Zarr: odd sizes read back anywhere, edge chunks, `f32` levels, the NGFF metadata
-  (snapshots), and disjoint chunks written from many threads.
+  (snapshots), and disjoint chunks written from many threads;
+- OME-TIFF, through a structural reader of our own: the header, the IFDs in `XYZCT` order, each
+  plane's SubIFDs, every tile's pixels and padding, the OME-XML (snapshot), level 0 decoded by the
+  `tiff` crate, `f32` uncompressed, and a cancelled export leaving no file.
 
 ## Limitations
 
@@ -68,3 +76,5 @@ None.
   Windows's.
 - The catalog learns of new datasets when told (`record`), or on `refresh`; it doesn't watch the
   folder.
+- An OME-TIFF export holds one image, at the levels it has. There's no predictor, and no other
+  compression than deflate.

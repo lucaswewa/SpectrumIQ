@@ -1,11 +1,13 @@
-//! The jobs the service runs (ADR-0043, ADR-0044): a dataset's pyramid, built through the
-//! scheduler, and recorded. REQ-DATA-003, REQ-DATA-005.
+//! The jobs the service runs (ADR-0043 to ADR-0046): a dataset's pyramid, built through the
+//! scheduler, then its DZI and OME-TIFF exports, each recorded. REQ-DATA-003, REQ-DATA-004,
+//! REQ-DATA-005.
 
 use std::time::Duration;
 
-use siq_jobs::kinds::{DziExportJob, PyramidJob};
+use siq_jobs::kinds::{DziExportJob, OmeTiffExportJob, PyramidJob};
 use siq_jobs::*;
 use siq_pyramid::tiles::{DziGeometry, TileFormat};
+use siq_storage::ometiff::TiffCompression;
 use siq_storage::zarr::{ChannelInfo, ImageInfo, SampleType, Size5, ZarrImage};
 use siq_storage::{Dataset, DatasetKind, NewDataset, ProcessingState};
 use siq_types::{OwnedImage, RectPx};
@@ -119,5 +121,42 @@ fn a_dataset_s_pyramid_is_built_as_a_job_and_recorded() {
     assert_eq!(
         reopened.manifest().history[1].outputs,
         ["exports/dzi/snap.dzi"]
+    );
+
+    // And its OME-TIFF export: level 0, its two other levels, and the dataset in the OME-XML.
+    let export = OmeTiffExportJob {
+        image: path.clone(),
+        out: dataset.exports_dir().join("snap.ome.tif"),
+        compression: TiffCompression::Deflate,
+    };
+    assert!(export.estimate().ram > 0);
+    let id = jobs.submit(
+        Box::new(export),
+        Priority::Background,
+        Some(dataset.path().to_owned()),
+    );
+    assert_eq!(
+        jobs.wait(id, Duration::from_secs(30)).unwrap().state,
+        JobState::Done
+    );
+    let file = std::fs::File::open(dataset.exports_dir().join("snap.ome.tif")).unwrap();
+    let mut decoder = tiff::decoder::Decoder::new(file).unwrap();
+    assert_eq!(decoder.dimensions().unwrap(), (1000, 700));
+    let tiff::decoder::DecodingResult::U16(pixels) = decoder.read_image().unwrap() else {
+        panic!("not 16-bit");
+    };
+    assert!(pixels.iter().all(|&p| p == 1000));
+    let xml = decoder.get_tag_ascii_string(tiff::tags::Tag::ImageDescription);
+    assert!(xml.unwrap().contains(&dataset.manifest().id.to_string()));
+    let subifds = decoder.get_tag_u64_vec(tiff::tags::Tag::SubIfd).unwrap();
+    assert_eq!(subifds.len(), 2);
+    let reopened = Dataset::open(dataset.path()).unwrap();
+    let record = &reopened.manifest().history[2];
+    assert_eq!(
+        (record.kind.as_str(), record.outputs.as_slice()),
+        (
+            "export_ome_tiff",
+            ["exports/snap.ome.tif".to_owned()].as_slice()
+        )
     );
 }

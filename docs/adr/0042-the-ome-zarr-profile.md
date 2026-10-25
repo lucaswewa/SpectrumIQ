@@ -79,7 +79,7 @@
   - a layer per channel, named and coloured from `omero`, with its window as contrast;
   - the physical pixel size.
 - **Fiji's reading of NGFF 0.5 isn't checked yet:** Fiji isn't installed on this PC. P4.6 installs
-  it for the OME-TIFF check, and tries the OME-Zarr then.
+  it for the OME-TIFF check, and tries the OME-Zarr then: see the amendment.
 - **`zarrs` lists `libz-sys` as a build-dependency,** which its build script doesn't use. zlib is
   compiled for it, and linked into nothing we build.
 - **A level's array is made empty;** P4.4's pyramid builder fills levels 1 and up.
@@ -103,3 +103,22 @@
   - each of shape (1, 1, 4096, 6144), `uint16`, at 0.376 µm a pixel;
   - colourmaps magenta, green and the custom blue, with contrast 0–16000;
   - pixels as written.
+
+## Amendment (P4.6, 2026-10-25): Fiji reads NGFF 0.5 with `n5-zarr` 2
+
+P4.6 installed Fiji, for the OME-TIFF check, and tried this profile's images in it, through the
+N5 libraries behind File › Import › HDF5/N5/Zarr/OME-NGFF. Fiji was run headless, as Groovy
+scripts, since this PC's service session has no display.
+
+- **The stable build** (March 2026, `n5-zarr` 1.5.1) **doesn't read them:** it knows Zarr v2
+  only, and finds no container at an image's folder.
+- **The latest build** (23 October 2026, `n5-zarr` 2.0.1, `n5-universe` 3.0.2) **reads them**
+  (`export_ometiff`'s image, 12 000 × 8000 × 2, seven levels):
+  - through `ZarrV3KeyValueReader`;
+  - its metadata discovered as OME-NGFF, with the seven scales;
+  - level 0 as a 16-bit ImagePlus;
+  - the right pixels.
+
+**The decision stands:** NGFF 0.5. A Fiji without `n5-zarr` 2, such as the March 2026 stable
+build, needs updating to read the images, or opens their OME-TIFF export (ADR-0046), which both
+builds read.

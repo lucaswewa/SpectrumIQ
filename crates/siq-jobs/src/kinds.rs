@@ -1,11 +1,13 @@
 //! The jobs the service runs, each around a processing crate's work: here because processing
 //! (L3) can't depend on the job system (L4).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use siq_pyramid::tiles::{DziGeometry, TileAt, TileFormat, TileLut, render};
 use siq_pyramid::{Control, PyramidError, TOP};
+use siq_storage::ometiff::{self, TiffCompression};
 use siq_storage::zarr::ZarrImage;
+use siq_storage::{Dataset, StorageError};
 
 use crate::{Job, JobCtx, JobError, JobOutput, Resources};
 
@@ -76,14 +78,18 @@ impl Job for PyramidJob {
             "levels {levels} to {} built",
             image.info().levels - 1
         ));
-        // The image, as a path in the dataset if it is in one.
-        let image = ctx
-            .dataset()
-            .and_then(|dataset| self.image.strip_prefix(dataset).ok())
-            .unwrap_or(&self.image);
-        Ok(JobOutput {
-            outputs: vec![image.to_string_lossy().replace('\\', "/")],
-        })
+        Ok(output(ctx, &self.image))
+    }
+}
+
+/// A job's output at `path`: a path in its dataset, if it is in one.
+fn output(ctx: &JobCtx, path: &Path) -> JobOutput {
+    let path = ctx
+        .dataset()
+        .and_then(|dataset| path.strip_prefix(dataset).ok())
+        .unwrap_or(path);
+    JobOutput {
+        outputs: vec![path.to_string_lossy().replace('\\', "/")],
     }
 }
 
@@ -171,12 +177,66 @@ impl Job for DziExportJob {
         })?;
         let descriptor = self.out.join(format!("{}.dzi", self.name));
         std::fs::write(&descriptor, geometry.descriptor(self.format)).map_err(JobError::failed)?;
-        let output = ctx
-            .dataset()
-            .and_then(|dataset| descriptor.strip_prefix(dataset).ok())
-            .unwrap_or(&descriptor);
-        Ok(JobOutput {
-            outputs: vec![output.to_string_lossy().replace('\\', "/")],
-        })
+        Ok(output(ctx, &descriptor))
+    }
+}
+
+/// Writes an OME-Zarr image as one OME-TIFF file (ADR-0046): every plane and level, with the
+/// OME-XML of the image and of its dataset's manifest, if the job has a dataset.
+#[derive(Debug, Clone, PartialEq)]
+pub struct OmeTiffExportJob {
+    /// The image's folder.
+    pub image: PathBuf,
+    /// The file to write, such as `<dataset>/exports/mosaic.ome.tif`.
+    pub out: PathBuf,
+    /// How the tiles are compressed.
+    pub compression: TiffCompression,
+}
+
+impl Job for OmeTiffExportJob {
+    fn kind(&self) -> &str {
+        "export_ome_tiff"
+    }
+
+    fn params(&self) -> serde_json::Value {
+        let compression = match self.compression {
+            TiffCompression::None => "none",
+            TiffCompression::Deflate => "deflate",
+        };
+        serde_json::json!({ "image": self.image, "out": self.out, "compression": compression })
+    }
+
+    fn estimate(&self) -> Resources {
+        let threads = std::thread::available_parallelism().map_or(1, |n| n.get() / 2);
+        let ram = ZarrImage::open(&self.image)
+            .map_or(0, |image| ometiff::estimate(image.info(), threads));
+        Resources {
+            ram,
+            vram: 0,
+            gpu: false,
+            threads,
+        }
+    }
+
+    fn run(&mut self, ctx: &JobCtx) -> Result<JobOutput, JobError> {
+        let image = ZarrImage::open(&self.image).map_err(JobError::failed)?;
+        let dataset = ctx.dataset().map(Dataset::open).transpose();
+        let dataset = dataset.map_err(JobError::failed)?;
+        if let Some(folder) = self.out.parent() {
+            std::fs::create_dir_all(folder).map_err(JobError::failed)?;
+        }
+        ctx.log(format!(
+            "exporting {} to {}",
+            self.image.display(),
+            self.out.display()
+        ));
+        let manifest = dataset.as_ref().map(Dataset::manifest);
+        ctx.pool()
+            .install(|| ometiff::export(&image, manifest, &self.out, self.compression, &Steer(ctx)))
+            .map_err(|error| match error {
+                StorageError::Cancelled => JobError::Cancelled,
+                error => JobError::failed(error),
+            })?;
+        Ok(output(ctx, &self.out))
     }
 }

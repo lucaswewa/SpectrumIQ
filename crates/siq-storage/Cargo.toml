@@ -1,6 +1,6 @@
 [package]
 name = "siq-storage"
-description = "Datasets on disk: their layout and manifest, the raw frame recorder, the frames read back, and the catalog."
+description = "Datasets on disk: their layout and manifest, the raw frame recorder, the frames read back, the catalog, OME-Zarr images and their OME-TIFF export."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,20 +10,22 @@ publish.workspace = true
 
 [dependencies]
 chrono.workspace = true
+flate2.workspace = true
 memmap2.workspace = true
+rayon.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 siq-buffer = { path = "../siq-buffer" }
 siq-types = { path = "../siq-types" }
 thiserror.workspace = true
+tiff.workspace = true
 tracing.workspace = true
 windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
 zarrs.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
-rayon.workspace = true
 siq-acquire = { path = "../siq-acquire" }
 siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }
