@@ -5,6 +5,8 @@
 //! - `GET /api/siq/data/{dataset}/manifest`: its manifest, as JSON;
 //! - `GET /api/siq/data/{dataset}/thumb.jpg`: its first image's first plane, every channel in its
 //!   colour, at the top level;
+//! - `GET /api/siq/data/{dataset}/{image}/info`: the image's size, sample type, levels, pixel size
+//!   in µm, origin, and channels (label, colour as `rrggbb`, window), as the viewer needs them;
 //! - `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}.dzi`: the plane's DZI descriptor;
 //! - `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}_files/{level}/{col}_{row}.{jpeg|png}`: a
 //!   tile, with `min`, `max`, `gamma` and `cmap` (`grey`, `inverted` or `rrggbb`) in the query,
@@ -21,6 +23,7 @@ use serde_json::json;
 use siq_imgproc::Colormap;
 use siq_pyramid::tiles::{TileAt, TileError, TileFormat, TileLut, channel_lut, thumbnail, value};
 use siq_storage::Dataset;
+use siq_storage::zarr::SampleType;
 use siq_types::DatasetId;
 use teta_wot::http::axum::extract::{Path as UrlPath, Query, State};
 use teta_wot::http::axum::http::{HeaderMap, HeaderValue, StatusCode, header};
@@ -38,6 +41,7 @@ pub(crate) fn routes(instrument: &Arc<Instrument>) -> Router {
     Router::new()
         .route("/api/siq/data/{dataset}/manifest", get(manifest))
         .route("/api/siq/data/{dataset}/thumb.jpg", get(thumb))
+        .route("/api/siq/data/{dataset}/{image}/info", get(image_info))
         .route("/api/siq/data/{dataset}/{image}/value", get(probe))
         .route(
             "/api/siq/data/{dataset}/{image}/{c}/{z}/{t}",
@@ -287,4 +291,39 @@ async fn probe(
     );
     let found = value(&opened, (t, c, z), level as usize, x, y)?;
     Ok(Json(json!({ "value": found, "level": level, "x": x, "y": y })).into_response())
+}
+
+async fn image_info(
+    State(instrument): State<Arc<Instrument>>,
+    UrlPath((dataset, image)): UrlPath<(String, String)>,
+) -> Result<Response, Refusal> {
+    let path = image_path(&instrument, &dataset, &image)?;
+    let (opened, _) = instrument.tiles.image(&path)?;
+    let info = opened.info();
+    let channels: Vec<_> = info
+        .channels
+        .iter()
+        .map(|channel| {
+            let [r, g, b] = channel.colour;
+            json!({
+                "label": channel.label,
+                "colour": format!("{r:02x}{g:02x}{b:02x}"),
+                "window": [channel.window.0, channel.window.1],
+            })
+        })
+        .collect();
+    let size = info.size;
+    Ok(Json(json!({
+        "name": info.name,
+        "sample": match info.sample {
+            SampleType::U16 => "u16",
+            SampleType::F32 => "f32",
+        },
+        "size": { "t": size.t, "c": size.c, "z": size.z, "y": size.y, "x": size.x },
+        "levels": info.levels,
+        "pixel_size": info.pixel_size,
+        "origin": info.origin,
+        "channels": channels,
+    }))
+    .into_response())
 }

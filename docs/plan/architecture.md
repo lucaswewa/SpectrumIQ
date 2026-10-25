@@ -242,6 +242,7 @@ overview, stats and binning passes into one read of the frame.
 | `/api/siq/users…`, `/api/siq/audit…` | Admin (P9.1, P9.3) |
 | `/api/siq/data/{dataset}/manifest`, `…/thumb.jpg` | A dataset's manifest, and its thumbnail: the first image's channels composited at the top level (P4.7, ADR-0041 amended) |
 | `/api/siq/data/{dataset}/{image}/{c}/{z}/{t}.dzi` and `…/{t}_files/{level}/{col}_{row}.{jpeg,png}?min&max&gamma&cmap` | Deep-zoom tiles of a dataset's OME-Zarr image, rendered on demand (P4.5, ADR-0045) |
+| `/api/siq/data/{dataset}/{image}/info` | An image's size, levels, pixel size and channels, for the viewer (P4.8, ADR-0009 amended) |
 | `/api/siq/data/{dataset}/{image}/value?x&y&c&z&t&level` | Pixel probe (true values) |
 | `/api/siq/data/{dataset}/heightmap`, `…/volume`, `…/points` | Reduced 3D payloads for VTK.js (binary, P11.4, P12.5) |
 | `/api/siq/data/{dataset}/raw16/{level}/{col}_{row}` | 16-bit tiles for the WebGL2 renderer (P14.1) |
@@ -422,7 +423,7 @@ therefore has one code path for everything.
 web/src/
   theme/ host/ api/wot/ api/generated/ app/ ui/          (from microscope, adapted)
   stores/            session, control, camera, stage, focus, display, workflow, datasets, jobs
-  live/ control/ mosaic/ scan/ datasets/ viewer2d/ viewer3d/ calibration/ admin/ system/
+  live/ control/ mosaic/ scan/ datasets/ viewer2d/ overlay/ viewer3d/ calibration/ admin/ system/
   views/dev/         component and token galleries, plus per-phase demo routes (the frontend examples)
 ```
 

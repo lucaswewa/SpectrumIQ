@@ -152,6 +152,24 @@ async fn a_dataset_s_image_is_served_as_deep_zoom_tiles() {
         (StatusCode::OK, Some(1598.0))
     );
 
+    // The image's metadata, as the viewer takes it.
+    let (status, _, body) = get(&router, &format!("{base}/info"), None).await;
+    let info: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        (&info["sample"], &info["levels"], &info["size"]),
+        (
+            &serde_json::json!("u16"),
+            &serde_json::json!(3),
+            &serde_json::json!({ "t": 1, "c": 2, "z": 1, "y": 600, "x": 1000 })
+        )
+    );
+    assert_eq!(info["pixel_size"], serde_json::json!([1.0, 0.376, 0.376]));
+    assert_eq!(
+        info["channels"][1],
+        serde_json::json!({ "label": "green", "colour": "00ff00", "window": [0.0, 2000.0] })
+    );
+
     for missing in [
         format!("/api/siq/data/{}/snap/0/0/0.dzi", DatasetId::generate()),
         "/api/siq/data/not-an-id/snap/0/0/0.dzi".to_owned(),

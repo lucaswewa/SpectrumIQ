@@ -25,12 +25,15 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
 | `src/host/`      | The `HostAdapter`: the only way to the platform (links, files, full screen). The browser's, or the desktop shell's (`tauri.ts`, ADR-0040)              |
 | `src/api/wot/`   | The TD-driven client: properties, actions as invocations, observations over each Thing's WebSocket (SSE as the fallback), MJPEG over fetch, `ApiError` |
 | `src/api/`       | `streams.ts`, the budget of 3 MJPEG streams; `generated/`, the server's OpenAPI document and its types                                                 |
-| `src/stores/`    | Pinia stores: `connection`, and `camera`, `display`, `stage`, `focus`, `imaging`, `peripherals`, mirroring their Things                                |
+| `src/stores/`    | Pinia stores: `connection`, and `camera`, `display`, `stage`, `focus`, `imaging`, `peripherals`, `datasets`, mirroring their Things                    |
 | `src/app/`       | The shell: the navigation rail, keyboard shortcuts, and the placeholder of pages not built yet                                                         |
 | `src/ui/`        | The components: native elements, and wrappers of Reka UI. Only this folder imports `reka-ui`                                                           |
 | `src/router/`    | One hash route per destination of the rail, and the development galleries                                                                              |
 | `src/live/`      | The Live page: the overview and the ROI streams, the ROI dragged on the overview, the display and camera controls, the histogram, the focus readout    |
 | `src/control/`   | The stage, focus and peripherals on the Live page: the keys and the d-pad, the wheel, click-to-move, STOP, Home, the steps, saved positions (ADR-0039) |
+| `src/datasets/`  | The Datasets page: cards with thumbnails, filtered by kind and name, a dataset's manifest and history beside them, its exports, and deleting it        |
+| `src/viewer2d/`  | The Viewer page: OpenSeadragon with an additive tiled image per channel, the channels' LUT store and controls, z and t, the scale bar, the probe       |
+| `src/overlay/`   | Overlay layers drawn over an image, from `microscope`, and the Layers menu: used by the viewer, filled by M8                                           |
 | `src/system/`    | The About page                                                                                                                                         |
 | `src/views/dev/` | The galleries, `/#/dev/components` and `/#/dev/tokens`, and `/#/dev/observe`: in development builds only                                               |
 
@@ -62,7 +65,10 @@ npm run dev
 5. Open `/#/dev/observe`: every store's values, live. Move the stage with its buttons, and watch
    its position follow. The browser's developer tools show one WebSocket per Thing, and no
    event stream.
-6. Switch the theme with the system's setting, or with `localStorage['spectrumiq.theme']`: `light`,
+6. Open `/#/dev/viewer2d`, with the server: the viewer on one of its datasets, with a demo overlay
+   layer of the image's 512-pixel chunks under Layers. Make a synthetic dataset first, such as with
+   `cargo run --release -p siq-jobs --example export_ometiff -- --out <the data root>`.
+7. Switch the theme with the system's setting, or with `localStorage['spectrumiq.theme']`: `light`,
    `dark` or `system`.
 
 To see the app as the server serves it, build it (`npm run build`). Then either start the server

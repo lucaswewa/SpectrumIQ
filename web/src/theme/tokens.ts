@@ -47,6 +47,7 @@ export const TOKEN_GROUPS = {
     '--color-surface-sunken',
     '--color-image-backdrop',
     '--color-overlay',
+    '--color-on-overlay',
     '--color-capture-flash',
     '--color-text',
     '--color-text-muted',

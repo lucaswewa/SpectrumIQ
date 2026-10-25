@@ -40,7 +40,7 @@ This is the only crate that depends on teta-wot.
 - **Used by:** `apps/spectrumiq-server`, the service binary.
 - **Phase:** P2.3; P2.4 added the peripherals, the channels, and the metrics and memory routes;
   P3.1 the web app; P4.3 the `jobs` Thing; P4.5 the data routes, with the catalog and the tile
-  cache; P4.7 the `datasets` Thing, a dataset's manifest and thumbnail.
+  cache; P4.7 the `datasets` Thing, a dataset's manifest and thumbnail; P4.8 an image's metadata.
 
 ## API
 
@@ -91,6 +91,7 @@ The peripherals' Things are served only if their `[peripherals]` section is pres
 |---|---|
 | `GET /api/siq/data/{dataset}/manifest` | The dataset's manifest, as JSON |
 | `GET /api/siq/data/{dataset}/thumb.jpg` | Its first image's first plane, the channels composited in their colours, at the top level |
+| `GET /api/siq/data/{dataset}/{image}/info` | The image's `name`, `sample` (`u16`, `f32`), `size` (`t`, `c`, `z`, `y`, `x`), `levels`, `pixel_size` and `origin` in µm (`z`, `y`, `x`), and `channels` (`label`, `colour` as `rrggbb`, `window`) |
 | `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}.dzi` | The plane's DZI descriptor |
 | `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}_files/{level}/{col}_{row}.{jpeg\|png}` | A tile, rendered on demand and cached within `tile_cache_mb`, with `min`, `max`, `gamma` and `cmap` (`grey`, `inverted`, `rrggbb`) in the query, each the channel's own if not given; an ETag, and 304 when it matches |
 | `GET /api/siq/data/{dataset}/{image}/value?c&z&t&level&x&y` | `{"value", "level", "x", "y"}`: the true value of a pixel of a Zarr level |

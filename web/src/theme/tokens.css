@@ -152,6 +152,8 @@
   --color-surface-sunken: var(--palette-neutral-50);
   --color-image-backdrop: var(--palette-neutral-0);
   --color-overlay: rgb(0 0 0 / 40%);
+  /* Text over an image or an overlay. */
+  --color-on-overlay: var(--palette-neutral-0);
   --color-capture-flash: var(--palette-neutral-0);
 
   /* Text. */
@@ -207,6 +209,7 @@
   --color-surface-sunken: var(--palette-neutral-950);
   --color-image-backdrop: var(--palette-neutral-925);
   --color-overlay: rgb(0 0 0 / 60%);
+  --color-on-overlay: var(--palette-neutral-0);
   --color-capture-flash: var(--palette-neutral-0);
 
   --color-text: var(--palette-neutral-100);

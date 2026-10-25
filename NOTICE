@@ -9,8 +9,9 @@ microscope
   (https://github.com/lucaswewa/microscope), copied at commit 0640f99 and
   adapted since: its configuration, theme, host adapter, Web of Things
   client, app shell, UI components, router, development galleries, live
-  image and stage controls, and their unit tests (docs/impl-notes/P3.1.md,
-  P3.3.md and P3.4.md list the files).
+  image, stage controls, gallery, deep-zoom view and overlay layers, and
+  their unit tests (docs/impl-notes/P3.1.md, P3.3.md, P3.4.md and P4.8.md
+  list the files).
   Copyright (c) 2026 Lucas Wang. Licensed under the MIT License.
 
 Material Symbols
