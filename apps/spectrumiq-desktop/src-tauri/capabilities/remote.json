@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "remote",
+  "description": "The web app, as the local service serves it: the host commands, and nothing else (ADR-0040).",
+  "windows": ["main"],
+  "remote": {
+    "urls": ["http://127.0.0.1:*"]
+  },
+  "permissions": [
+    "allow-app-info",
+    "allow-open-link",
+    "allow-save-file",
+    "allow-service-state",
+    "allow-service-start",
+    "allow-service-stop",
+    "allow-service-restart",
+    "core:window:allow-is-fullscreen",
+    "core:window:allow-set-fullscreen",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}

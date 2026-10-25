@@ -6,8 +6,7 @@ import { createApp } from 'vue'
 
 import App from './App.vue'
 import { thingAvailabilityKey } from './app/availability'
-import { hostKey } from './host'
-import { createBrowserHost } from './host/browser'
+import { createHost, hostKey } from './host'
 import { createAppRouter } from './router'
 import { useConnectionStore } from './stores/connection'
 import { useThemeStore } from './theme/store'
@@ -20,6 +19,9 @@ useThemeStore()
 const connection = useConnectionStore()
 app.provide(thingAvailabilityKey, (thing) => connection.isAvailable(thing))
 app.use(createAppRouter())
-app.provide(hostKey, createBrowserHost())
-app.mount('#app')
-void connection.start()
+// A browser's host, or the desktop shell's (ADR-0040), which asks the shell first.
+void createHost().then((host) => {
+  app.provide(hostKey, host)
+  app.mount('#app')
+  void connection.start()
+})

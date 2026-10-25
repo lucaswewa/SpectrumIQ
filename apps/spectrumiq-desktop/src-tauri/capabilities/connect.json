@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "connect",
+  "description": "The bundled connect page: it probes the service, and in development builds starts it.",
+  "windows": ["main"],
+  "permissions": ["core:default", "allow-app-info", "allow-probe", "allow-service-start"]
+}

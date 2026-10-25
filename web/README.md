@@ -8,21 +8,21 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
 
 - **Layer:** the frontend (architecture §11). It talks to the server only over HTTP: the Things
   under `/api/v1/` and SpectrumIQ's routes under `/api/siq/`.
-- **Depends on:** Vue 3.5, Vue Router 5 (hash history), Pinia 4, Reka UI 2.10, and the Material
-  Symbols icons. Vite 8, TypeScript 6, Vitest 5, ESLint 10 and Prettier 3 build and check it
-  (`docs/soup.md`).
-- **Used by:** `spectrumiq-server`, which embeds `dist/` in release builds, and the desktop shell
-  (P3.5).
+- **Depends on:** Vue 3.5, Vue Router 5 (hash history), Pinia 4, Reka UI 2.10, the Material
+  Symbols icons, and `@tauri-apps/api` 2.12 in the desktop shell only. Vite 8, TypeScript 6,
+  Vitest 5, ESLint 10 and Prettier 3 build and check it (`docs/soup.md`).
+- **Used by:** `spectrumiq-server`, which embeds `dist/` in release builds and serves it to
+  browsers and to the [desktop shell](../apps/spectrumiq-desktop/README.md) (ADR-0040).
 - **Phase:** P3.1; P3.2 added the observation sockets, the stream budget, the stores and the
-  API types; P3.3 the Live page; P3.4 its stage, focus and peripheral controls. Every phase of M3
-  adds to it.
+  API types; P3.3 the Live page; P3.4 its stage, focus and peripheral controls; P3.5 the desktop
+  shell's host.
 
 ## Layout
 
 | Folder           | What                                                                                                                                                   |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `src/theme/`     | The design tokens (two layers, light and dark), and the theme store                                                                                    |
-| `src/host/`      | The `HostAdapter`: the only way to the platform (links, files, full screen)                                                                            |
+| `src/host/`      | The `HostAdapter`: the only way to the platform (links, files, full screen). The browser's, or the desktop shell's (`tauri.ts`, ADR-0040)              |
 | `src/api/wot/`   | The TD-driven client: properties, actions as invocations, observations over each Thing's WebSocket (SSE as the fallback), MJPEG over fetch, `ApiError` |
 | `src/api/`       | `streams.ts`, the budget of 3 MJPEG streams; `generated/`, the server's OpenAPI document and its types                                                 |
 | `src/stores/`    | Pinia stores: `connection`, and `camera`, `display`, `stage`, `focus`, `imaging`, `peripherals`, mirroring their Things                                |
@@ -71,15 +71,15 @@ with `--webapp-dir web/dist`, or build a release server, which embeds `dist/`, a
 
 ## Checks
 
-| Script                 | What                                                                                                                        |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `npm run format:check` | Prettier: no semicolons, single quotes, 100 columns                                                                         |
-| `npm run lint`         | ESLint, warnings denied, with the app's rules: hash routing, platform only through `src/host/`, `reka-ui` only in `src/ui/` |
-| `npm run typecheck`    | `vue-tsc`, strict                                                                                                           |
-| `npm run test:unit`    | Vitest, in happy-dom: `tests/unit/**/*.spec.ts`                                                                             |
-| `npm run build`        | The production build in `dist/`, with `third-party-licences.txt`                                                            |
-| `npm run api:openapi`  | Writes the server's OpenAPI document to `src/api/generated/openapi.json` (needs Cargo)                                      |
-| `npm run api:types`    | Writes its types to `src/api/generated/schema.d.ts`; with `-- --check`, checks they are current                             |
+| Script                 | What                                                                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run format:check` | Prettier: no semicolons, single quotes, 100 columns                                                                                             |
+| `npm run lint`         | ESLint, warnings denied, with the app's rules: hash routing, platform and `@tauri-apps/*` only through `src/host/`, `reka-ui` only in `src/ui/` |
+| `npm run typecheck`    | `vue-tsc`, strict                                                                                                                               |
+| `npm run test:unit`    | Vitest, in happy-dom: `tests/unit/**/*.spec.ts`                                                                                                 |
+| `npm run build`        | The production build in `dist/`, with `third-party-licences.txt`                                                                                |
+| `npm run api:openapi`  | Writes the server's OpenAPI document to `src/api/generated/openapi.json` (needs Cargo)                                                          |
+| `npm run api:types`    | Writes its types to `src/api/generated/schema.d.ts`; with `-- --check`, checks they are current                                                 |
 
 `cargo xtask ci` runs the first five, and `api:types -- --check`. A server test fails when
 `openapi.json` is older than the server: then run `api:openapi` and `api:types`. The end-to-end tests (`npm run test:e2e`, Playwright) start with M9.

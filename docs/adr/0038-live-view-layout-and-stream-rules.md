@@ -102,7 +102,7 @@
   - picture-in-picture;
   - both themes.
 
-## Amendment (P3.4, 2026-10-25): the pointer is captured once a press is a drag
+## Amendment (P3.4, 2026-10-24): the pointer is captured once a press is a drag
 
 - **`RoiSelector` captures the pointer only once a press has moved 6 px,** not on the press.
 - **Why:** Chromium sends a captured pointer's clicks and double-clicks to the capturing element,

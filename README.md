@@ -11,10 +11,10 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In progress:** Milestone 3, frontend foundations. P3.4 is the latest: the
-[web app](web/README.md)'s Live page drives the stage, the focus and the peripherals, with the keys,
-the wheel, a double-click on the image, and a STOP that is always there (`/#/live`, or
-`/#/dev/control` without a server).
+**In progress:** Milestone 3, frontend foundations. P3.5 is the latest: the
+[desktop shell](apps/spectrumiq-desktop/README.md), a Tauri window that finds the local service,
+starts the simulated instrument in development builds, and loads the same web app browsers do
+(`npm run tauri dev` in `apps/spectrumiq-desktop`).
 
 Done so far:
 
@@ -73,7 +73,9 @@ Done so far:
   - P3.2, its client: one WebSocket per Thing, a budget of three MJPEG streams, and Pinia stores
     mirroring the instrument;
   - P3.3, the Live page: the overview and the ROI streams, the ROI chosen on the overview, and the
-    display and camera controls.
+    display and camera controls;
+  - P3.4, the stage, the focus and the peripherals on the Live page, with the keys, the wheel,
+    click-to-move and STOP (`/#/dev/control` without a server).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

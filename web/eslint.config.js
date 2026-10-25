@@ -10,6 +10,11 @@ const hashHistoryOnly = {
   message: 'Routes live in the hash: use createWebHashHistory (ADR-0008).',
 }
 
+const tauriOnlyInHost = {
+  group: ['@tauri-apps/*'],
+  message: 'Only src/host uses Tauri: go through useHost() (ADR-0040).',
+}
+
 // Formatting is Prettier's job (`npm run format:check`), so the ESLint
 // rules that overlap with it are turned off.
 export default defineConfigWithVueTs(
@@ -41,6 +46,7 @@ export default defineConfigWithVueTs(
               message: 'Use the components in src/ui, which wrap Reka UI (ADR-0008).',
             },
           ],
+          patterns: [tauriOnlyInHost],
         },
       ],
       'no-restricted-globals': [
@@ -65,7 +71,9 @@ export default defineConfigWithVueTs(
     // don't merge between blocks, so this repeats the router rule above.
     name: 'app/ui-components',
     files: ['src/ui/**/*.{ts,vue}'],
-    rules: { 'no-restricted-imports': ['error', { paths: [hashHistoryOnly] }] },
+    rules: {
+      'no-restricted-imports': ['error', { paths: [hashHistoryOnly], patterns: [tauriOnlyInHost] }],
+    },
   },
   skipFormatting,
 )

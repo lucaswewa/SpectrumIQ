@@ -60,3 +60,15 @@
 - **Python-2.0** (`argparse`, under `openapi-typescript`, development only, from P3.2) is accepted
   too: the PSF licence is OSI-approved and permissive.
 
+
+## Amendment (P3.5, 2026-10-24): MPL-2.0 in the desktop shell
+
+- **Tauri** (P3.5) brings five MPL-2.0 crates, compiled into `spectrumiq-desktop`:
+  - `cssparser`, `cssparser-macros`, `dtoa-short` and `selectors`, which `tauri-utils` uses for
+    HTML and CSS;
+  - `option-ext`, under `dirs`.
+- **They are used unmodified,** as this ADR requires, like `serialport` in the server.
+- **Releasing a binary that contains MPL-2.0 files** obliges telling its recipients where those
+  files' sources are. The release checklist (P15.3) covers it for every MPL-2.0 crate listed in
+  `docs/soup.md`.
+- **Every other licence in the 323 new crates** is on the allow-list, or offers a choice that is.

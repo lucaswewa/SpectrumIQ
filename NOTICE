@@ -21,7 +21,8 @@ Material Symbols
   Licensed under the Apache License, Version 2.0:
   https://www.apache.org/licenses/LICENSE-2.0
   The web app bundles the icons it uses, unmodified but for the favicon's
-  colour.
+  colour. The desktop shell's icons (apps/spectrumiq-desktop/src-tauri/
+  icons) are the favicon, rendered at their sizes.
 
 teta-wot
   The Web of Things framework the server is built on

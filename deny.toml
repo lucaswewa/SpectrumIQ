@@ -17,7 +17,8 @@ allow = [
     "Unicode-3.0",
     "Unicode-DFS-2016",
     "BSL-1.0",
-    # ADR-0028: serialport, used unmodified, and jpeg-encoder, with the IJG attribution.
+    # ADR-0028: serialport and Tauri's cssparser, selectors and option-ext, used unmodified, and
+    # jpeg-encoder, with the IJG attribution.
     "MPL-2.0",
     "IJG",
 ]

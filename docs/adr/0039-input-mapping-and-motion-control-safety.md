@@ -1,7 +1,7 @@
 # ADR-0039: Input mapping and safety rules for motion control
 
 - **Status:** Accepted
-- **Date:** 2026-10-25
+- **Date:** 2026-10-24
 - **Phase:** P3.4
 - **Related:** ADR-0008, ADR-0029, ADR-0033, ADR-0038, REQ-STG-001, REQ-STG-002, REQ-SEC-004,
   REQ-DEV-001

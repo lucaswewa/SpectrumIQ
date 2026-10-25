@@ -1,0 +1,67 @@
+/* The connect page, in the web app's accent colour and the system's light or dark theme. */
+:root {
+  color-scheme: light dark;
+  --accent: #ce2283;
+  --text: #1d1d1f;
+  --muted: #5c5c66;
+  --bg: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #ff5fb3;
+    --text: #ececf1;
+    --muted: #a8a8b3;
+    --bg: #1b1b1f;
+  }
+}
+
+body {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    15px / 1.5 'Segoe UI',
+    system-ui,
+    sans-serif;
+}
+
+main {
+  max-width: 36rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+h1 {
+  margin: 0 0 1rem;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+#detail {
+  color: var(--muted);
+}
+
+#actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+button {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

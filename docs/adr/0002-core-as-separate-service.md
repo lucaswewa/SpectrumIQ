@@ -39,3 +39,12 @@ acquisition.
 
 P3.5: the desktop shell works against a running server. P15.1: the service survives the UI
 closing.
+
+## Amendment (P3.5, 2026-10-24): how the shell loads the web app
+
+- **The shell loads the web app from the local service,** at `http://127.0.0.1:<port>/`, after a
+  bundled connect page has found the service healthy (ADR-0040).
+- **The web app reaches the host services** through a Tauri capability for that origin only, which
+  grants the shell's own commands and nothing of Tauri's core.
+- **In development builds** the shell can start the simulated instrument as its child. In release
+  builds it expects the Windows service (P15.1).

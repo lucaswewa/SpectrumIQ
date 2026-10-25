@@ -24,6 +24,7 @@
     "api:types": "openapi-typescript src/api/generated/openapi.json -o src/api/generated/schema.d.ts --default-non-nullable false"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.12.2",
     "pinia": "^4.0.3",
     "reka-ui": "^2.10.5",
     "vue": "^3.5.43",

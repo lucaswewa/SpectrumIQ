@@ -1,0 +1,35 @@
+[package]
+name = "spectrumiq-desktop"
+description = "The SpectrumIQ desktop shell: a Tauri 2 window around the web app the local service serves."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+# Tauri and its plugins, at versions published before 2026-10-10 (Cargo.lock pins them), are
+# MIT OR Apache-2.0 (docs/soup.md).
+[build-dependencies]
+tauri-build = { version = "2.7.1", features = [] }
+
+[dependencies]
+# The saved file's name, URI-encoded in a header. Already in the lockfile.
+percent-encoding = "2.3"
+serde.workspace = true
+serde_json.workspace = true
+tauri = { version = "2.12.2", features = [] }
+tauri-plugin-dialog = "2.8.1"
+tauri-plugin-opener = "2.7.0"
+tauri-plugin-single-instance = "2.5.2"
+tauri-plugin-window-state = "2.5.0"
+thiserror.workspace = true
+tokio = { workspace = true, features = ["io-util", "net", "time"] }
+# The service's address. Tauri's version.
+url = "2.5"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["io-util", "macros", "net", "rt", "time"] }
+
+[lints]
+workspace = true
