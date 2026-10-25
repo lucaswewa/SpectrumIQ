@@ -3,7 +3,7 @@
 //! The checks run in order and stop at the first failure:
 //!
 //! 1. formatting, clippy with warnings denied, the tests, and the docs with warnings denied;
-//! 2. the crate layering ([`crate::layers`]);
+//! 2. the crate layering ([`crate::layers`]), and no Euresys SDK file in the repository;
 //! 3. every example, in smoke mode (`SIQ_SMOKE=1`), except those that need features;
 //! 4. licences, with `cargo deny`, when it's installed;
 //! 5. the web app's checks, once `web/package.json` exists.
@@ -17,6 +17,9 @@ use anyhow::{Context, Result, bail};
 use crate::layers;
 use crate::metadata::Metadata;
 use crate::process;
+
+#[cfg(test)]
+mod tests;
 
 /// Which optional checks run.
 #[derive(Debug, Clone, Copy, Default)]
@@ -64,6 +67,16 @@ pub fn run(repo: &Path, options: Options) -> Result<()> {
             eprintln!("    {violation}");
         }
         bail!("layers failed: {} violation(s)", violations.len());
+    }
+
+    println!("==> no Euresys SDK file");
+    let tracked = process::output(repo, "git", ["ls-files"])?;
+    let found = sdk_files(tracked.lines());
+    if !found.is_empty() {
+        for path in &found {
+            eprintln!("    {path}");
+        }
+        bail!("the repository has Euresys SDK files: REQ-NFR-005 and ADR-0004 forbid them");
     }
 
     for (package, example) in metadata.examples() {
@@ -119,6 +132,32 @@ fn web(repo: &Path, options: Options) -> Result<()> {
         step("web: test:e2e", npm(&["run", "test:e2e"]), &dir)?;
     }
     Ok(())
+}
+
+/// The paths among `paths` named as the eGrabber SDK's files are (REQ-NFR-005): its headers, its
+/// GenTL producers and its libraries. The shim's own `siq_egrabber.*` are not.
+pub fn sdk_files<'a>(paths: impl IntoIterator<Item = &'a str>) -> Vec<&'a str> {
+    const HEADERS: [&str; 10] = [
+        "egrabber",
+        "cegrabber",
+        "egentl",
+        "euresys",
+        "gentl_",
+        "gendc",
+        "pfnc",
+        "memento",
+        "rgbconverter",
+        "class.",
+    ];
+    let sdk = |path: &&str| {
+        let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
+        let name = name.to_ascii_lowercase();
+        let header = name.ends_with(".h") && HEADERS.iter().any(|start| name.starts_with(start));
+        let library =
+            name.starts_with("egrabber") && (name.ends_with(".dll") || name.ends_with(".lib"));
+        header || library || name.ends_with(".cti")
+    };
+    paths.into_iter().filter(sdk).collect()
 }
 
 /// The names of the scripts in a `package.json`.

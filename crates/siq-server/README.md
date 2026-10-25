@@ -86,7 +86,9 @@ curl http://127.0.0.1:5000/api/siq/system/memory
 library only:
 
 - `examples/python/live_and_move.py` moves the stage, and saves a frame before and after;
-- `examples/python/channels.py` cycles through the channels, and saves a snap of each.
+- `examples/python/channels.py` cycles through the channels, and saves a snap of each;
+- `examples/python/live_soak.py` runs live view with both previews streaming, by default for
+  10 minutes, and fails if a frame is lost.
 
 ## Features
 

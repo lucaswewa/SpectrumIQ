@@ -1405,6 +1405,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "siq-euresys-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "siq-grbl"
 version = "0.1.0"
 dependencies = [

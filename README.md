@@ -11,10 +11,15 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In progress:** Milestone 2, acquisition, live preview and the first server. P2.4 is the latest:
-[`siq-server`](crates/siq-server/README.md) now serves the simulated peripherals, the channels,
-and the metrics and memory routes (`cargo run --release -p spectrumiq-server -- -c
-config/sim.toml`, then `python examples/python/channels.py`).
+**In review:** Milestone 2, acquisition, live preview and the first server. Its last phase, P2.5,
+is [`siq-euresys-sys`](crates/siq-euresys-sys/README.md): Euresys eGrabber behind a C ABI of our
+own. It finds this PC's Coaxlink and camera
+(`cargo run -p siq-euresys-sys --features sdk --example eg_discover`).
+
+Each of M2's exit criteria is met:
+- `live_and_move.py` sees the stage move;
+- 10 minutes of simulated live view lost no frames, with both previews streaming;
+- the shim builds against the SDK, and `eg_discover` runs.
 
 Done so far:
 
@@ -59,7 +64,9 @@ Done so far:
     streams and statistics, with the display mapping on the server;
   - P2.3, [`siq-server`](crates/siq-server/README.md) and
     [`spectrumiq-server`](apps/spectrumiq-server/README.md): the simulated instrument served over
-    HTTP, with its camera, display, stage and focus Things.
+    HTTP, with its camera, display, stage and focus Things;
+  - P2.4, the peripherals, the channels, and the metrics and memory routes in `siq-server`
+    (`python examples/python/channels.py`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

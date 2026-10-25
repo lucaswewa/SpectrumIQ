@@ -160,8 +160,8 @@ A phase is Done once it is merged.
 | P2.1 | Acquisition engine | 800 | P1.2, P1.3, P1.7 | Done |
 | P2.2 | Preview pipelines | 700 | P1.5, P2.1 | Done |
 | P2.3 | Service core: camera, display, stage, focus Things | 900 | P0.3b, P1.9, P1.10b, P2.2 | Done |
-| P2.4 | Peripherals, channels and system routes | 600 | P2.3 | Review |
-| P2.5 | Euresys shim and bindings (risk spike) | 700 | P0.1 | — |
+| P2.4 | Peripherals, channels and system routes | 600 | P2.3 | Done |
+| P2.5 | Euresys shim and bindings (risk spike) | 700 | P0.1 | Review |
 
 ### M3 — Frontend foundations ([brief](milestones/M03-frontend-foundations.md))
 
@@ -330,8 +330,14 @@ These are needed later; none of them blocks M0–M2.
 1. **Camera model:** exact resolution, GenICam feature names for ROI and binning, trigger and strobe
    capabilities, and whether the camera is connected to this development PC. Needed by P2.5 and
    P10.1.
+   - **Found in P2.5:** an Adimec D-103A12c/CXP-T01 is connected to this PC, at 11264 × 9200
+     (103.6 MP) in `BayerGB8`.
+   - It is a colour camera, so whether it is the instrument's camera, and REQ-ACQ-001's 14-bit
+     mono, are now open (P2.5 notes).
 2. **Coaxlink model and slot:** for example, Quad CXP-12, and the PCIe lanes it gets on the
    mini-ITX board. Needed by P10.2.
+   - **Found in P2.5:** a Coaxlink Quad CXP-12 (`PC3603`, 1-camera firmware). The PCIe lanes
+     are still to be measured.
 3. **Focus drive:** vendor, model, and the protocol document. Needed by P10.3.
 4. **GRBL controller:** board, firmware version, homing switches, travel, steps/mm, and any
    encoders. Needed by P10.3.

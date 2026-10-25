@@ -5,7 +5,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use xtask::metadata::Metadata;
-use xtask::{ci, layers, loc};
+use xtask::{ci, layers, loc, regen};
 
 #[derive(Parser)]
 #[command(name = "cargo xtask", about = "SpectrumIQ's development tasks.")]
@@ -39,6 +39,8 @@ enum Task {
     },
     /// Checks the crate layering (architecture §3.1).
     Layers,
+    /// Regenerates siq-euresys-sys's bindings from its shim's header: needs bindgen-cli and LLVM.
+    RegenBindings,
 }
 
 fn main() -> ExitCode {
@@ -99,6 +101,11 @@ fn run(task: Task) -> anyhow::Result<ExitCode> {
             } else {
                 Ok(ExitCode::FAILURE)
             }
+        }
+        Task::RegenBindings => {
+            regen::regen(&repo)?;
+            println!("regen-bindings: wrote {}", regen::BINDINGS);
+            Ok(ExitCode::SUCCESS)
         }
     }
 }

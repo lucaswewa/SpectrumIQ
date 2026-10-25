@@ -1,6 +1,6 @@
 [package]
 name = "xtask"
-description = "SpectrumIQ's development tasks: cargo xtask ci | loc | layers."
+description = "SpectrumIQ's development tasks: cargo xtask ci | loc | layers | regen-bindings."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

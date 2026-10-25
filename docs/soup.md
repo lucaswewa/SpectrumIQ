@@ -10,7 +10,8 @@ This register lists every third-party component SpectrumIQ ships or builds with 
 | Component | Version | Licence | Purpose | Used by | Introduced in | Notes |
 |---|---|---|---|---|---|---|
 | teta-wot | v0.1.0 (`135f9ff`) | MIT | Web of Things server framework | `siq-server` | P2.3 | Git dependency (ADR-0003), with no features but `testing` in the tests. Its crates' manifests have no `license` field; the repository's LICENSE is MIT. cargo-deny will need a `[[licenses.clarify]]` for them |
-| Euresys eGrabber | 25.02.0.40 | Proprietary (Euresys EULA) | Coaxlink frame grabber SDK | `siq-euresys-sys` | P2.5 | Build-time and runtime prerequisite. Never vendored (ADR-0004) |
+| Euresys eGrabber | 25.02.0.40 | Proprietary (Euresys EULA) | Coaxlink frame grabber SDK | `siq-euresys-sys` | P2.5 | Build-time and runtime prerequisite. Never vendored (ADR-0004); `cargo xtask ci` fails on a tracked file named as one of its files. With the `sdk` feature only |
+| cc | 1.5.1 | MIT OR Apache-2.0 | Compiles the Euresys shim with MSVC | `siq-euresys-sys` (build, with `sdk`) | P2.5 | Already in the lockfile through `iana-time-zone-haiku`. With `find-msvc-tools` 0.1.14 and `shlex` 2.0.1 (both MIT OR Apache-2.0) |
 | microscope web app | `0640f99` | MIT | Starting point of the frontend (theme, ui, host, api/wot, app shell) | `web/` | P3.1 | Copied and adapted (ADR-0008) |
 | Rust toolchain | 1.99.1 | MIT OR Apache-2.0 | Compiler, rustfmt, clippy | everything | P0.1 | Pinned in `rust-toolchain.toml` (ADR-0017) |
 | anyhow | 1.0.104 | MIT OR Apache-2.0 | Error handling in tools | `xtask` | P0.1 | Binaries and xtask only (conventions §5.1) |
