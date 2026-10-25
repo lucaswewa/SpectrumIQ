@@ -1,4 +1,5 @@
 // REQ-PRV-001, REQ-PRV-002, REQ-PRV-003: the Live page, against a fake server's streams (ADR-0038).
+// REQ-STG-001: a double-click on the overview centres it on that point (ADR-0039).
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -7,8 +8,9 @@ import { WotClient } from '@/api/wot/client'
 import LivePage from '@/live/LivePage.vue'
 import { useConnectionStore } from '@/stores/connection'
 
-import { fakeServer, mjpegStream, type Received } from '../api/fakeServer'
+import { fakeServer, json, mjpegStream, type Received } from '../api/fakeServer'
 import { BASE, describeThing } from '../api/things'
+import { inShell } from '../shell'
 
 const camera = {
   ...describeThing('camera', {
@@ -25,6 +27,7 @@ const camera = {
     type: 'multipart/x-mixed-replace',
   })),
 }
+const stage = describeThing('stage', { position: false }, ['move_by'])
 const display = describeThing('display', {
   lut: false,
   roi_region: false,
@@ -75,7 +78,7 @@ async function showPage() {
   const frames = (request: Received) =>
     mjpegStream(request, [Uint8Array.of(0xff, 0xd8, 0xff, 0xd9)]).response
   const server = fakeServer({
-    'GET /api/v1/thing_descriptions/': { camera, display },
+    'GET /api/v1/thing_descriptions/': { camera, display, stage },
     'GET /api/siq/system/health': { status: 'ok', version: '0.1.0', uptime_s: 1, camera: 'sim' },
     'GET /api/v1/camera/region': { offset_x: 0, offset_y: 0, width: 4000, height: 3000 },
     'GET /api/v1/camera/binning': { horizontal: 1, vertical: 1 },
@@ -98,10 +101,15 @@ async function showPage() {
     'GET /api/v1/camera/roi': frames,
     'PUT /api/v1/display/roi_region': put,
     'PUT /api/v1/display/lut': put,
+    'POST /api/v1/stage/move_by': (request: Received) => {
+      puts.push({ path: request.url.pathname, body: JSON.parse(request.body!) })
+      const record = { id: '1', status: 'completed', href: `${BASE}api/v1/action_invocations/1` }
+      return json({ ...record, output: { state: 'idle' } }, 201)
+    },
   })
   const client = new WotClient({ baseUrl: `${BASE}api/v1/`, fetch: server.fetch, webSocket: null })
   await useConnectionStore().start(client.baseUrl, client)
-  wrapper = mount(LivePage, { attachTo: document.body })
+  wrapper = mount(inShell(LivePage), { attachTo: document.body })
   await vi.advanceTimersByTimeAsync(100)
   await flushPromises()
   return wrapper
@@ -161,5 +169,16 @@ describe('the Live page', () => {
       path: '/api/v1/display/lut',
       body: { contrast: { kind: 'manual', min: 1064, max: 3000, gamma: 1 }, colormap: 'grey' },
     })
+  })
+
+  it('moves the stage to centre the overview on a double-clicked point', async () => {
+    const page = await showPage()
+    const canvas = page.get('.live-page__images canvas')
+    const box = { left: 0, top: 0, width: 1000, height: 750, right: 1000, bottom: 750 }
+    vi.spyOn(canvas.element, 'getBoundingClientRect').mockReturnValue(box as DOMRect)
+    // A quarter of the width right of the centre, at 10× (no objective): 4000 × 3.76 / 10 / 4 µm.
+    await canvas.trigger('dblclick', { clientX: 750, clientY: 375 })
+    await flushPromises()
+    expect(puts).toEqual([{ path: '/api/v1/stage/move_by', body: { dx: 376, dy: 0 } }])
   })
 })

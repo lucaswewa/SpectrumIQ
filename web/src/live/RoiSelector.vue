@@ -78,11 +78,17 @@ function press(event: PointerEvent) {
   // Measured again: the box may have changed where nothing observes its size.
   measure()
   start.value = end.value = at(event)
-  root.value?.setPointerCapture?.(event.pointerId)
 }
 
 function move(event: PointerEvent) {
-  if (start.value) end.value = at(event)
+  if (!start.value) return
+  end.value = at(event)
+  // Captured only once it is a drag: a captured pointer's clicks and double-clicks go to the
+  // selector, and the image's double-click moves the stage (ADR-0039).
+  const [dx, dy] = [end.value.x - start.value.x, end.value.y - start.value.y]
+  if (Math.max(Math.abs(dx), Math.abs(dy)) >= MIN_DRAG) {
+    root.value?.setPointerCapture?.(event.pointerId)
+  }
 }
 
 function release() {

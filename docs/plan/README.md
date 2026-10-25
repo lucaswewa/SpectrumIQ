@@ -169,8 +169,8 @@ A phase is Done once it is merged.
 |---|---|---|---|---|
 | P3.1 | Import the microscope web app (Reka UI kept: ADR-0008, amended) | 800 | P2.3 | Done |
 | P3.2 | API client: WS observations, connection budget, stores | 800 | P3.1 | Done |
-| P3.3 | Live view | 850 | P3.2 | Review |
-| P3.4 | Stage, focus and peripheral control | 800 | P3.3 | — |
+| P3.3 | Live view | 850 | P3.2 | Done |
+| P3.4 | Stage, focus and peripheral control | 800 | P3.3 | Review |
 | P3.5 | Tauri desktop shell | 600 | P3.2 | — |
 
 ### M4 — Storage, jobs and the 2D deep-zoom viewer ([brief](milestones/M04-storage-jobs-viewer.md))

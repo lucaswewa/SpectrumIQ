@@ -144,6 +144,14 @@ describe('the ? dialog', () => {
     }))
     expect(groups).toEqual([
       { group: 'Navigation', shortcuts: ['Shift+↓ Next tab', 'Shift+↑ Previous tab'] },
+      // The Live page's, while it is shown.
+      {
+        group: 'Stage',
+        shortcuts: [
+          ...['↑ Move up', '↓ Move down', '← Move left', '→ Move right'],
+          ...['PageUp Coarse Z up', 'PageDown Coarse Z down'],
+        ].map((shortcut) => `${shortcut}; hold to keep moving`),
+      },
       { group: 'Help', shortcuts: ['? Show the keyboard shortcuts'] },
     ])
   })

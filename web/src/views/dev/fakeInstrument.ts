@@ -1,38 +1,69 @@
 // A fake instrument for the development pages: a `fetch` that answers as a SpectrumIQ server
-// does, with a camera and a display Thing, and MJPEG streams drawn in the browser. For
-// development only (`/#/dev/live`).
+// does, with a camera and a display Thing, MJPEG streams drawn in the browser, and the stage,
+// focus and peripherals of `fakeMotion.ts`, which the drawing follows. For development only
+// (`/#/dev/live`, `/#/dev/control`).
+import type { Pinia } from 'pinia'
+import { createApp, defineComponent, h } from 'vue'
+
+import { WotClient } from '@/api/wot/client'
 import type { ThingDescription } from '@/api/wot/td'
+import { provideShortcuts } from '@/app/shortcuts'
+import LivePage from '@/live/LivePage.vue'
+import { useConnectionStore } from '@/stores/connection'
+import OverlayProvider from '@/ui/OverlayProvider.vue'
+
+import { act, BEST_FOCUS, follow, motionValues } from './fakeMotion'
 
 const BASE = `${location.origin}/`
 
-function describe(thing: string, properties: string[], links: string[] = []): ThingDescription {
+/** A Thing's description: its properties followed over server-sent events if `observable`. */
+function describe(
+  thing: string,
+  properties: string[],
+  { actions = [] as string[], links = [] as string[], observable = false } = {},
+): ThingDescription {
+  const href = (name: string) => `/api/v1/${thing}/${name}`
   const forms = (name: string) => [
-    { href: `/api/v1/${thing}/${name}`, op: ['readproperty', 'writeproperty'] },
+    { href: href(name), op: ['readproperty', 'writeproperty'] },
+    ...(observable ? [{ href: href(name), op: ['observeproperty'], subprotocol: 'sse' }] : []),
   ]
   return {
     title: thing,
     base: BASE,
-    properties: Object.fromEntries(properties.map((name) => [name, { forms: forms(name) }])),
-    actions: Object.fromEntries(
-      ['start_live', 'stop_live', 'snap', 'auto_contrast_once'].map((name) => [
-        name,
-        { forms: [{ href: `/api/v1/${thing}/${name}`, op: ['invokeaction'] }] },
-      ]),
+    properties: Object.fromEntries(
+      properties.map((name) => [name, { observable, forms: forms(name) }]),
     ),
-    links: links.map((name) => ({
-      href: `/api/v1/${thing}/${name}`,
-      type: 'multipart/x-mixed-replace',
-    })),
+    actions: Object.fromEntries(
+      actions.map((name) => [name, { forms: [{ href: href(name), op: ['invokeaction'] }] }]),
+    ),
+    links: links.map((name) => ({ href: href(name), type: 'multipart/x-mixed-replace' })),
   }
+}
+
+/** A Thing of `fakeMotion.ts`, with the properties it has values for. */
+function moving(thing: string, actions: string[]) {
+  const properties = Object.keys(motionValues)
+    .filter((path) => path.startsWith(`${thing}/`))
+    .map((path) => path.slice(thing.length + 1))
+  return describe(thing, properties, { actions, observable: true })
 }
 
 const THINGS = {
   camera: describe(
     'camera',
     ['exposure_ms', 'region', 'binning', 'pixel_format', 'frame_rate', 'sensor', 'stats'],
-    ['overview', 'roi'],
+    { actions: ['start_live', 'stop_live', 'snap'], links: ['overview', 'roi'] },
   ),
-  display: describe('display', ['lut', 'roi_region', 'histogram', 'focus_measure']),
+  display: describe('display', ['lut', 'roi_region', 'histogram', 'focus_measure'], {
+    actions: ['auto_contrast_once'],
+  }),
+  stage: moving('stage', ['move_to', 'move_by', 'jog', 'home', 'halt']),
+  focus: moving('focus', ['move_to', 'move_by', 'halt']),
+  imaging: moving('imaging', ['select_channel']),
+  illumination: moving('illumination', ['set_level']),
+  filter_wheel: moving('filter_wheel', ['select']),
+  objective: moving('objective', ['select']),
+  modality: moving('modality', ['set_modality']),
 }
 
 /** The fake's state: what reads answer, and what writes change. */
@@ -69,8 +100,9 @@ function histogram() {
 /** An MJPEG stream of frames drawn here: drifting cells, at 10 frames a second. */
 function frames(name: string, signal?: AbortSignal | null) {
   const [width, height] = name === 'roi' ? [960, 540] : [1440, 1080]
-  const canvas = new OffscreenCanvas(width, height)
-  const context = canvas.getContext('2d')!
+  // The cells are drawn sharp, then blurred into the frame at once.
+  const [sharp, canvas] = [new OffscreenCanvas(width, height), new OffscreenCanvas(width, height)]
+  const context = sharp.getContext('2d')!
   const head = new TextEncoder().encode('--frame\r\nContent-Type: image/jpeg\r\n\r\n')
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -80,14 +112,25 @@ function frames(name: string, signal?: AbortSignal | null) {
         context.fillStyle = '#f4f4f4'
         context.fillRect(0, 0, width, height)
         const scale = name === 'roi' ? 4 : 1
+        // The sample moves with the stage, by the overview's 1504 µm across 1440 pixels, and
+        // blurs away from focus.
+        const stage = motionValues['stage/position'] as { x: number; y: number }
+        const [dx, dy] = [stage.x, stage.y].map((um) => (um * scale * 1440) / 1504)
+        const wrap = (value: number, size: number) => ((value % size) + size) % size
         for (let i = 0; i < 400; i++) {
-          const x = ((i * 7919) % width) + Math.sin(published / 20 + i) * 3 * scale
-          const y = ((i * 104729) % height) + Math.cos(published / 20 + i) * 3 * scale
+          const x =
+            wrap(((i * 7919) % width) - dx!, width) + Math.sin(published / 20 + i) * 3 * scale
+          const y =
+            wrap(((i * 104729) % height) - dy!, height) + Math.cos(published / 20 + i) * 3 * scale
           context.fillStyle = `rgb(${40 + (i % 60)} ${40 + (i % 60)} ${40 + (i % 60)})`
           context.beginPath()
           context.arc(x, y, (3 + (i % 5)) * scale, 0, 2 * Math.PI)
           context.fill()
         }
+        const frame = canvas.getContext('2d')!
+        const defocus = Math.abs((motionValues['focus/position'] as number) - BEST_FOCUS)
+        frame.filter = `blur(${Math.min(defocus / 5, 12)}px)`
+        frame.drawImage(sharp, 0, 0)
         const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 })
         const jpeg = new Uint8Array(await blob.arrayBuffer())
         try {
@@ -132,6 +175,17 @@ export const fakeFetch: typeof fetch = async (input, init = {}) => {
   }
   if (path === 'display/histogram') return json(histogram())
   if (path === 'display/focus_measure') return json(histogram().focus)
+  if (path in motionValues) {
+    const accept = (init.headers as Record<string, string> | undefined)?.Accept
+    return accept === 'text/event-stream' ? follow(path, init.signal) : json(motionValues[path])
+  }
+  if (method === 'POST' && path.split('/')[0]! in THINGS && !path.startsWith('camera/')) {
+    const output = await act(path, JSON.parse(String(init.body ?? '{}')))
+    return json(
+      { id: '1', status: 'completed', href: `${BASE}api/v1/action_invocations/1`, output },
+      201,
+    )
+  }
   if (method === 'PUT' && path in values) {
     values[path] = JSON.parse(String(init.body))
     return new Response(null, { status: 201 })
@@ -147,4 +201,27 @@ export const fakeFetch: typeof fetch = async (input, init = {}) => {
     )
   }
   return json({ detail: 'Not Found' }, 404)
+}
+
+/**
+ * Mounts the Live page against the fake, in an app of its own so that the fake connection stays
+ * there, with what the app shell gives a page: shortcuts, confirmations and toasts. Returns the
+ * function that unmounts it.
+ */
+export function mountDemo(host: HTMLElement, pinia: Pinia) {
+  const demo = createApp(
+    defineComponent(() => {
+      provideShortcuts()
+      return () => h(OverlayProvider, null, { default: () => h(LivePage) })
+    }),
+  )
+  demo.use(pinia)
+  const client = new WotClient({ baseUrl: '/api/v1/', fetch: fakeFetch, webSocket: null })
+  void useConnectionStore(pinia).start(client.baseUrl, client)
+  demo.mount(host)
+  return () => {
+    // The demo's own connection, not the app's.
+    useConnectionStore(pinia).stop()
+    demo.unmount()
+  }
 }

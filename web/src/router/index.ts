@@ -48,6 +48,11 @@ const devRoutes: RouteRecordRaw[] = import.meta.env.DEV
         name: 'dev-live',
         component: () => import('@/views/dev/LiveDemoView.vue'),
       },
+      {
+        path: '/dev/control',
+        name: 'dev-control',
+        component: () => import('@/views/dev/ControlDemoView.vue'),
+      },
     ]
   : []
 

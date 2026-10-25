@@ -101,3 +101,11 @@
   - the ROI dragged;
   - picture-in-picture;
   - both themes.
+
+## Amendment (P3.4, 2026-10-25): the pointer is captured once a press is a drag
+
+- **`RoiSelector` captures the pointer only once a press has moved 6 px,** not on the press.
+- **Why:** Chromium sends a captured pointer's clicks and double-clicks to the capturing element,
+  so the overview's double-click never reached the image, and click-to-move (ADR-0039) couldn't
+  use it.
+- **A drag still follows the pointer off the overview,** since it is captured by then.

@@ -1,11 +1,23 @@
 <script setup lang="ts">
 // The Live page (ADR-0038): the overview fills the view, with the ROI on it, which a drag
 // chooses; the ROI stream at 1:1 or 2:1 beside it or in its corner; and the camera, display and
-// focus controls in the pane. Both streams run through the stream budget.
+// focus controls in the pane. Both streams run through the stream budget. The stage, the focus
+// and the peripherals are driven from here too (ADR-0039): the pane, the keys, a double-click on
+// the overview, the wheel on the images, and STOP, always in the toolbar.
 import pip from '@material-symbols/svg-400/outlined/picture_in_picture.svg?raw'
 import split from '@material-symbols/svg-400/outlined/vertical_split.svg?raw'
 import { computed, ref } from 'vue'
 
+import { useClickToMove } from '@/control/clickToMove'
+import DirectionPad from '@/control/DirectionPad.vue'
+import { useNavigationPreferences } from '@/control/navigation'
+import NavigationSection from '@/control/NavigationSection.vue'
+import PeripheralsPanel from '@/control/PeripheralsPanel.vue'
+import PositionSection from '@/control/PositionSection.vue'
+import SavedPositions from '@/control/SavedPositions.vue'
+import StopButton from '@/control/StopButton.vue'
+import { useJog } from '@/control/useJog'
+import { wheelFocus } from '@/control/wheel'
 import { useCameraStore } from '@/stores/camera'
 import { useDisplayStore } from '@/stores/display'
 import AccordionSection from '@/ui/AccordionSection.vue'
@@ -27,8 +39,15 @@ import RoiSelector from './RoiSelector.vue'
 const camera = useCameraStore()
 const display = useDisplayStore()
 const preferences = useLiveImagePreferences()
+const navigation = useNavigationPreferences()
+const motion = useJog()
+const moveTo = useClickToMove()
+const onWheel = wheelFocus(
+  (dz) => motion.focus.add({ x: 0, y: 0, z: dz }),
+  () => navigation.steps.focus,
+)
 
-const sections = ref(['camera', 'display', 'focus'])
+const sections = ref(['camera', 'stage', 'display', 'focus'])
 const overview = ref<Size>()
 const readout = computed(() =>
   camera.region && camera.binning ? { region: camera.region, binning: camera.binning } : undefined,
@@ -50,15 +69,27 @@ function setZoom(next: 1 | 2) {
     <ControlPane width="wide">
       <AppAccordion v-model="sections">
         <AccordionSection value="camera" title="Camera"><CameraControls /></AccordionSection>
+        <AccordionSection value="stage" title="Stage and focus">
+          <DirectionPad />
+          <PositionSection />
+        </AccordionSection>
+        <AccordionSection value="positions" title="Saved positions">
+          <SavedPositions />
+        </AccordionSection>
+        <AccordionSection value="peripherals" title="Peripherals">
+          <PeripheralsPanel />
+        </AccordionSection>
         <AccordionSection value="display" title="Display"><DisplayControls /></AccordionSection>
         <AccordionSection value="focus" title="Focus">
           <FocusSparkline :value="display.focusMeasure" />
         </AccordionSection>
+        <AccordionSection value="navigation" title="Steps"><NavigationSection /></AccordionSection>
       </AppAccordion>
     </ControlPane>
     <section class="live-page__view" aria-labelledby="live-page-heading">
       <h1 id="live-page-heading" class="visually-hidden">Live</h1>
       <div class="live-page__toolbar">
+        <StopButton class="live-page__stop" />
         <div role="group" aria-label="ROI zoom" class="live-page__group">
           <AppButton
             v-for="option in [1, 2] as const"
@@ -78,7 +109,11 @@ function setZoom(next: 1 | 2) {
           @click="preferences.roiLayout = preferences.roiLayout === 'split' ? 'pip' : 'split'"
         />
       </div>
-      <div class="live-page__images" :class="`live-page__images--${preferences.roiLayout}`">
+      <div
+        class="live-page__images"
+        :class="`live-page__images--${preferences.roiLayout}`"
+        @wheel="onWheel"
+      >
         <RoiSelector
           :readout="readout"
           :image="overview"
@@ -86,7 +121,11 @@ function setZoom(next: 1 | 2) {
           :zoom="zoom"
           @select="choose"
         >
-          <LiveImage stream="overview" @frame-size="(size) => (overview = size)" />
+          <LiveImage
+            stream="overview"
+            @frame-size="(size) => (overview = size)"
+            @double-click="moveTo"
+          />
         </RoiSelector>
         <LiveImage v-if="preferences.roiLayout === 'split'" stream="roi" class="live-page__roi" />
         <MiniStream v-else class="live-page__pip" />
@@ -117,6 +156,10 @@ function setZoom(next: 1 | 2) {
   justify-content: flex-end;
   padding: var(--space-2) var(--space-3);
   border-bottom: var(--border-width) solid var(--color-border);
+}
+
+.live-page__stop {
+  margin-right: auto;
 }
 
 .live-page__group {
