@@ -1,0 +1,151 @@
+---
+source: crates/siq-storage/tests/zarr.rs
+expression: "read(\"zarr.json\")"
+---
+{
+  "zarr_format": 3,
+  "node_type": "group",
+  "attributes": {
+    "ome": {
+      "version": "0.5",
+      "multiscales": [
+        {
+          "name": "test",
+          "axes": [
+            {
+              "name": "t",
+              "type": "time",
+              "unit": "second"
+            },
+            {
+              "name": "c",
+              "type": "channel"
+            },
+            {
+              "name": "z",
+              "type": "space",
+              "unit": "micrometer"
+            },
+            {
+              "name": "y",
+              "type": "space",
+              "unit": "micrometer"
+            },
+            {
+              "name": "x",
+              "type": "space",
+              "unit": "micrometer"
+            }
+          ],
+          "datasets": [
+            {
+              "path": "0",
+              "coordinateTransformations": [
+                {
+                  "type": "scale",
+                  "scale": [
+                    1.0,
+                    1.0,
+                    2.0,
+                    0.376,
+                    0.376
+                  ]
+                },
+                {
+                  "type": "translation",
+                  "translation": [
+                    0.0,
+                    0.0,
+                    10.0,
+                    -500.0,
+                    250.0
+                  ]
+                }
+              ]
+            },
+            {
+              "path": "1",
+              "coordinateTransformations": [
+                {
+                  "type": "scale",
+                  "scale": [
+                    1.0,
+                    1.0,
+                    2.0,
+                    0.752,
+                    0.752
+                  ]
+                },
+                {
+                  "type": "translation",
+                  "translation": [
+                    0.0,
+                    0.0,
+                    10.0,
+                    -499.812,
+                    250.188
+                  ]
+                }
+              ]
+            },
+            {
+              "path": "2",
+              "coordinateTransformations": [
+                {
+                  "type": "scale",
+                  "scale": [
+                    1.0,
+                    1.0,
+                    2.0,
+                    1.504,
+                    1.504
+                  ]
+                },
+                {
+                  "type": "translation",
+                  "translation": [
+                    0.0,
+                    0.0,
+                    10.0,
+                    -499.436,
+                    250.564
+                  ]
+                }
+              ]
+            }
+          ],
+          "type": "mean"
+        }
+      ],
+      "omero": {
+        "channels": [
+          {
+            "label": "channel 0",
+            "color": "0000FF",
+            "window": {
+              "start": 100.0,
+              "end": 16000.0,
+              "min": 0.0,
+              "max": 65535.0
+            },
+            "active": true
+          },
+          {
+            "label": "channel 1",
+            "color": "00FF00",
+            "window": {
+              "start": 100.0,
+              "end": 16000.0,
+              "min": 0.0,
+              "max": 65535.0
+            },
+            "active": true
+          }
+        ],
+        "rdefs": {
+          "model": "color"
+        }
+      }
+    }
+  }
+}

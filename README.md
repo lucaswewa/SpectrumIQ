@@ -11,10 +11,10 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In progress:** Milestone 4, storage, jobs and the 2D deep-zoom viewer. P4.1 is the latest:
-[`siq-storage`](crates/siq-storage/README.md)'s datasets, with a manifest of their provenance, and
-the recorder that writes the frames marked to save with direct I/O, straight from the frame pool
-(`cargo run --release -p siq-storage --example record_sim`).
+**In progress:** Milestone 4, storage, jobs and the 2D deep-zoom viewer. P4.2 is the latest:
+OME-Zarr images in [`siq-storage`](crates/siq-storage/README.md), NGFF 0.5 on Zarr v3, written by
+chunk from many threads and read by region, which napari opens
+(`cargo run --release -p siq-storage --example zarr_write_read`).
 
 Done so far:
 
@@ -79,6 +79,10 @@ Done so far:
     click-to-move and STOP (`/#/dev/control` without a server);
   - P3.5, the [desktop shell](apps/spectrumiq-desktop/README.md): a Tauri window that finds the
     local service and loads its web app (`npm run tauri dev` in `apps/spectrumiq-desktop`).
+- Milestone 4 (storage, jobs and the 2D deep-zoom viewer), under way:
+  - P4.1, [`siq-storage`](crates/siq-storage/README.md)'s datasets, with a manifest of their
+    provenance, and the recorder that writes the frames marked to save with direct I/O, straight
+    from the frame pool (`--example record_sim`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

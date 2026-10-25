@@ -19,8 +19,11 @@ siq-types = { path = "../siq-types" }
 thiserror.workspace = true
 tracing.workspace = true
 windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+zarrs.workspace = true
 
 [dev-dependencies]
+insta.workspace = true
+rayon.workspace = true
 siq-acquire = { path = "../siq-acquire" }
 siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }

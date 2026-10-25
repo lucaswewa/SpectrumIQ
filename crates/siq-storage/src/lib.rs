@@ -8,6 +8,8 @@
 //!   pool's page-aligned slot. It won't start, or go on, with too little free space.
 //! - A [`DatasetReader`] lists the frames recorded, and maps each one as an `ImageView`.
 //! - A [`Catalog`] indexes the datasets of a data root.
+//! - [`zarr`] reads and writes OME-Zarr images (ADR-0042): the master format of everything
+//!   derived from the frames.
 //!
 //! The unsafe code is in two small modules, listed in the README: `disk` (the free space, from
 //! Windows) and `raw::map` (a recorded frame mapped read-only).
@@ -17,6 +19,7 @@ mod dataset;
 mod disk;
 mod manifest;
 mod raw;
+pub mod zarr;
 
 use std::io;
 use std::path::{Path, PathBuf};
@@ -61,6 +64,14 @@ pub enum StorageError {
         free: u64,
         /// The bytes needed: the next frame and the space to keep free.
         needed: u64,
+    },
+    /// An OME-Zarr image couldn't be made, read or written.
+    #[error("{}: {why}", path.display())]
+    Zarr {
+        /// The image's folder.
+        path: PathBuf,
+        /// What went wrong.
+        why: String,
     },
     /// A folder isn't a dataset this version can read.
     #[error("{} isn't a dataset this version reads: {why}", path.display())]
