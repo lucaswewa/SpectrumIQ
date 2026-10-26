@@ -41,6 +41,7 @@ What these give:
   - its commands answered with their replies, and other lines with its errors;
   - moves at their speed, jogs to the edge of the travel, and homing;
   - a completion reply, for dialects that wait for one;
+  - in focus where it is told, `in_focus_at(position)`, and starting there (P6.5);
   - the true focus moved.
 - **The peripheral simulators,** behind their `siq-devices` traits: each change takes a realistic
   time on the clock, then sets the true state.
@@ -118,6 +119,7 @@ in [ADR-0012](../../docs/adr/0012-simulation-strategy.md)'s P1.10b amendment.
 | Item | What |
 |---|---|
 | `DialectEmulator::new(dialect, state, clock)` | A drive at the bottom of its travel, not homed. `run(port)` serves the device's end of a link until it closes. It identifies as `SIM-FOCUS 1.0 0001` |
+| `emulator.in_focus_at(position)` | The sample in focus at `position` of the travel, where the drive starts: the true focus is the drive's position less it |
 
 ### `siq_sim::peripherals`
 

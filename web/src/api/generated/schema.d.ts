@@ -3235,6 +3235,537 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflow/finished": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A run ended.
+         * @description ## A run ended.
+         *
+         *     A run ended.
+         *
+         *     Server-sent events: each event's data, as JSON in a `data:` line, following this schema:
+         *
+         *     ```json
+         *     {
+         *       "$ref": "#/components/schemas/workflow_finished_data"
+         *     }
+         *     ```
+         */
+        get: operations["subscribe_event_api_v1_workflow_finished_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/multi_position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of multi_position.
+         * @description List all the invocations of multi_position that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_multi_position_get"];
+        put?: never;
+        /**
+         * Visits each position, or each saved one if none are given, and takes its steps there.
+         * @description ## Visits each position, or each saved one if none are given, and takes its steps there.
+         *
+         *     Visits each position, or each saved one if none are given, and takes its steps there.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_multi_position_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of pause.
+         * @description List all the invocations of pause that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_pause_get"];
+        put?: never;
+        /**
+         * Pauses the run under way before its next step. It doesn't wait for the global lock.
+         * @description ## Pauses the run under way before its next step. It doesn't wait for the global lock.
+         *
+         *     Pauses the run under way before its next step. It doesn't wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/plan_schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The JSON Schema of a plan: its steps, which nest.
+         * @description ## The JSON Schema of a plan: its steps, which nest.
+         *
+         *     The JSON Schema of a plan: its steps, which nest.
+         */
+        get: operations["get_property_api_v1_workflow_plan_schema_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/positions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The saved positions.
+         * @description ## The saved positions.
+         *
+         *     The saved positions.
+         */
+        get: operations["get_property_api_v1_workflow_positions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How far the run under way, or the last, has gone.
+         * @description ## How far the run under way, or the last, has gone.
+         *
+         *     How far the run under way, or the last, has gone.
+         */
+        get: operations["get_property_api_v1_workflow_progress_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/remove_position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of remove_position.
+         * @description List all the invocations of remove_position that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_remove_position_get"];
+        put?: never;
+        /**
+         * Removes the saved position `name`.
+         * @description ## Removes the saved position `name`.
+         *
+         *     Removes the saved position `name`.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_remove_position_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/rename_position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of rename_position.
+         * @description List all the invocations of rename_position that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_rename_position_get"];
+        put?: never;
+        /**
+         * Renames the saved position `name` to `to`.
+         * @description ## Renames the saved position `name` to `to`.
+         *
+         *     Renames the saved position `name` to `to`.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_rename_position_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of resume.
+         * @description List all the invocations of resume that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_resume_get"];
+        put?: never;
+        /**
+         * Lets a paused run go on. It doesn't wait for the global lock.
+         * @description ## Lets a paused run go on. It doesn't wait for the global lock.
+         *
+         *     Lets a paused run go on. It doesn't wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of run.
+         * @description List all the invocations of run that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_run_get"];
+        put?: never;
+        /**
+         * Runs a plan of any shape: its dataset named `name`, its `steps` as `plan_schema` has them.
+         * @description ## Runs a plan of any shape: its dataset named `name`, its `steps` as `plan_schema` has them.
+         *
+         *     Runs a plan of any shape: its dataset named `name`, its `steps` as `plan_schema` has them.
+         *     It returns how the run ended; cancelled, it ends as cancelled, its dataset kept.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/save_position": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of save_position.
+         * @description List all the invocations of save_position that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_save_position_get"];
+        put?: never;
+        /**
+         * Saves a position named `name`: where the stage and the focus are, unless given. A name is
+         * @description ## Saves a position named `name`: where the stage and the focus are, unless given. A name is
+         *
+         *     Saves a position named `name`: where the stage and the focus are, unless given. A name is
+         *     saved once.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_save_position_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the workflow is doing.
+         * @description ## What the workflow is doing.
+         *
+         *     What the workflow is doing.
+         */
+        get: operations["get_property_api_v1_workflow_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/tile_acquired": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A frame was taken, for the dataset at these indices.
+         * @description ## A frame was taken, for the dataset at these indices.
+         *
+         *     A frame was taken, for the dataset at these indices.
+         *
+         *     Server-sent events: each event's data, as JSON in a `data:` line, following this schema:
+         *
+         *     ```json
+         *     {
+         *       "$ref": "#/components/schemas/workflow_tile_acquired_data"
+         *     }
+         *     ```
+         */
+        get: operations["subscribe_event_api_v1_workflow_tile_acquired_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/tile_scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of tile_scan.
+         * @description List all the invocations of tile_scan that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_tile_scan_get"];
+        put?: never;
+        /**
+         * Covers `region` with tiles, after a focus map if given: its tiles focused as `focus` says,
+         * @description ## Covers `region` with tiles, after a focus map if given: its tiles focused as `focus` says,
+         *
+         *     Covers `region` with tiles, after a focus map if given: its tiles focused as `focus` says,
+         *     a frame in each channel at each, or a z-stack. It needs the stage–camera calibration.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_tile_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/time_lapse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of time_lapse.
+         * @description List all the invocations of time_lapse that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_time_lapse_get"];
+        put?: never;
+        /**
+         * Takes its steps at time points `interval_s` apart, where the stage is.
+         * @description ## Takes its steps at time points `interval_s` apart, where the stage is.
+         *
+         *     Takes its steps at time points `interval_s` apart, where the stage is.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_time_lapse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/z_stack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of z_stack.
+         * @description List all the invocations of z_stack that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_z_stack_get"];
+        put?: never;
+        /**
+         * Takes a z-stack where the stage is, about where the focus is.
+         * @description ## Takes a z-stack where the stage is, about where the focus is.
+         *
+         *     Takes a z-stack where the stage is, about where the focus is.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_z_stack_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read All Properties
+         * @description Every property of `workflow` (`readallproperties`), or their changes (`observeallproperties`).
+         */
+        get: operations["read_all_properties_api_v1_workflow_properties_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Query All Actions
+         * @description The invocations of each action of `workflow`, newest first (`queryallactions`).
+         */
+        get: operations["query_all_actions_api_v1_workflow_actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subscribe All Events
+         * @description Server-sent events: every event of `workflow`, named after it (`subscribeallevents`).
+         */
+        get: operations["subscribe_all_events_api_v1_workflow_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Thing Description
+         * @description The W3C Thing Description of `workflow`: its properties, actions and events, and how to use them.
+         */
+        get: operations["things_workflow_api_v1_workflow__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4894,6 +5425,579 @@ export interface components {
                 } | null;
             }[];
         }[];
+        /** @description How a run ended. */
+        workflow_finished_data: {
+            /** @description The plan's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description Its dataset.
+             */
+            dataset: string;
+            /** @description How it ended. */
+            outcome: "finished" | "cancelled" | "failed";
+            /** @description Why it failed. */
+            error?: string | null;
+            /** @description The steps done, of the plan's. */
+            steps: number[];
+            /** @description The frames written. */
+            frames: number;
+        };
+        /** @description A multi-position: the saved positions if none are given (ADR-0055). */
+        workflow_multi_position_input: {
+            /** @description The dataset's name. */
+            name: string;
+            /**
+             * @description The positions: the saved ones if none.
+             * @default []
+             */
+            positions?: {
+                /**
+                 * @description Its name.
+                 * @default
+                 */
+                name?: string;
+                /** @description Where, in stage µm. */
+                x: number;
+                /** @description Where, in stage µm. */
+                y: number;
+                /** @description The coarse z, in µm: where it is if not given. */
+                z?: number | null;
+                /** @description The focus, in µm: where it is if not given. */
+                focus?: number | null;
+            }[];
+            /** @description An autofocus at each, over this range in µm, if given. */
+            autofocus?: number | null;
+            /**
+             * @description What to take at each: a frame if none.
+             * @default []
+             */
+            steps?: Record<string, never>[];
+        };
+        /** @description How a run ended. */
+        workflow_multi_position_output: {
+            /** @description The plan's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description Its dataset.
+             */
+            dataset: string;
+            /** @description How it ended. */
+            outcome: "finished" | "cancelled" | "failed";
+            /** @description Why it failed. */
+            error?: string | null;
+            /** @description The steps done, of the plan's. */
+            steps: number[];
+            /** @description The frames written. */
+            frames: number;
+        };
+        workflow_multi_position_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_multi_position_input"];
+            output?: components["schemas"]["workflow_multi_position_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        /**
+         * @description Represent the input of an action that never takes parameters.
+         *
+         *     This may be either an empty dictionary or ``None``.
+         */
+        workflow_pause_input: Record<string, never> | null;
+        workflow_pause_output: null;
+        workflow_pause_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_pause_input"];
+            output?: components["schemas"]["workflow_pause_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        workflow_plan_schema_value: unknown;
+        workflow_positions_value: {
+            /**
+             * @description Its name.
+             * @default
+             */
+            name?: string;
+            /** @description Where, in stage µm. */
+            x: number;
+            /** @description Where, in stage µm. */
+            y: number;
+            /** @description The coarse z, in µm: where it is if not given. */
+            z?: number | null;
+            /** @description The focus, in µm: where it is if not given. */
+            focus?: number | null;
+        }[];
+        workflow_progress_value: {
+            /** @description The steps done. */
+            done: number;
+            /** @description The steps in the plan. */
+            total: number;
+            /** @description The time left, in s, at the pace so far. */
+            eta_s?: number | null;
+            /** @description The step just done. */
+            step: string;
+        } | null;
+        workflow_remove_position_input: {
+            name: string;
+        };
+        workflow_remove_position_output: {
+            /**
+             * @description Its name.
+             * @default
+             */
+            name?: string;
+            /** @description Where, in stage µm. */
+            x: number;
+            /** @description Where, in stage µm. */
+            y: number;
+            /** @description The coarse z, in µm: where it is if not given. */
+            z?: number | null;
+            /** @description The focus, in µm: where it is if not given. */
+            focus?: number | null;
+        }[];
+        workflow_remove_position_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_remove_position_input"];
+            output?: components["schemas"]["workflow_remove_position_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        workflow_rename_position_input: {
+            name: string;
+            to: string;
+        };
+        workflow_rename_position_output: {
+            /**
+             * @description Its name.
+             * @default
+             */
+            name?: string;
+            /** @description Where, in stage µm. */
+            x: number;
+            /** @description Where, in stage µm. */
+            y: number;
+            /** @description The coarse z, in µm: where it is if not given. */
+            z?: number | null;
+            /** @description The focus, in µm: where it is if not given. */
+            focus?: number | null;
+        }[];
+        workflow_rename_position_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_rename_position_input"];
+            output?: components["schemas"]["workflow_rename_position_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        /**
+         * @description Represent the input of an action that never takes parameters.
+         *
+         *     This may be either an empty dictionary or ``None``.
+         */
+        workflow_resume_input: Record<string, never> | null;
+        workflow_resume_output: null;
+        workflow_resume_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_resume_input"];
+            output?: components["schemas"]["workflow_resume_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        /** @description Any plan. */
+        workflow_run_input: {
+            /** @description The dataset's name. */
+            name: string;
+            /** @description The steps. */
+            steps: Record<string, never>[];
+            /**
+             * @description What a failed step does: by default, it ends the run.
+             * @default {
+             *       "retries": 0,
+             *       "skip": false
+             *     }
+             */
+            on_error?: {
+                /**
+                 * @description How many times it is tried again.
+                 * @default 0
+                 */
+                retries?: number;
+                /**
+                 * @description Whether it is then skipped, rather than ending the run.
+                 * @default false
+                 */
+                skip?: boolean;
+            };
+        };
+        /** @description How a run ended. */
+        workflow_run_output: {
+            /** @description The plan's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description Its dataset.
+             */
+            dataset: string;
+            /** @description How it ended. */
+            outcome: "finished" | "cancelled" | "failed";
+            /** @description Why it failed. */
+            error?: string | null;
+            /** @description The steps done, of the plan's. */
+            steps: number[];
+            /** @description The frames written. */
+            frames: number;
+        };
+        workflow_run_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_run_input"];
+            output?: components["schemas"]["workflow_run_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        workflow_save_position_input: {
+            name: string;
+            x?: number | null;
+            y?: number | null;
+            z?: number | null;
+            focus?: number | null;
+        };
+        workflow_save_position_output: {
+            /**
+             * @description Its name.
+             * @default
+             */
+            name?: string;
+            /** @description Where, in stage µm. */
+            x: number;
+            /** @description Where, in stage µm. */
+            y: number;
+            /** @description The coarse z, in µm: where it is if not given. */
+            z?: number | null;
+            /** @description The focus, in µm: where it is if not given. */
+            focus?: number | null;
+        }[];
+        workflow_save_position_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_save_position_input"];
+            output?: components["schemas"]["workflow_save_position_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        /** @description What the workflow is doing. */
+        workflow_state_value: "idle" | "running" | "paused";
+        /** @description A frame taken, at its indices. */
+        workflow_tile_acquired_data: {
+            /** @description The time point. */
+            t: number;
+            /** @description The channel. */
+            c: number;
+            /** @description The focus plane. */
+            z: number;
+            /** @description The stage position. */
+            p: number;
+        };
+        /** @description A tile scan, after a focus map if one is given (ADR-0053). */
+        workflow_tile_scan_input: {
+            /** @description The dataset's name. */
+            name: string;
+            /** @description The region, in stage µm. */
+            region: {
+                /** @description A corner. */
+                x0: number;
+                /** @description A corner. */
+                y0: number;
+                /** @description The opposite corner. */
+                x1: number;
+                /** @description The opposite corner. */
+                y1: number;
+                /** @constant */
+                shape: "rect";
+            } | {
+                /** @description The vertices, `[x, y]` in µm. */
+                points: number[][];
+                /** @constant */
+                shape: "polygon";
+            };
+            /**
+             * @description The overlap between neighbours, of the frame: 0.1 if not given.
+             * @default 0.1
+             */
+            overlap?: number;
+            /**
+             * @description The order the tiles are visited in: a snake if not given.
+             * @default snake
+             */
+            order?: "snake" | "raster" | "nearest";
+            /**
+             * @description The channels, in order: the one in use if none.
+             * @default []
+             */
+            channels?: number[];
+            /**
+             * @description How long the stage settles after each move, in ms.
+             * @default 0
+             */
+            settle_ms?: number;
+            /**
+             * @description How each tile is focused: as the focus is, if not given; `surface` with a focus map.
+             * @default {
+             *       "mode": "none"
+             *     }
+             */
+            focus?: {
+                /** @constant */
+                mode: "none";
+            } | {
+                /** @description Where, in µm. */
+                z: number;
+                /** @constant */
+                mode: "fixed";
+            } | {
+                /** @constant */
+                mode: "surface";
+            } | {
+                /** @description The range searched, in µm. */
+                range_um: number;
+                /** @constant */
+                mode: "autofocus";
+            };
+            /** @description A z-stack at each tile, in place of one frame. */
+            z_stack?: {
+                /** @description From the lowest plane to the highest, in µm, at most: a whole number of steps. */
+                range_um: number;
+                /** @description Between planes, in µm. */
+                step_um: number;
+                /**
+                 * @description The way the planes are taken: up if not given.
+                 * @default up
+                 */
+                direction?: "up" | "down";
+            } | null;
+            /** @description A focus map made first. */
+            focus_map?: {
+                /** @description The places, `[x, y]` in stage µm: three or more. */
+                places: number[][];
+                /**
+                 * @description The surface: a thin-plate spline if not given.
+                 * @default thin_plate
+                 */
+                surface?: "plane" | "thin_plate";
+                /**
+                 * @description Each autofocus's range, in µm: 50 if not given.
+                 * @default 50
+                 */
+                range_um?: number;
+            } | null;
+        };
+        /** @description How a run ended. */
+        workflow_tile_scan_output: {
+            /** @description The plan's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description Its dataset.
+             */
+            dataset: string;
+            /** @description How it ended. */
+            outcome: "finished" | "cancelled" | "failed";
+            /** @description Why it failed. */
+            error?: string | null;
+            /** @description The steps done, of the plan's. */
+            steps: number[];
+            /** @description The frames written. */
+            frames: number;
+        };
+        workflow_tile_scan_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_tile_scan_input"];
+            output?: components["schemas"]["workflow_tile_scan_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        /** @description A time-lapse where the stage is (ADR-0055). */
+        workflow_time_lapse_input: {
+            /** @description The dataset's name. */
+            name: string;
+            /** @description The time between points' starts, in s. */
+            interval_s: number;
+            /** @description How many points. */
+            count?: number | null;
+            /** @description How long, in s. */
+            duration_s?: number | null;
+            /**
+             * @description What a late point does: skipped once its interval has passed, if not given.
+             * @default skip
+             */
+            overrun?: "skip" | "shift";
+            /**
+             * @description What to do at each point: a frame if none.
+             * @default []
+             */
+            steps?: Record<string, never>[];
+        };
+        /** @description How a run ended. */
+        workflow_time_lapse_output: {
+            /** @description The plan's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description Its dataset.
+             */
+            dataset: string;
+            /** @description How it ended. */
+            outcome: "finished" | "cancelled" | "failed";
+            /** @description Why it failed. */
+            error?: string | null;
+            /** @description The steps done, of the plan's. */
+            steps: number[];
+            /** @description The frames written. */
+            frames: number;
+        };
+        workflow_time_lapse_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_time_lapse_input"];
+            output?: components["schemas"]["workflow_time_lapse_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        /** @description A z-stack where the stage is, about where the focus is (ADR-0055). */
+        workflow_z_stack_input: {
+            /** @description The dataset's name. */
+            name: string;
+            /** @description The planes. */
+            planes: {
+                /** @description From the lowest plane to the highest, in µm, at most: a whole number of steps. */
+                range_um: number;
+                /** @description Between planes, in µm. */
+                step_um: number;
+                /**
+                 * @description The way the planes are taken: up if not given.
+                 * @default up
+                 */
+                direction?: "up" | "down";
+            };
+            /**
+             * @description What to take at each: a frame if none.
+             * @default []
+             */
+            steps?: Record<string, never>[];
+        };
+        /** @description How a run ended. */
+        workflow_z_stack_output: {
+            /** @description The plan's name. */
+            name: string;
+            /**
+             * Format: uuid
+             * @description Its dataset.
+             */
+            dataset: string;
+            /** @description How it ended. */
+            outcome: "finished" | "cancelled" | "failed";
+            /** @description Why it failed. */
+            error?: string | null;
+            /** @description The steps done, of the plan's. */
+            steps: number[];
+            /** @description The frames written. */
+            frames: number;
+        };
+        workflow_z_stack_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_z_stack_input"];
+            output?: components["schemas"]["workflow_z_stack_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -9244,6 +10348,832 @@ export interface operations {
         };
     };
     things_calibration_api_v1_calibration__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThingDescription"];
+                };
+            };
+        };
+    };
+    subscribe_event_api_v1_workflow_finished_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-sent events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_multi_position_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of multi_position. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_multi_position_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["workflow_multi_position_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_multi_position_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_multi_position_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_pause_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of pause. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["workflow_pause_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_pause_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_pause_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_workflow_plan_schema_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of plan_schema */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_plan_schema_value"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_workflow_positions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of positions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_positions_value"];
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    get_property_api_v1_workflow_progress_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of progress */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_progress_value"];
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_remove_position_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of remove_position. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_remove_position_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["workflow_remove_position_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_remove_position_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_remove_position_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_rename_position_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of rename_position. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_rename_position_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["workflow_rename_position_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_rename_position_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_rename_position_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_resume_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of resume. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["workflow_resume_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_resume_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_resume_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_run_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of run. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["workflow_run_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_run_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_run_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_save_position_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of save_position. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_save_position_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["workflow_save_position_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_save_position_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_save_position_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_workflow_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_state_value"];
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    subscribe_event_api_v1_workflow_tile_acquired_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-sent events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_tile_scan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of tile_scan. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_tile_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["workflow_tile_scan_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_tile_scan_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_tile_scan_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_time_lapse_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of time_lapse. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_time_lapse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["workflow_time_lapse_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_time_lapse_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_time_lapse_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_z_stack_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of z_stack. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_z_stack_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["workflow_z_stack_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_z_stack_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_z_stack_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_all_properties_api_v1_workflow_properties_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    query_all_actions_api_v1_workflow_actions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: components["schemas"]["InvocationSummary"][];
+                    };
+                };
+            };
+        };
+    };
+    subscribe_all_events_api_v1_workflow_events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-sent events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    things_workflow_api_v1_workflow__get: {
         parameters: {
             query?: never;
             header?: never;

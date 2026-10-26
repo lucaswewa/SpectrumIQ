@@ -165,7 +165,8 @@ pub enum Step {
         /// What a late point does: skipped once its interval has passed, if not given.
         #[serde(default)]
         overrun: Overrun,
-        /// What to do at each point.
+        /// What to do at each point: a frame if none.
+        #[serde(default)]
         steps: Vec<Step>,
     },
     /// Autofocuses where the stage is (ADR-0054), over `range_um` about where the focus is. With
@@ -355,7 +356,7 @@ pub fn count(steps: &[Step]) -> u64 {
                 steps,
                 ..
             } => u64::from(Step::points(*count, *duration_s, *interval_s))
-                .saturating_mul(self::count(steps)),
+                .saturating_mul(self::count(steps).max(u64::from(steps.is_empty()))),
             Step::Index { .. } | Step::TileScan { .. } | Step::MultiPosition { .. } => 0,
             _ => 1,
         })

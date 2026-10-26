@@ -32,7 +32,7 @@ use siq_sim::grbl::{GrblEmulator, GrblErrors, GrblSettings};
 use siq_sim::peripherals::{SimChanger, SimIllumination, SimModalityUnit};
 use siq_sim::state::TrueState;
 use siq_synth::WorldInfo;
-use siq_types::{Clock, ModalityMode};
+use siq_types::{Clock, Micrometers, ModalityMode};
 
 /// The instrument's devices.
 pub struct Devices {
@@ -182,9 +182,9 @@ pub async fn open(config: &InstrumentConfig, clock: Arc<dyn Clock>) -> anyhow::R
                 None => Dialect::example(),
             });
             let (host, device) = duplex(dialect.framing(), "focus");
-            tokio::spawn(
-                DialectEmulator::new(dialect.clone(), state.clone(), clock.clone()).run(device),
-            );
+            let emulator = DialectEmulator::new(dialect.clone(), state.clone(), clock.clone());
+            let at = Micrometers(config.sim.focus_at);
+            tokio::spawn(emulator.in_focus_at(at).run(device));
             Arc::new(AsciiFocusDrive::connect(host, dialect, clock.clone()).await?)
         }
         FocusConfig::Ascii(focus) => {

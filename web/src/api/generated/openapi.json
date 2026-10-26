@@ -4710,6 +4710,915 @@
           }
         }
       }
+    },
+    "/api/v1/workflow/finished": {
+      "get": {
+        "summary": "A run ended.",
+        "description": "## A run ended.\n\nA run ended.\n\nServer-sent events: each event's data, as JSON in a `data:` line, following this schema:\n\n```json\n{\n  \"$ref\": \"#/components/schemas/workflow_finished_data\"\n}\n```",
+        "operationId": "subscribe_event_api_v1_workflow_finished_get",
+        "responses": {
+          "200": {
+            "description": "Server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/multi_position": {
+      "get": {
+        "summary": "All invocations of multi_position.",
+        "description": "List all the invocations of multi_position that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_multi_position_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of multi_position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Visits each position, or each saved one if none are given, and takes its steps there.",
+        "description": "## Visits each position, or each saved one if none are given, and takes its steps there.\n\nVisits each position, or each saved one if none are given, and takes its steps there.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_multi_position_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_multi_position_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_multi_position_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_multi_position_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/pause": {
+      "get": {
+        "summary": "All invocations of pause.",
+        "description": "List all the invocations of pause that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_pause_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of pause.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Pauses the run under way before its next step. It doesn't wait for the global lock.",
+        "description": "## Pauses the run under way before its next step. It doesn't wait for the global lock.\n\nPauses the run under way before its next step. It doesn't wait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_pause_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_pause_input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_pause_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_pause_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/plan_schema": {
+      "get": {
+        "summary": "The JSON Schema of a plan: its steps, which nest.",
+        "description": "## The JSON Schema of a plan: its steps, which nest.\n\nThe JSON Schema of a plan: its steps, which nest.",
+        "operationId": "get_property_api_v1_workflow_plan_schema_get",
+        "responses": {
+          "200": {
+            "description": "Value of plan_schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_plan_schema_value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/positions": {
+      "get": {
+        "summary": "The saved positions.",
+        "description": "## The saved positions.\n\nThe saved positions.",
+        "operationId": "get_property_api_v1_workflow_positions_get",
+        "responses": {
+          "200": {
+            "description": "Value of positions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_positions_value"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each new value as JSON in a `data:` line. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/progress": {
+      "get": {
+        "summary": "How far the run under way, or the last, has gone.",
+        "description": "## How far the run under way, or the last, has gone.\n\nHow far the run under way, or the last, has gone.",
+        "operationId": "get_property_api_v1_workflow_progress_get",
+        "responses": {
+          "200": {
+            "description": "Value of progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_progress_value"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each new value as JSON in a `data:` line. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/remove_position": {
+      "get": {
+        "summary": "All invocations of remove_position.",
+        "description": "List all the invocations of remove_position that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_remove_position_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of remove_position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Removes the saved position `name`.",
+        "description": "## Removes the saved position `name`.\n\nRemoves the saved position `name`.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_remove_position_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_remove_position_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_remove_position_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_remove_position_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/rename_position": {
+      "get": {
+        "summary": "All invocations of rename_position.",
+        "description": "List all the invocations of rename_position that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_rename_position_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of rename_position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Renames the saved position `name` to `to`.",
+        "description": "## Renames the saved position `name` to `to`.\n\nRenames the saved position `name` to `to`.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_rename_position_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_rename_position_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_rename_position_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_rename_position_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/resume": {
+      "get": {
+        "summary": "All invocations of resume.",
+        "description": "List all the invocations of resume that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_resume_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of resume.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Lets a paused run go on. It doesn't wait for the global lock.",
+        "description": "## Lets a paused run go on. It doesn't wait for the global lock.\n\nLets a paused run go on. It doesn't wait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_resume_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_resume_input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_resume_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_resume_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/run": {
+      "get": {
+        "summary": "All invocations of run.",
+        "description": "List all the invocations of run that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_run_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of run.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Runs a plan of any shape: its dataset named `name`, its `steps` as `plan_schema` has them.",
+        "description": "## Runs a plan of any shape: its dataset named `name`, its `steps` as `plan_schema` has them.\n\nRuns a plan of any shape: its dataset named `name`, its `steps` as `plan_schema` has them.\nIt returns how the run ended; cancelled, it ends as cancelled, its dataset kept.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_run_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_run_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_run_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_run_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/save_position": {
+      "get": {
+        "summary": "All invocations of save_position.",
+        "description": "List all the invocations of save_position that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_save_position_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of save_position.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Saves a position named `name`: where the stage and the focus are, unless given. A name is",
+        "description": "## Saves a position named `name`: where the stage and the focus are, unless given. A name is\n\nSaves a position named `name`: where the stage and the focus are, unless given. A name is\nsaved once.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_save_position_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_save_position_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_save_position_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_save_position_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/state": {
+      "get": {
+        "summary": "What the workflow is doing.",
+        "description": "## What the workflow is doing.\n\nWhat the workflow is doing.",
+        "operationId": "get_property_api_v1_workflow_state_get",
+        "responses": {
+          "200": {
+            "description": "Value of state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_state_value"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each new value as JSON in a `data:` line. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/tile_acquired": {
+      "get": {
+        "summary": "A frame was taken, for the dataset at these indices.",
+        "description": "## A frame was taken, for the dataset at these indices.\n\nA frame was taken, for the dataset at these indices.\n\nServer-sent events: each event's data, as JSON in a `data:` line, following this schema:\n\n```json\n{\n  \"$ref\": \"#/components/schemas/workflow_tile_acquired_data\"\n}\n```",
+        "operationId": "subscribe_event_api_v1_workflow_tile_acquired_get",
+        "responses": {
+          "200": {
+            "description": "Server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/tile_scan": {
+      "get": {
+        "summary": "All invocations of tile_scan.",
+        "description": "List all the invocations of tile_scan that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_tile_scan_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of tile_scan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Covers `region` with tiles, after a focus map if given: its tiles focused as `focus` says,",
+        "description": "## Covers `region` with tiles, after a focus map if given: its tiles focused as `focus` says,\n\nCovers `region` with tiles, after a focus map if given: its tiles focused as `focus` says,\na frame in each channel at each, or a z-stack. It needs the stage–camera calibration.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_tile_scan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_tile_scan_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_tile_scan_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_tile_scan_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/time_lapse": {
+      "get": {
+        "summary": "All invocations of time_lapse.",
+        "description": "List all the invocations of time_lapse that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_time_lapse_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of time_lapse.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Takes its steps at time points `interval_s` apart, where the stage is.",
+        "description": "## Takes its steps at time points `interval_s` apart, where the stage is.\n\nTakes its steps at time points `interval_s` apart, where the stage is.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_time_lapse_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_time_lapse_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_time_lapse_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_time_lapse_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/z_stack": {
+      "get": {
+        "summary": "All invocations of z_stack.",
+        "description": "List all the invocations of z_stack that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_z_stack_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of z_stack.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Takes a z-stack where the stage is, about where the focus is.",
+        "description": "## Takes a z-stack where the stage is, about where the focus is.\n\nTakes a z-stack where the stage is, about where the focus is.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_z_stack_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_z_stack_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_z_stack_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_z_stack_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/properties": {
+      "get": {
+        "summary": "Read All Properties",
+        "description": "Every property of `workflow` (`readallproperties`), or their changes (`observeallproperties`).",
+        "operationId": "read_all_properties_api_v1_workflow_properties_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Each property's value, by name."
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each observable property's new values, as events named after it. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/actions": {
+      "get": {
+        "summary": "Query All Actions",
+        "description": "The invocations of each action of `workflow`, newest first (`queryallactions`).",
+        "operationId": "query_all_actions_api_v1_workflow_actions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/InvocationSummary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/events": {
+      "get": {
+        "summary": "Subscribe All Events",
+        "description": "Server-sent events: every event of `workflow`, named after it (`subscribeallevents`).",
+        "operationId": "subscribe_all_events_api_v1_workflow_events_get",
+        "responses": {
+          "200": {
+            "description": "Server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/": {
+      "get": {
+        "summary": "Thing Description",
+        "description": "The W3C Thing Description of `workflow`: its properties, actions and events, and how to use them.",
+        "operationId": "things_workflow_api_v1_workflow__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThingDescription"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -11798,6 +12707,2324 @@
             "shading"
           ]
         }
+      },
+      "workflow_finished_data": {
+        "description": "How a run ended.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The plan's name.",
+            "type": "string"
+          },
+          "dataset": {
+            "description": "Its dataset.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "outcome": {
+            "description": "How it ended.",
+            "oneOf": [
+              {
+                "description": "Every step was done, or skipped.",
+                "const": "finished",
+                "type": "string"
+              },
+              {
+                "description": "It was cancelled.",
+                "const": "cancelled",
+                "type": "string"
+              },
+              {
+                "description": "A step failed, and its policy ended the run.",
+                "const": "failed",
+                "type": "string"
+              }
+            ]
+          },
+          "error": {
+            "description": "Why it failed.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps": {
+            "description": "The steps done, of the plan's.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": 2,
+            "minItems": 2
+          },
+          "frames": {
+            "description": "The frames written.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "dataset",
+          "outcome",
+          "steps",
+          "frames"
+        ]
+      },
+      "workflow_multi_position_input": {
+        "description": "A multi-position: the saved positions if none are given (ADR-0055).",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The dataset's name.",
+            "type": "string"
+          },
+          "positions": {
+            "description": "The positions: the saved ones if none.",
+            "default": [],
+            "type": "array",
+            "items": {
+              "description": "A position of a multi-position.",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "description": "Its name.",
+                  "default": "",
+                  "type": "string"
+                },
+                "x": {
+                  "description": "Where, in stage µm.",
+                  "type": "number"
+                },
+                "y": {
+                  "description": "Where, in stage µm.",
+                  "type": "number"
+                },
+                "z": {
+                  "description": "The coarse z, in µm: where it is if not given.",
+                  "oneOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "focus": {
+                  "description": "The focus, in µm: where it is if not given.",
+                  "oneOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ]
+            }
+          },
+          "autofocus": {
+            "description": "An autofocus at each, over this range in µm, if given.",
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps": {
+            "description": "What to take at each: a frame if none.",
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "workflow_multi_position_output": {
+        "description": "How a run ended.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The plan's name.",
+            "type": "string"
+          },
+          "dataset": {
+            "description": "Its dataset.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "outcome": {
+            "description": "How it ended.",
+            "oneOf": [
+              {
+                "description": "Every step was done, or skipped.",
+                "const": "finished",
+                "type": "string"
+              },
+              {
+                "description": "It was cancelled.",
+                "const": "cancelled",
+                "type": "string"
+              },
+              {
+                "description": "A step failed, and its policy ended the run.",
+                "const": "failed",
+                "type": "string"
+              }
+            ]
+          },
+          "error": {
+            "description": "Why it failed.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps": {
+            "description": "The steps done, of the plan's.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": 2,
+            "minItems": 2
+          },
+          "frames": {
+            "description": "The frames written.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "dataset",
+          "outcome",
+          "steps",
+          "frames"
+        ]
+      },
+      "workflow_multi_position_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_multi_position_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_multi_position_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "workflow_pause_input": {
+        "description": "Represent the input of an action that never takes parameters.\n\nThis may be either an empty dictionary or ``None``.",
+        "oneOf": [
+          {
+            "description": "A model representing an object that must have no keys.",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "workflow_pause_output": {
+        "type": "null"
+      },
+      "workflow_pause_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_pause_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_pause_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "workflow_plan_schema_value": {},
+      "workflow_positions_value": {
+        "type": "array",
+        "items": {
+          "description": "A position of a multi-position.",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "Its name.",
+              "default": "",
+              "type": "string"
+            },
+            "x": {
+              "description": "Where, in stage µm.",
+              "type": "number"
+            },
+            "y": {
+              "description": "Where, in stage µm.",
+              "type": "number"
+            },
+            "z": {
+              "description": "The coarse z, in µm: where it is if not given.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "focus": {
+              "description": "The focus, in µm: where it is if not given.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ]
+        }
+      },
+      "workflow_progress_value": {
+        "oneOf": [
+          {
+            "description": "How far a run has gone.",
+            "type": "object",
+            "properties": {
+              "done": {
+                "description": "The steps done.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "total": {
+                "description": "The steps in the plan.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "eta_s": {
+                "description": "The time left, in s, at the pace so far.",
+                "oneOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "step": {
+                "description": "The step just done.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "done",
+              "total",
+              "step"
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "workflow_remove_position_input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "workflow_remove_position_output": {
+        "type": "array",
+        "items": {
+          "description": "A position of a multi-position.",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "Its name.",
+              "default": "",
+              "type": "string"
+            },
+            "x": {
+              "description": "Where, in stage µm.",
+              "type": "number"
+            },
+            "y": {
+              "description": "Where, in stage µm.",
+              "type": "number"
+            },
+            "z": {
+              "description": "The coarse z, in µm: where it is if not given.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "focus": {
+              "description": "The focus, in µm: where it is if not given.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ]
+        }
+      },
+      "workflow_remove_position_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_remove_position_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_remove_position_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "workflow_rename_position_input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "to"
+        ],
+        "additionalProperties": false
+      },
+      "workflow_rename_position_output": {
+        "type": "array",
+        "items": {
+          "description": "A position of a multi-position.",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "Its name.",
+              "default": "",
+              "type": "string"
+            },
+            "x": {
+              "description": "Where, in stage µm.",
+              "type": "number"
+            },
+            "y": {
+              "description": "Where, in stage µm.",
+              "type": "number"
+            },
+            "z": {
+              "description": "The coarse z, in µm: where it is if not given.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "focus": {
+              "description": "The focus, in µm: where it is if not given.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ]
+        }
+      },
+      "workflow_rename_position_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_rename_position_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_rename_position_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "workflow_resume_input": {
+        "description": "Represent the input of an action that never takes parameters.\n\nThis may be either an empty dictionary or ``None``.",
+        "oneOf": [
+          {
+            "description": "A model representing an object that must have no keys.",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "workflow_resume_output": {
+        "type": "null"
+      },
+      "workflow_resume_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_resume_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_resume_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "workflow_run_input": {
+        "description": "Any plan.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The dataset's name.",
+            "type": "string"
+          },
+          "steps": {
+            "description": "The steps.",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "on_error": {
+            "description": "What a failed step does: by default, it ends the run.",
+            "default": {
+              "retries": 0,
+              "skip": false
+            },
+            "type": "object",
+            "properties": {
+              "retries": {
+                "description": "How many times it is tried again.",
+                "default": 0,
+                "type": "integer",
+                "minimum": 0
+              },
+              "skip": {
+                "description": "Whether it is then skipped, rather than ending the run.",
+                "default": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "name",
+          "steps"
+        ]
+      },
+      "workflow_run_output": {
+        "description": "How a run ended.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The plan's name.",
+            "type": "string"
+          },
+          "dataset": {
+            "description": "Its dataset.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "outcome": {
+            "description": "How it ended.",
+            "oneOf": [
+              {
+                "description": "Every step was done, or skipped.",
+                "const": "finished",
+                "type": "string"
+              },
+              {
+                "description": "It was cancelled.",
+                "const": "cancelled",
+                "type": "string"
+              },
+              {
+                "description": "A step failed, and its policy ended the run.",
+                "const": "failed",
+                "type": "string"
+              }
+            ]
+          },
+          "error": {
+            "description": "Why it failed.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps": {
+            "description": "The steps done, of the plan's.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": 2,
+            "minItems": 2
+          },
+          "frames": {
+            "description": "The frames written.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "dataset",
+          "outcome",
+          "steps",
+          "frames"
+        ]
+      },
+      "workflow_run_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_run_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_run_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "workflow_save_position_input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "x": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "y": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "z": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "focus": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "workflow_save_position_output": {
+        "type": "array",
+        "items": {
+          "description": "A position of a multi-position.",
+          "type": "object",
+          "properties": {
+            "name": {
+              "description": "Its name.",
+              "default": "",
+              "type": "string"
+            },
+            "x": {
+              "description": "Where, in stage µm.",
+              "type": "number"
+            },
+            "y": {
+              "description": "Where, in stage µm.",
+              "type": "number"
+            },
+            "z": {
+              "description": "The coarse z, in µm: where it is if not given.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "focus": {
+              "description": "The focus, in µm: where it is if not given.",
+              "oneOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ]
+        }
+      },
+      "workflow_save_position_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_save_position_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_save_position_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "workflow_state_value": {
+        "description": "What the workflow is doing.",
+        "oneOf": [
+          {
+            "description": "No run is under way.",
+            "const": "idle",
+            "type": "string"
+          },
+          {
+            "description": "A run is under way.",
+            "const": "running",
+            "type": "string"
+          },
+          {
+            "description": "A run is paused before its next step.",
+            "const": "paused",
+            "type": "string"
+          }
+        ]
+      },
+      "workflow_tile_acquired_data": {
+        "description": "A frame taken, at its indices.",
+        "type": "object",
+        "properties": {
+          "t": {
+            "description": "The time point.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "c": {
+            "description": "The channel.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "z": {
+            "description": "The focus plane.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "p": {
+            "description": "The stage position.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "t",
+          "c",
+          "z",
+          "p"
+        ]
+      },
+      "workflow_tile_scan_input": {
+        "description": "A tile scan, after a focus map if one is given (ADR-0053).",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The dataset's name.",
+            "type": "string"
+          },
+          "region": {
+            "description": "The region, in stage µm.",
+            "oneOf": [
+              {
+                "description": "The rectangle between two corners.",
+                "type": "object",
+                "properties": {
+                  "x0": {
+                    "description": "A corner.",
+                    "type": "number"
+                  },
+                  "y0": {
+                    "description": "A corner.",
+                    "type": "number"
+                  },
+                  "x1": {
+                    "description": "The opposite corner.",
+                    "type": "number"
+                  },
+                  "y1": {
+                    "description": "The opposite corner.",
+                    "type": "number"
+                  },
+                  "shape": {
+                    "const": "rect",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "shape",
+                  "x0",
+                  "y0",
+                  "x1",
+                  "y1"
+                ]
+              },
+              {
+                "description": "A polygon, by its vertices in order.",
+                "type": "object",
+                "properties": {
+                  "points": {
+                    "description": "The vertices, `[x, y]` in µm.",
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "maxItems": 2,
+                      "minItems": 2
+                    }
+                  },
+                  "shape": {
+                    "const": "polygon",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "shape",
+                  "points"
+                ]
+              }
+            ]
+          },
+          "overlap": {
+            "description": "The overlap between neighbours, of the frame: 0.1 if not given.",
+            "default": 0.1,
+            "type": "number"
+          },
+          "order": {
+            "description": "The order the tiles are visited in: a snake if not given.",
+            "oneOf": [
+              {
+                "description": "Row by row, turning at each end.",
+                "const": "snake",
+                "type": "string"
+              },
+              {
+                "description": "Row by row, every row the same way.",
+                "const": "raster",
+                "type": "string"
+              },
+              {
+                "description": "The nearest tile not yet visited, from the first.",
+                "const": "nearest",
+                "type": "string"
+              }
+            ],
+            "default": "snake"
+          },
+          "channels": {
+            "description": "The channels, in order: the one in use if none.",
+            "default": [],
+            "type": "array",
+            "items": {
+              "description": "A channel of the instrument configuration: illumination, filter, exposure and display\ncolour.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            }
+          },
+          "settle_ms": {
+            "description": "How long the stage settles after each move, in ms.",
+            "default": 0.0,
+            "type": "number"
+          },
+          "focus": {
+            "description": "How each tile is focused: as the focus is, if not given; `surface` with a focus map.",
+            "oneOf": [
+              {
+                "description": "As the focus is.",
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              },
+              {
+                "description": "At `z` µm, for every tile.",
+                "type": "object",
+                "properties": {
+                  "z": {
+                    "description": "Where, in µm.",
+                    "type": "number"
+                  },
+                  "mode": {
+                    "const": "fixed",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mode",
+                  "z"
+                ]
+              },
+              {
+                "description": "On the surface in force: a focus map's, made before.",
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "const": "surface",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              },
+              {
+                "description": "Autofocused at each tile.",
+                "type": "object",
+                "properties": {
+                  "range_um": {
+                    "description": "The range searched, in µm.",
+                    "type": "number"
+                  },
+                  "mode": {
+                    "const": "autofocus",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mode",
+                  "range_um"
+                ]
+              }
+            ],
+            "default": {
+              "mode": "none"
+            }
+          },
+          "z_stack": {
+            "description": "A z-stack at each tile, in place of one frame.",
+            "oneOf": [
+              {
+                "description": "A z-stack's planes: `range_um` across, a whole number of `step_um` steps, centred on the\nfocus, taken going `direction`.",
+                "type": "object",
+                "properties": {
+                  "range_um": {
+                    "description": "From the lowest plane to the highest, in µm, at most: a whole number of steps.",
+                    "type": "number"
+                  },
+                  "step_um": {
+                    "description": "Between planes, in µm.",
+                    "type": "number"
+                  },
+                  "direction": {
+                    "description": "The way the planes are taken: up if not given.",
+                    "oneOf": [
+                      {
+                        "description": "From the lowest: each plane approached from below, as the focus drive arrives.",
+                        "const": "up",
+                        "type": "string"
+                      },
+                      {
+                        "description": "From the highest: each plane overshot and approached from below.",
+                        "const": "down",
+                        "type": "string"
+                      }
+                    ],
+                    "default": "up"
+                  }
+                },
+                "required": [
+                  "range_um",
+                  "step_um"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "focus_map": {
+            "description": "A focus map made first.",
+            "oneOf": [
+              {
+                "description": "A focus map made before a tile scan.",
+                "type": "object",
+                "properties": {
+                  "places": {
+                    "description": "The places, `[x, y]` in stage µm: three or more.",
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "maxItems": 2,
+                      "minItems": 2
+                    }
+                  },
+                  "surface": {
+                    "description": "The surface: a thin-plate spline if not given.",
+                    "oneOf": [
+                      {
+                        "description": "A plane, by least squares, places more than three deviations off it set aside.",
+                        "const": "plane",
+                        "type": "string"
+                      },
+                      {
+                        "description": "A thin-plate spline through every place: a tilt and a curve both.",
+                        "const": "thin_plate",
+                        "type": "string"
+                      }
+                    ],
+                    "default": "thin_plate"
+                  },
+                  "range_um": {
+                    "description": "Each autofocus's range, in µm: 50 if not given.",
+                    "default": 50.0,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "places"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "region"
+        ]
+      },
+      "workflow_tile_scan_output": {
+        "description": "How a run ended.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The plan's name.",
+            "type": "string"
+          },
+          "dataset": {
+            "description": "Its dataset.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "outcome": {
+            "description": "How it ended.",
+            "oneOf": [
+              {
+                "description": "Every step was done, or skipped.",
+                "const": "finished",
+                "type": "string"
+              },
+              {
+                "description": "It was cancelled.",
+                "const": "cancelled",
+                "type": "string"
+              },
+              {
+                "description": "A step failed, and its policy ended the run.",
+                "const": "failed",
+                "type": "string"
+              }
+            ]
+          },
+          "error": {
+            "description": "Why it failed.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps": {
+            "description": "The steps done, of the plan's.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": 2,
+            "minItems": 2
+          },
+          "frames": {
+            "description": "The frames written.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "dataset",
+          "outcome",
+          "steps",
+          "frames"
+        ]
+      },
+      "workflow_tile_scan_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_tile_scan_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_tile_scan_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "workflow_time_lapse_input": {
+        "description": "A time-lapse where the stage is (ADR-0055).",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The dataset's name.",
+            "type": "string"
+          },
+          "interval_s": {
+            "description": "The time between points' starts, in s.",
+            "type": "number"
+          },
+          "count": {
+            "description": "How many points.",
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "duration_s": {
+            "description": "How long, in s.",
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "overrun": {
+            "description": "What a late point does: skipped once its interval has passed, if not given.",
+            "oneOf": [
+              {
+                "description": "It runs late within its own interval, and is skipped once that has passed: the schedule\nstays as it was.",
+                "const": "skip",
+                "type": "string"
+              },
+              {
+                "description": "It runs at once, and the points after it keep the interval from it: the schedule slides.",
+                "const": "shift",
+                "type": "string"
+              }
+            ],
+            "default": "skip"
+          },
+          "steps": {
+            "description": "What to do at each point: a frame if none.",
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "interval_s"
+        ]
+      },
+      "workflow_time_lapse_output": {
+        "description": "How a run ended.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The plan's name.",
+            "type": "string"
+          },
+          "dataset": {
+            "description": "Its dataset.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "outcome": {
+            "description": "How it ended.",
+            "oneOf": [
+              {
+                "description": "Every step was done, or skipped.",
+                "const": "finished",
+                "type": "string"
+              },
+              {
+                "description": "It was cancelled.",
+                "const": "cancelled",
+                "type": "string"
+              },
+              {
+                "description": "A step failed, and its policy ended the run.",
+                "const": "failed",
+                "type": "string"
+              }
+            ]
+          },
+          "error": {
+            "description": "Why it failed.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps": {
+            "description": "The steps done, of the plan's.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": 2,
+            "minItems": 2
+          },
+          "frames": {
+            "description": "The frames written.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "dataset",
+          "outcome",
+          "steps",
+          "frames"
+        ]
+      },
+      "workflow_time_lapse_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_time_lapse_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_time_lapse_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "workflow_z_stack_input": {
+        "description": "A z-stack where the stage is, about where the focus is (ADR-0055).",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The dataset's name.",
+            "type": "string"
+          },
+          "planes": {
+            "description": "The planes.",
+            "type": "object",
+            "properties": {
+              "range_um": {
+                "description": "From the lowest plane to the highest, in µm, at most: a whole number of steps.",
+                "type": "number"
+              },
+              "step_um": {
+                "description": "Between planes, in µm.",
+                "type": "number"
+              },
+              "direction": {
+                "description": "The way the planes are taken: up if not given.",
+                "oneOf": [
+                  {
+                    "description": "From the lowest: each plane approached from below, as the focus drive arrives.",
+                    "const": "up",
+                    "type": "string"
+                  },
+                  {
+                    "description": "From the highest: each plane overshot and approached from below.",
+                    "const": "down",
+                    "type": "string"
+                  }
+                ],
+                "default": "up"
+              }
+            },
+            "required": [
+              "range_um",
+              "step_um"
+            ]
+          },
+          "steps": {
+            "description": "What to take at each: a frame if none.",
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "planes"
+        ]
+      },
+      "workflow_z_stack_output": {
+        "description": "How a run ended.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The plan's name.",
+            "type": "string"
+          },
+          "dataset": {
+            "description": "Its dataset.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "outcome": {
+            "description": "How it ended.",
+            "oneOf": [
+              {
+                "description": "Every step was done, or skipped.",
+                "const": "finished",
+                "type": "string"
+              },
+              {
+                "description": "It was cancelled.",
+                "const": "cancelled",
+                "type": "string"
+              },
+              {
+                "description": "A step failed, and its policy ended the run.",
+                "const": "failed",
+                "type": "string"
+              }
+            ]
+          },
+          "error": {
+            "description": "Why it failed.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "steps": {
+            "description": "The steps done, of the plan's.",
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxItems": 2,
+            "minItems": 2
+          },
+          "frames": {
+            "description": "The frames written.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "dataset",
+          "outcome",
+          "steps",
+          "frames"
+        ]
+      },
+      "workflow_z_stack_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_z_stack_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_z_stack_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
       }
     }
   }

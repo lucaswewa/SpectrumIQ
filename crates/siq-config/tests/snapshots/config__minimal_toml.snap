@@ -91,6 +91,7 @@ expression: config
       "rotation": 0.0,
       "scale_error": 0.0,
       "shear": 0.0
-    }
+    },
+    "focus_at": 0.0
   }
 }

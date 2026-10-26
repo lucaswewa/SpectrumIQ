@@ -15,10 +15,12 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
   - `jobs`, the background jobs (ADR-0043);
   - `datasets`, the datasets, a snap made into one, and their exports (ADR-0041, amended);
   - `calibration`, the stage–camera calibration of the objective in use (ADR-0049), and the dark
-    and flat of the objective and channel in use (ADR-0050).
+    and flat of the objective and channel in use (ADR-0050);
+  - `workflow`, plans run by `siq-workflow`'s engine, and the saved positions (ADR-0056).
 
-  The global lock is on. The `halt` actions, `jobs.cancel` and the `datasets` actions other than
-  `snap_to_dataset` bypass it.
+  The global lock is on. The `halt` actions, `jobs.cancel`, the `datasets` actions other than
+  `snap_to_dataset`, and the `workflow` actions other than its runs bypass it. A run holds it
+  throughout.
 - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`; under
   `/api/siq/data/`, a dataset's manifest and thumbnail, and its images' tiles. teta-wot's router
   is the fallback (ADR-0003, amended).
@@ -61,6 +63,8 @@ This is the only crate that depends on teta-wot.
 | `devices::open(config, clock)` | The devices alone, with the fitted `Peripherals` |
 | `shutdown_signal()` | Ctrl-C, or the system asking the process to stop |
 | `API_PREFIX` | `/api/v1` |
+| `instrument.on_dataset_complete(hook)` | Tells a `DatasetHook` of every workflow's dataset from then on: `on_dataset_complete(&instrument, &report)`, however its run ended, before the run's action answers. M8 queues stitching so |
+| `workflow::{Steps, Requested, PlanRequest, TileScanRequest, ZStackRequest, MultiPositionRequest, TimeLapseRequest, FocusMapRequest}` | The runs' inputs: each makes its plan and checks it as it is read |
 
 ### The Things
 
@@ -77,6 +81,7 @@ This is the only crate that depends on teta-wot.
 | `imaging` | `channel` (observable); `channels` | `select_channel(id)`: every light off, the filter, the exposure and colour, the light, then the frames' channel | `channel_changed` |
 | `jobs` | `queue`, `running` (observable): each job's id, kind, priority, state, progress, estimate and times | `cancel(id)` | — |
 | `calibration` | `status`: each objective, with its calibration in force or `null`, and its dark and flat with each channel, and with none | `stage_camera`: the objective in use calibrated against the stage, kept as a new version, and stamped on its frames from then on; a snap's dataset keeps a copy, and its pixel size. `capture_dark(frames?)`: the objective and channel's dark, every light off, of the whole sensor. `capture_flat(defocus_um?, frames?)`: their flat, at nine places, out of focus or of a blank slide, less the dark. `estimate_shading(dataset, dark_level?)`: a dataset's tiles' flat, as a background job | — |
+| `workflow` | `state`, `progress` (observable); `positions`; `plan_schema` | `run(name, steps, on_error?)`, any plan; `tile_scan(name, region, overlap?, order?, channels?, settle_ms?, focus?, z_stack?, focus_map?)`; `z_stack(name, planes, steps?)`; `multi_position(name, positions?, autofocus?, steps?)`, the saved positions if none; `time_lapse(name, interval_s, count?, duration_s?, overrun?, steps?)`. Each holds the global lock until its run ends, answers `{name, dataset, outcome, error, steps, frames}`, and is cancelled by a `DELETE` of its invocation; a plan that couldn't run is a 422. `pause`, `resume`, `save_position(name, x?, y?, z?, focus?)`, `rename_position(name, to)`, `remove_position(name)`, without the lock | `tile_acquired`, `finished` |
 | `datasets` | — | `summary(offset, limit)`: a page of the datasets, newest first; `snap_to_dataset(channels?, name?)`: a frame per channel, recorded raw, written as the image `snap` by a job, and its pyramid submitted; `export_ome_tiff(dataset, image)` and `export_dzi(dataset, image, c, z, t, format)`, as background jobs; `delete(dataset)`, refused while a job works on it | `created` |
 
 The peripherals' Things are served only if their `[peripherals]` section is present.
@@ -148,7 +153,11 @@ only:
 - `examples/python/live_soak.py` runs live view with both previews streaming, by default for
   10 minutes, and fails if a frame is lost;
 - `examples/python/snap_and_fetch_tile.py` snaps into a dataset, waits for its pyramid, and saves
-  a tile and the thumbnail, with the time each step took.
+  a tile and the thumbnail, with the time each step took;
+- `examples/python/tile_scan.py` runs a 2 × 2 tile scan, calibrating first if needed, and prints
+  its progress;
+- `examples/python/z_stack.py` takes 11 planes in two channels about the focus;
+- `examples/python/timelapse.py` visits the saved positions every 10 s, four times, pausing once.
 
 [`test.http`](../../test.http), at the repository's root, has a request for every route and
 affordance, for VS Code's REST Client extension. It includes expected refusals. The requests named
@@ -207,6 +216,17 @@ the corner of the stage's travel where it starts, and back:
   channel;
 - a flat from the corner of the stage's travel, its places a field in, and the stage back.
 
+`workflow`, over HTTP with the simulator's mount as the calibration in force:
+
+- a 2 × 2 tile scan with three-plane stacks: its state and progress while it runs, a manual move
+  refused as `GlobalLockBusy`, its 12 frames in 33 steps, listed, and the hook told;
+- a time-lapse paused, holding still, resumed, then cancelled by deleting its invocation, its
+  frames kept; `pause` with no run refused;
+- plans that couldn't run refused with 422, with their reasons, and one this instrument can't run
+  failing at once with no dataset;
+- positions saved, refused twice under one name, renamed and removed; a multi-position visiting
+  them; kept for a server started on the same folder.
+
 `webapp`, from a build in a temporary folder:
 
 - the page and its assets, with their media types and caching;
@@ -222,3 +242,6 @@ the corner of the stage's travel where it starts, and back:
   brighter brightfield, tinted.
 - **No authentication yet:** P9.1. Bind to `127.0.0.1` until then.
 - **The lifecycle copies `ThingServer::serve_with` at v0.1.0:** check it on each teta-wot upgrade.
+- **A run holds the global lock throughout:** for hours, a time-lapse leaves only `pause`,
+  `resume`, the halts and what reads.
+- **A workflow's dataset raises no `datasets.created`:** `workflow.finished` says so instead.

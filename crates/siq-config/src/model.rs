@@ -471,6 +471,9 @@ pub struct SimConfig {
     pub errors: SimErrors,
     /// How the simulated camera sits on the microscope: what the stage–camera calibration finds.
     pub mount: SimMount,
+    /// Where on the simulated focus drive's travel, in µm, the sample is in focus: the drive
+    /// starts there. 0, the bottom, if not given.
+    pub focus_at: f64,
 }
 
 /// How the simulated camera sits: the image turned, scaled and sheared against the stage, as a

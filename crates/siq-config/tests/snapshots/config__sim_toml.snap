@@ -161,6 +161,7 @@ expression: config
       "rotation": 0.4,
       "scale_error": 0.002,
       "shear": 0.001
-    }
+    },
+    "focus_at": 2000.0
   }
 }

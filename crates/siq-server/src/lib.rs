@@ -3,10 +3,11 @@
 //! SpectrumIQ's own routes in front.
 //!
 //! - **Things,** under `/api/v1/`: `camera`, `display`, `stage`, `focus`, the fitted peripherals
-//!   (`illumination`, `filter_wheel`, `objective`, `modality`), `imaging`, `jobs`, `datasets`
-//!   and `calibration`.
+//!   (`illumination`, `filter_wheel`, `objective`, `modality`), `imaging`, `jobs`, `datasets`,
+//!   `calibration` and `workflow`.
 //!   The global lock is on: hardware actions and writes take it, and `stage.halt`, `focus.halt`,
-//!   `jobs.cancel` and the `datasets` actions other than `snap_to_dataset` don't.
+//!   `jobs.cancel`, the `datasets` actions other than `snap_to_dataset`, and the `workflow`
+//!   actions other than its runs don't. A run holds it throughout.
 //! - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`; and under
 //!   `/api/siq/data/`, a dataset's manifest and thumbnail, and its images' deep-zoom tiles and
 //!   pixel values (ADR-0045).
@@ -19,7 +20,7 @@
 //! This is the only crate that depends on teta-wot.
 
 use std::future::{Future, IntoFuture};
-use std::sync::Arc;
+use std::sync::{Arc, PoisonError, RwLock};
 use std::time::Instant;
 
 use anyhow::Context;
@@ -50,6 +51,7 @@ pub mod jobs;
 pub mod peripherals;
 pub mod things;
 pub mod webapp;
+pub mod workflow;
 
 pub use teta_wot::server::shutdown_signal;
 
@@ -65,6 +67,18 @@ use siq_jobs::{Scheduler, SchedulerConfig};
 use siq_pyramid::tiles::TileService;
 use siq_storage::Catalog;
 use things::{Camera, Display, Focus, LatestStats, Stage};
+use workflow::Workflow;
+
+/// Told when a workflow's dataset is complete: M8 queues its stitching so.
+pub trait DatasetHook: Send + Sync {
+    /// The run that made a dataset has ended, however it ended: `report` says how. It should
+    /// queue its work, not do it: the run's invocation waits for it.
+    fn on_dataset_complete(
+        &self,
+        instrument: &Instrument,
+        report: &siq_workflow::engine::RunReport,
+    );
+}
 
 /// The prefix of the Things' routes.
 pub const API_PREFIX: &str = "/api/v1";
@@ -102,6 +116,7 @@ pub struct Instrument {
     pub shading: Arc<ShadingRegistry>,
     /// The clock the drivers, the acquisition and the workflows keep time on.
     pub clock: Arc<dyn Clock>,
+    hooks: RwLock<Vec<Arc<dyn DatasetHook>>>,
     slot_bytes: usize,
     started: Instant,
 }
@@ -123,6 +138,22 @@ impl Instrument {
             calibrations: Arc::clone(&self.calibrations),
             clock: Arc::clone(&self.clock),
         }
+    }
+
+    /// Tells `hook` of every workflow's dataset completed from now on.
+    pub fn on_dataset_complete(&self, hook: Arc<dyn DatasetHook>) {
+        self.hooks
+            .write()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(hook);
+    }
+
+    /// The hooks told of completed datasets.
+    pub(crate) fn hooks(&self) -> Vec<Arc<dyn DatasetHook>> {
+        self.hooks
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
     }
 
     /// Stops live view, then any motion: the hardware is safe before the Things stop. The jobs
@@ -227,6 +258,7 @@ fn things(camera: Camera, fitted: impl Fn(&str) -> bool) -> ThingServerBuilder {
         .thing("jobs", Jobs::default())
         .thing("datasets", Datasets::default())
         .thing("calibration", Calibration::default())
+        .thing("workflow", Workflow::default())
 }
 
 /// The service: the Things' server, and the instrument behind it.
@@ -296,6 +328,7 @@ impl Service {
             calibrations,
             shading,
             clock,
+            hooks: RwLock::default(),
             slot_bytes: full,
             started: Instant::now(),
         });

@@ -182,5 +182,30 @@ expression: descriptions
       "alarm",
       "arrived"
     ]
+  },
+  "workflow": {
+    "title": "Workflow",
+    "properties": [
+      "plan_schema",
+      "positions",
+      "progress",
+      "state"
+    ],
+    "actions": [
+      "multi_position",
+      "pause",
+      "remove_position",
+      "rename_position",
+      "resume",
+      "run",
+      "save_position",
+      "tile_scan",
+      "time_lapse",
+      "z_stack"
+    ],
+    "events": [
+      "finished",
+      "tile_acquired"
+    ]
   }
 }

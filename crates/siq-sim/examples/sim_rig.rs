@@ -99,7 +99,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         None => Dialect::example(),
     });
     let (host, device) = duplex(dialect.framing(), "focus");
-    tokio::spawn(DialectEmulator::new(dialect.clone(), state.clone(), clock.clone()).run(device));
+    let emulator = DialectEmulator::new(dialect.clone(), state.clone(), clock.clone());
+    let in_focus = config.sim.focus_at;
+    tokio::spawn(emulator.in_focus_at(Micrometers(in_focus)).run(device));
     let z = AsciiFocusDrive::connect(host, dialect, clock.clone()).await?;
 
     // The first channel's light and filter, and the first objective.
@@ -158,13 +160,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     xyz.home().await?;
     z.home().await?;
     let opts = MoveOpts::default();
-    for (x, y, focus) in [
+    // In focus, 30 µm out, then in focus elsewhere.
+    for (x, y, out) in [
         (-2_000.0, -1_500.0, 0.0),
         (-2_000.0, -1_500.0, 30.0),
         (-2_600.0, -1_100.0, 0.0),
     ] {
         let at = xyz.move_to(Xyz::from_um(x, y, 0.0), opts).await?.position;
-        let f = z.move_to(Micrometers(focus), opts).await?.position;
+        let f = z.move_to(Micrometers(in_focus + out), opts).await?.position;
         // A new pose renders a draft first, then full detail once it holds.
         let seq = latest.0.lock().expect("the latest").0;
         while latest.0.lock().expect("the latest").0 < seq + 3 {

@@ -101,6 +101,7 @@ modes = ["widefield", "light_field", "confocal", "structured_illumination"]
 [sim]
 seed = 1
 profile = "full"            # "fast" renders a quarter of the pixels
+focus_at = 2000.0           # µm up the focus drive's travel, where the sample is in focus
 
 [sim.world]
 kind = "cells"              # cells, grains, height_field, beads, or image (with path, pixel_size)

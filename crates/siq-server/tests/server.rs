@@ -46,6 +46,7 @@ async fn the_things_are_listed_and_described() {
         "modality",
         "objective",
         "stage",
+        "workflow",
     ];
     assert_eq!(names, expected);
     let mut descriptions = serde_json::Map::new();

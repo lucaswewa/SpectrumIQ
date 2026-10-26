@@ -256,7 +256,7 @@ POST {{api}}/stage/halt
 POST {{api}}/stage/home
 
 # ============================== The focus drive ==============================
-# Positions in µm, from 0 to 12000.
+# Positions in µm, from 0 to 12000. The simulator's sample is in focus at 2000, where it starts.
 
 ### The position
 GET {{api}}/focus/position
@@ -472,6 +472,91 @@ Content-Type: application/json
 
 {"dataset": "{{dataset}}"}
 
+# ============================== Workflows ==============================
+# Plans run by the workflow engine, one at a time: a run holds the global lock throughout, and
+# answers with how it ended. Cancel one with a DELETE of its invocation. A tile scan needs the
+# stage–camera calibration: POST {{api}}/calibration/stage_camera first.
+
+### What the workflow is doing: idle, running or paused
+GET {{api}}/workflow/state
+
+### How far the run under way, or the last, has gone
+GET {{api}}/workflow/progress
+
+### A plan's JSON Schema: its steps, which nest
+GET {{api}}/workflow/plan_schema
+
+### A z-stack of 11 planes, 2 µm apart, about the focus
+# @name stack
+POST {{api}}/workflow/z_stack
+Content-Type: application/json
+
+{"name": "z-stack", "planes": {"range_um": 20.0, "step_um": 2.0}}
+
+### The z-stack's invocation: send again until `completed`
+GET {{stack.response.body.$.href}}
+
+### A 2 × 2 tile scan in brightfield, after a 3-point focus map, each tile on its surface
+POST {{api}}/workflow/tile_scan
+Content-Type: application/json
+
+{"name": "tile-scan", "region": {"shape": "rect", "x0": -24000, "y0": -18000, "x1": -16000, "y1": -12000}, "channels": [1], "focus": {"mode": "surface"}, "focus_map": {"places": [[-22000, -16000], [-18000, -16000], [-20000, -14000]]}}
+
+### A time-lapse: a frame every 10 s, 30 times
+# @name lapse
+POST {{api}}/workflow/time_lapse
+Content-Type: application/json
+
+{"name": "time-lapse", "interval_s": 10.0, "count": 30}
+
+### Pause the run before its next step: it doesn't wait for the global lock
+POST {{api}}/workflow/pause
+
+### Let it go on
+POST {{api}}/workflow/resume
+
+### Cancel the time-lapse: its dataset keeps what was taken
+DELETE {{lapse.response.body.$.href}}
+
+### Any plan: twice, a frame in DAPI and in GFP, numbered t
+POST {{api}}/workflow/run
+Content-Type: application/json
+
+{"name": "plan", "steps": [{"step": "repeat", "count": 2, "index": "t", "steps": [{"step": "channel", "id": 2}, {"step": "snap"}, {"step": "channel", "id": 3}, {"step": "snap"}]}]}
+
+### The saved positions
+GET {{api}}/workflow/positions
+
+### Save where the stage and focus are, as "here"
+POST {{api}}/workflow/save_position
+Content-Type: application/json
+
+{"name": "here"}
+
+### Save a position given
+POST {{api}}/workflow/save_position
+Content-Type: application/json
+
+{"name": "elsewhere", "x": -21000.0, "y": -15000.0}
+
+### Rename one
+POST {{api}}/workflow/rename_position
+Content-Type: application/json
+
+{"name": "elsewhere", "to": "there"}
+
+### A frame at each saved position
+POST {{api}}/workflow/multi_position
+Content-Type: application/json
+
+{"name": "positions"}
+
+### Remove one
+POST {{api}}/workflow/remove_position
+Content-Type: application/json
+
+{"name": "there"}
+
 # ============================== Invocations ==============================
 
 ### Every invocation the server keeps, with its state
@@ -519,6 +604,12 @@ POST {{api}}/stage/move_to
 Content-Type: application/json
 
 {"x": -1000.0}
+
+### A z-stack of no planes: 422, with the plan's reason
+POST {{api}}/workflow/z_stack
+Content-Type: application/json
+
+{"name": "z", "planes": {"range_um": 4.0, "step_um": 0.0}}
 
 ### A Thing that isn't served: 404
 GET {{api}}/microscope/

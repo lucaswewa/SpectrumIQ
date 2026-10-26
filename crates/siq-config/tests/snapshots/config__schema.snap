@@ -95,7 +95,8 @@ expression: schema
           "rotation": 0.0,
           "scale_error": 0.0,
           "shear": 0.0
-        }
+        },
+        "focus_at": 0.0
       }
     }
   },
@@ -903,6 +904,12 @@ expression: schema
             "scale_error": 0.0,
             "shear": 0.0
           }
+        },
+        "focus_at": {
+          "description": "Where on the simulated focus drive's travel, in µm, the sample is in focus: the drive\nstarts there. 0, the bottom, if not given.",
+          "type": "number",
+          "format": "double",
+          "default": 0.0
         }
       },
       "additionalProperties": false

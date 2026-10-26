@@ -32,8 +32,9 @@ instrument.
     each tile.
   - **`multi_position`:** at each position, the stage there, its own focus, an optional autofocus,
     then the steps, whose places are about the position.
-  - **`time_lapse`:** points `interval_s` apart from the first, on tokio's clock. A late point runs
-    within its own interval or is skipped (`skip`), or slides the schedule (`shift`).
+  - **`time_lapse`:** points `interval_s` apart from the first, on tokio's clock, a frame at each
+    if no steps are given. A late point runs within its own interval or is skipped (`skip`), or
+    slides the schedule (`shift`).
   - **`p`** numbers every position and tile of a plan in order, so scans don't collide.
     `layout.json` holds the grids with their first `p`, the positions, the focus maps, and each
     time-lapse's points, due and begun, and those skipped.
@@ -84,8 +85,7 @@ instrument.
 - **Depends on:** `siq-acquire`, `siq-buffer`, `siq-calib`, `siq-config`, `siq-devices`,
   `siq-imgproc`, `siq-register`, `siq-storage`, `siq-types`; `schemars`, `serde`, `serde_json`,
   `thiserror`, `tokio`, `tracing`. Tokio's `test-util`, for the paused clock, in the tests.
-- **Used by:** `siq-server` (the `calibration` and `imaging` Things; the `workflow` Thing in
-  P6.5).
+- **Used by:** `siq-server` (the `calibration`, `imaging` and `workflow` Things).
 - **Phase:** P5.2; P5.3 the shading's captures; P6.1 the engine and the channel routine; P6.2
   the tile scans; P6.3 autofocus and focus maps; P6.4 the sequences.
 
@@ -110,6 +110,7 @@ instrument.
 | `scan::plan(&region, &l, field, overlap, order)` | `Grid { tiles, steps, overlap }`, each `Tile { column, row, x, y }`; `ScanError` for a region, overlap or `L` that can't make one, or over `MAX_TILES` |
 | `scan::Region`, `scan::Order` | `Rect { x0, y0, x1, y1 }` or `Polygon { points }`; `Snake`, `Raster`, `Nearest` |
 | `scan::estimate(&grid, start, settle_s, &exposures_s, frame_bytes, &timing)` | `Estimate { tiles, frames, seconds, bytes }`, and `fits(free, keep)`; `Timing`'s defaults are the simulator's |
+| `plan.check()` | The engine's checks that need no instrument: a name and a step, lengths, ranges, planes, points, positions, and a focus map before any surface. `run` makes them first; the server's requests make them as they are read |
 | `engine::ErrorPolicy { retries, skip }` | A failed step tried again `retries` times, then skipped if `skip`, else the run's end |
 | `engine::run(&devices, &target, &plan, &control, &observe)` | `RunReport { dataset, path, outcome, error, steps, frames }`, or `RunError` (`Invalid`, `Storage`) before any dataset is made |
 | `engine::DatasetTarget` | `data_root`, `min_free`, `catalog`, and the `instrument`'s snapshot |

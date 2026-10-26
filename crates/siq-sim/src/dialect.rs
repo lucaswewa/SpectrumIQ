@@ -59,6 +59,8 @@ pub struct DialectEmulator {
     state: Arc<TrueState>,
     clock: Arc<dyn Clock>,
     position: f64,
+    /// Where the drive's position is in focus: the true focus is the position less it.
+    focus_at: f64,
     homed: bool,
     motion: Option<Motion>,
 }
@@ -78,9 +80,20 @@ impl DialectEmulator {
             state,
             clock,
             position,
+            focus_at: 0.0,
             homed: false,
             motion: None,
         }
+    }
+
+    /// The drive in focus at `position` of its travel, where it starts: as a real drive is
+    /// mounted, its travel doesn't begin at the sample.
+    pub fn in_focus_at(mut self, position: Micrometers) -> Self {
+        let [low, high] = self.dialect.motion.travel;
+        (self.focus_at, self.position) = (position.0, position.0.clamp(low.0, high.0));
+        self.state
+            .set_focus(Micrometers(self.position - self.focus_at));
+        self
     }
 
     /// Serves `port`, the device's end of a link, until the link closes.
@@ -123,7 +136,7 @@ impl DialectEmulator {
         let motion = self.motion?;
         let (position, ended) = motion.at(now);
         self.position = position;
-        self.state.set_focus(Micrometers(position));
+        self.state.set_focus(Micrometers(position - self.focus_at));
         if !ended {
             return None;
         }

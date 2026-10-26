@@ -129,7 +129,10 @@ Done so far:
     (`siq-workflow --example autofocus_sim`);
   - P6.4, sequences: z-stacks, multiple positions and time-lapses on a schedule, nesting in any
     order, every frame numbered by its place, plane and time point
-    (`siq-workflow --example timelapse_sim`).
+    (`siq-workflow --example timelapse_sim`);
+  - P6.5, the `workflow` Thing: plans run over HTTP under the global lock, followed, paused and
+    cancelled, and the saved positions (`python examples/python/tile_scan.py`, `z_stack.py`,
+    `timelapse.py`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

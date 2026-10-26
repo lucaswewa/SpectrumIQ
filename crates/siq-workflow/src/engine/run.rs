@@ -195,9 +195,10 @@ pub async fn run(
     control: &RunControl,
     observe: &(dyn Fn(RunEvent) + Send + Sync),
 ) -> Result<RunReport, RunError> {
+    plan.check().map_err(RunError::Invalid)?;
     let mut layout = Layout::default();
     let steps = resolve(devices, &plan.steps, &mut layout)?;
-    validate(devices, &plan.name, &steps)?;
+    validate(devices, &steps)?;
     let stacks = contains(&steps, &|step| matches!(step, Step::ZStack { .. }));
     let times = |step: &Step| matches!(step, Step::TimeLapse { .. } | Step::Repeat { .. });
     let lapses = contains(&steps, &times);
@@ -444,7 +445,7 @@ fn resolve_about(
                 count: *count,
                 duration_s: *duration_s,
                 overrun: *overrun,
-                steps: resolve_about(devices, steps, [ox, oy], next_p, layout)?,
+                steps: resolve_about(devices, &frame(steps), [ox, oy], next_p, layout)?,
             }),
             Step::Repeat {
                 count,
@@ -483,76 +484,125 @@ fn resolve_about(
     Ok(out)
 }
 
-/// Refuses a plan that can't run: an unknown channel, no steps, a wait or an autofocus of no
-/// length, a focus map of fewer than three places, a focus on the surface before any map, a
-/// z-stack of no planes or too many, or a time-lapse of no points.
-fn validate(devices: &DeviceSet, name: &str, steps: &[Step]) -> Result<(), RunError> {
-    fn check(devices: &DeviceSet, steps: &[Step], mapped: &mut bool) -> Result<(), String> {
-        let range = |range_um: f64| match range_um.is_finite() && range_um > 0.0 {
+impl Plan {
+    /// Refuses a plan that couldn't run on any instrument: no name or no steps, a wait or an
+    /// autofocus of no length, a focus map of fewer than three places, a focus on the surface
+    /// before any map, a z-stack of no planes or too many, a time-lapse of no points, or a
+    /// multi-position of none.
+    pub fn check(&self) -> Result<(), String> {
+        if self.name.trim().is_empty() || self.steps.is_empty() {
+            return Err("it needs a name, and a step".to_owned());
+        }
+        check(&self.steps, &mut false)
+    }
+}
+
+/// [`Plan::check`] of `steps`, `mapped` once a focus map comes before.
+fn check(steps: &[Step], mapped: &mut bool) -> Result<(), String> {
+    let range = |range_um: f64| match range_um.is_finite() && range_um > 0.0 {
+        true => Ok(()),
+        false => Err(format!("an autofocus over {range_um} µm")),
+    };
+    let planes = |planes: &super::ZPlanes| {
+        let n = planes.range_um / planes.step_um;
+        let fits = planes.step_um > 0.0 && n.is_finite() && n >= 0.0;
+        match fits && n + 1.0 <= f64::from(super::MAX_PLANES) {
             true => Ok(()),
-            false => Err(format!("an autofocus over {range_um} µm")),
-        };
+            false => Err(format!(
+                "a z-stack {} µm across in steps of {} µm: from 1 to {} planes",
+                planes.range_um,
+                planes.step_um,
+                super::MAX_PLANES
+            )),
+        }
+    };
+    let surface = |mapped: bool| match mapped {
+        true => Ok(()),
+        false => Err("a focus on the surface before any focus map".to_owned()),
+    };
+    for step in steps {
+        match step {
+            Step::Wait { ms } if !ms.is_finite() || *ms < 0.0 => {
+                return Err(format!("a wait of {ms} ms"));
+            }
+            Step::Autofocus { range_um } => range(*range_um)?,
+            Step::FocusMap {
+                places, range_um, ..
+            } => {
+                if places.len() < 3 {
+                    return Err(format!("a focus map of {} places", places.len()));
+                }
+                range(*range_um)?;
+                *mapped = true;
+            }
+            Step::FocusOnSurface { .. } => surface(*mapped)?,
+            Step::TileScan { focus, z_stack, .. } => {
+                match focus {
+                    TileFocus::Autofocus { range_um } => range(*range_um)?,
+                    TileFocus::Surface => surface(*mapped)?,
+                    TileFocus::None | TileFocus::Fixed { .. } => {}
+                }
+                z_stack.as_ref().map_or(Ok(()), planes)?;
+            }
+            Step::ZStack { planes: p, steps } => {
+                planes(p)?;
+                check(steps, mapped)?;
+            }
+            Step::MultiPosition {
+                positions,
+                autofocus,
+                steps,
+            } => {
+                if positions.is_empty() {
+                    return Err("a multi-position of no positions".to_owned());
+                }
+                autofocus.map_or(Ok(()), range)?;
+                check(steps, mapped)?;
+            }
+            Step::TimeLapse {
+                interval_s,
+                count,
+                duration_s,
+                steps,
+                ..
+            } => {
+                let duration = duration_s.is_none_or(|d| d.is_finite() && d > 0.0);
+                let points = Step::points(*count, *duration_s, *interval_s);
+                if !(interval_s.is_finite() && *interval_s > 0.0 && duration && points > 0) {
+                    return Err(format!(
+                        "a time-lapse every {interval_s} s: it needs an interval, and a count \
+                         or a duration"
+                    ));
+                }
+                check(steps, mapped)?;
+            }
+            Step::Repeat { steps, .. } | Step::Policy { steps, .. } => check(steps, mapped)?,
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
+/// Refuses a plan, its `steps` resolved, that can't run on `devices`: one with a channel they
+/// haven't, or with no step of a device's.
+fn validate(devices: &DeviceSet, steps: &[Step]) -> Result<(), RunError> {
+    fn channels(devices: &DeviceSet, steps: &[Step]) -> Result<(), String> {
         for step in steps {
             match step {
                 Step::Channel { id } if !devices.channels.iter().any(|c| c.id == *id) => {
                     return Err(format!("there is no channel {id}"));
                 }
-                Step::Wait { ms } if !ms.is_finite() || *ms < 0.0 => {
-                    return Err(format!("a wait of {ms} ms"));
-                }
-                Step::Autofocus { range_um } => range(*range_um)?,
-                Step::FocusMap {
-                    places, range_um, ..
-                } => {
-                    if places.len() < 3 {
-                        return Err(format!("a focus map of {} places", places.len()));
-                    }
-                    range(*range_um)?;
-                    *mapped = true;
-                }
-                Step::FocusOnSurface { .. } if !*mapped => {
-                    return Err("a focus on the surface before any focus map".to_owned());
-                }
-                Step::ZStack { planes, steps } => {
-                    let n = planes.range_um / planes.step_um;
-                    let fits = planes.step_um > 0.0 && n.is_finite() && n >= 0.0;
-                    if !fits || n + 1.0 > f64::from(super::MAX_PLANES) {
-                        return Err(format!(
-                            "a z-stack {} µm across in steps of {} µm: from 1 to {} planes",
-                            planes.range_um,
-                            planes.step_um,
-                            super::MAX_PLANES
-                        ));
-                    }
-                    check(devices, steps, mapped)?;
-                }
-                Step::TimeLapse {
-                    interval_s,
-                    count,
-                    duration_s,
-                    steps,
-                    ..
-                } => {
-                    let duration = duration_s.is_none_or(|d| d.is_finite() && d > 0.0);
-                    let points = Step::points(*count, *duration_s, *interval_s);
-                    if !(interval_s.is_finite() && *interval_s > 0.0 && duration && points > 0) {
-                        return Err(format!(
-                            "a time-lapse every {interval_s} s: it needs an interval, and a \
-                             count or a duration"
-                        ));
-                    }
-                    check(devices, steps, mapped)?;
-                }
-                Step::Repeat { steps, .. } | Step::Policy { steps, .. } => {
-                    check(devices, steps, mapped)?;
-                }
+                Step::Repeat { steps, .. }
+                | Step::Policy { steps, .. }
+                | Step::ZStack { steps, .. }
+                | Step::TimeLapse { steps, .. } => channels(devices, steps)?,
                 _ => {}
             }
         }
         Ok(())
     }
-    check(devices, steps, &mut false).map_err(RunError::Invalid)?;
-    if name.trim().is_empty() || count(steps) == 0 {
+    channels(devices, steps).map_err(RunError::Invalid)?;
+    if count(steps) == 0 {
         return Err(RunError::Invalid("it needs a name, and a step".to_owned()));
     }
     Ok(())

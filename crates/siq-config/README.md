@@ -49,7 +49,7 @@ The shipped files are the reference:
 | `[[objectives]]` | `id`, `name`, `magnification`, `numerical_aperture`, `immersion` (`air`), `turret_position`, `parfocal_offset` (0 µm) |
 | `[[channels]]` | `id`, `name`, `exposure` (ms), `illumination = { source, intensity }`, `filter`, `colour` (`#ffffff`) |
 | `[peripherals.*]` | `illumination.sources`, `filter_wheel.filters`, `objective_turret.positions`, `modality.modes`; each with `kind = "sim"` |
-| `[sim]` | `seed` (0), `profile` (`full`). `[sim.world]`: `kind` (`cells`, …, or `image` with `path` and `pixel_size`). `[sim.errors]`: `backlash`, `scale_error`, `position_noise`, `reply_latency`. `[sim.mount]` (P5.2): the camera's `rotation` in degrees, `scale_error` and `shear` against the stage, all 0 |
+| `[sim]` | `seed` (0), `profile` (`full`), `focus_at` (0, 2000 in `config/sim.toml`): where on the simulated focus drive's travel the sample is in focus, and where it starts (P6.5). `[sim.world]`: `kind` (`cells`, …, or `image` with `path` and `pixel_size`). `[sim.errors]`: `backlash`, `scale_error`, `position_noise`, `reply_latency`. `[sim.mount]` (P5.2): the camera's `rotation` in degrees, `scale_error` and `shear` against the stage, all 0 |
 
 **What is checked, beyond the types:**
 
