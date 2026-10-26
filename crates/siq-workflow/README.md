@@ -10,7 +10,10 @@ time-lapses is M6's.
      that the backlash is the same at every arrival; a frame at each, registered against the
      reference by [`siq-register`](../siq-register/README.md).
   3. One place approached from either side, a few times over, for the backlash.
-  4. Back where it started.
+  4. Back where it started, whether it worked or not.
+
+  The places are about where the stage is or, if they would leave its travel there, about the
+  nearest place where they don't. The flat's places are kept within it in the same way.
 
   Shifts are in sensor pixels: a binned frame's are scaled up. Registrations run on blocking
   threads, as one of a 100 MP frame takes a good part of a second. A registration whose

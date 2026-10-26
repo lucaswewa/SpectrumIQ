@@ -158,3 +158,19 @@ async fn a_dark_and_a_flat_are_captured_kept_and_shown_and_a_scan_s_flat_is_esti
     );
     client.stop().await;
 }
+
+#[tokio::test]
+async fn a_flat_taken_at_the_edge_of_the_travel_stays_within_it() {
+    let settings = tempfile::tempdir().unwrap();
+    let mut config = config();
+    config.server.settings = settings.path().to_owned();
+    let (client, _instrument) = serve(config).await;
+    // The stage starts at the corner of its travel, where the places a field away on +x and +y
+    // are beyond it: the flat is taken a field in, and the stage comes back.
+    let at = client.get("/api/v1/stage/position").await.json();
+    assert_eq!((at["x"].as_f64(), at["y"].as_f64()), (Some(0.0), Some(0.0)));
+    let flat = invoke(&client, "/api/v1/calibration/capture_flat", json!({})).await;
+    assert_eq!(flat["frames"], 18);
+    assert_eq!(client.get("/api/v1/stage/position").await.json(), at);
+    client.stop().await;
+}

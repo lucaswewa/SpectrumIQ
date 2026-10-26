@@ -45,19 +45,16 @@ async fn the_calibration_recovers_the_camera_s_mount_and_is_stamped_on_frames() 
         .await;
     assert!(written.status.is_success(), "{}", written.text());
 
-    // Somewhere with room to move, then the calibration.
-    invoke(
-        &client,
-        "/api/v1/stage/move_to",
-        json!({ "x": -20000.0, "y": -15000.0, "z": 0.0 }),
-    )
-    .await;
+    // From the corner of the stage's travel, where it starts: the moves are made a little way in,
+    // and the stage comes back.
+    let at = client.get("/api/v1/stage/position").await.json();
     let calibrating = client
         .post_json("/api/v1/calibration/stage_camera", Some(&json!({})))
         .await;
     let done = finished_within(&client, calibrating, Duration::from_secs(300)).await;
     assert_eq!(done["status"], "completed", "{done}");
     let record: CalibrationRecord = serde_json::from_value(done["output"].clone()).unwrap();
+    assert_eq!(client.get("/api/v1/stage/position").await.json(), at);
 
     // What it should find: the objective's 10× on the 3.76 µm sensor, through the mount, and the
     // stage's own scale error, as the reported moves are the stage's.

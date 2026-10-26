@@ -189,7 +189,8 @@ no calibrations, through teta-wot's in-process `TestClient`.
 - the summary, both exports as jobs, and an export of an image it hasn't refused;
 - deleting it: refused while a job works on it, then done.
 
-`calibration`, end to end over HTTP on a 4096 × 3072 sensor binned 2 × 2, in about 25 s:
+`calibration`, end to end over HTTP on a 4096 × 3072 sensor binned 2 × 2, in about 25 s, from
+the corner of the stage's travel where it starts, and back:
 
 - the camera's mount (0.4°, 0.2 % scale, a shear of 0.001) and the stage's scale error recovered
   within 0.1 % in scale and 0.05° in rotation, against the stage's noise and whole steps;
@@ -203,7 +204,8 @@ no calibrations, through teta-wot's in-process `TestClient`.
 - the flat 50 µm out of focus, the focus back where it was, within 0.07 % of the vignetting;
 - both in force and in `status`; the previews' correction turned on;
 - a `siq-datagen` tile scan's flat estimated as a job, and kept for its frames' objective and
-  channel.
+  channel;
+- a flat from the corner of the stage's travel, its places a field in, and the stage back.
 
 `webapp`, from a build in a temporary folder:
 

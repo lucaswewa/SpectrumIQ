@@ -92,7 +92,8 @@ impl FlatPlan {
     }
 }
 
-/// Takes `plan`'s frames for a flat, then puts the stage and the focus back.
+/// Takes `plan`'s frames for a flat, about where the stage is or the nearest place where its
+/// places stay within the stage's travel, then puts the stage and the focus back.
 pub async fn capture_flat(
     acquisition: &Acquisition,
     stage: &dyn Stage,
@@ -107,6 +108,8 @@ pub async fn capture_flat(
         stage.status().borrow().position,
         focus.status().borrow().position,
     );
+    let reach = super::reach(plan.places.iter().copied());
+    let centre = super::centre_within(start, reach, &stage.limits())?;
     let mut captured = None;
     let taken = async {
         if plan.defocus != 0.0 {
@@ -114,9 +117,9 @@ pub async fn capture_flat(
         }
         for &[x, y] in &plan.places {
             let at = Xyz {
-                x: start.x + Micrometers(x),
-                y: start.y + Micrometers(y),
-                z: start.z,
+                x: centre.x + Micrometers(x),
+                y: centre.y + Micrometers(y),
+                z: centre.z,
             };
             stage.move_to(at, opts).await?;
             take(acquisition, plan.frames.max(1), &mut captured).await?;
