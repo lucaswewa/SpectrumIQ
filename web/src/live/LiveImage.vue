@@ -3,12 +3,14 @@
 // with letterboxing. It watches a shared stream while the app is connected
 // and the stream isn't disabled, through the stream budget, which pauses it
 // while it is off screen or the page is hidden (ADR-0037, ADR-0038). It says
-// why when there is no image, reports the frames' size, and where the image
-// is double-clicked.
+// why when there is no image, live view stopped among the reasons, with a
+// button to start it; reports the frames' size; and where the image is
+// double-clicked.
 import { computed, ref, watch } from 'vue'
 
 import { useBudgetedStream } from '@/api/streams'
 import type { ApiError } from '@/api/wot/errors'
+import { useCameraStore } from '@/stores/camera'
 import { useConnectionStore } from '@/stores/connection'
 import AppButton from '@/ui/AppButton.vue'
 import AppSpinner from '@/ui/AppSpinner.vue'
@@ -36,6 +38,7 @@ const emit = defineEmits<{
 }>()
 
 const connection = useConnectionStore()
+const camera = useCameraStore()
 const preferences = useLiveImagePreferences()
 const root = ref<HTMLElement>()
 const canvas = ref<HTMLCanvasElement>()
@@ -98,7 +101,10 @@ const status = computed(() => {
   if (connection.state !== 'connected') return 'offline'
   if (!url.value || streamState.value === 'error') return 'error'
   if (!running.value) return 'paused'
-  return hasFrame.value ? 'live' : 'connecting'
+  if (hasFrame.value) return 'live'
+  // Without live view, only snaps send frames.
+  const stopped = props.thing === 'camera' && camera.stats && !camera.live
+  return stopped ? 'stopped' : 'connecting'
 })
 
 const errorMessage = computed(() =>
@@ -131,6 +137,10 @@ watch(useCaptureFlashes(), (count) => (flash.value = count))
           Paused: other live images are open. It starts again when one closes.
         </p>
         <p v-else-if="status === 'error'">The live image isn't available. {{ errorMessage }}</p>
+        <template v-else-if="status === 'stopped'">
+          <p>Live view is stopped.</p>
+          <AppButton @click="camera.startLive()">Start live</AppButton>
+        </template>
         <template v-else>
           <AppSpinner />
           <p>Connecting to the camera…</p>

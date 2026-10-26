@@ -6,7 +6,10 @@
 //!    reference.
 //! 3. One place approached from either side, a few times over, for the backlash: each pair of
 //!    frames registered against each other.
-//! 4. Back where it started.
+//! 4. Back where it started, whether it worked or not.
+//!
+//! The moves are about where the stage is, or, if they would leave its travel there, about the
+//! nearest place where they don't.
 //!
 //! Image shifts are given in sensor pixels: a binned frame's are scaled up. Registrations run on
 //! blocking threads, as a frame of 100 MP takes a good part of a second.
@@ -117,6 +120,13 @@ pub enum RoutineError {
     /// The frames couldn't be summed or fitted.
     #[error(transparent)]
     Calib(#[from] siq_calib::CalibError),
+    /// The moves, reaching this far each way in µm, don't fit in the stage's travel.
+    #[error(
+        "the moves reach {:.0} × {:.0} µm each way, more than the stage's travel holds",
+        .0[0],
+        .0[1]
+    )]
+    Travel([f64; 2]),
 }
 
 /// A frame, copied out of the pool, and its binning.
@@ -128,7 +138,8 @@ async fn snap(acquisition: &Acquisition) -> Result<(OwnedImage<u16>, [f64; 2]), 
     Ok((copy, [f64::from(horizontal), f64::from(vertical)]))
 }
 
-/// Runs `plan` about where `stage` is: the moves and the shifts they made.
+/// Runs `plan` about where `stage` is, or the nearest place where its moves stay within the
+/// stage's travel: the moves and the shifts they made. The stage goes back where it was.
 pub async fn measure(
     acquisition: &Acquisition,
     stage: &dyn Stage,
@@ -146,10 +157,15 @@ pub async fn measure(
         }
     };
     let start = stage.status().borrow().position;
+    let backlash = plan
+        .backlash
+        .map(|b| [b.at[0].abs() + b.reach, b.at[1].abs() + b.reach]);
+    let reach = super::reach(plan.moves.iter().copied().chain(backlash));
+    let centre = super::centre_within(start, reach, &stage.limits())?;
     let at = |[x, y]: [f64; 2]| Xyz {
-        x: start.x + Micrometers(x),
-        y: start.y + Micrometers(y),
-        z: start.z,
+        x: centre.x + Micrometers(x),
+        y: centre.y + Micrometers(y),
+        z: centre.z,
     };
     let same_side = MoveOpts {
         speed: None,
@@ -159,51 +175,54 @@ pub async fn measure(
         approach: Approach::Direct,
         ..same_side
     };
-    stage.move_to(at([0.0, 0.0]), same_side).await?;
-    let reference = Arc::new(snap(acquisition).await?.0);
-    let mut measurement = Measurement {
-        moves: Vec::with_capacity(plan.moves.len()),
-        pce: Vec::with_capacity(plan.moves.len()),
-        backlash_shift: None,
-    };
-    for &place in &plan.moves {
-        stage.move_to(at(place), same_side).await?;
-        let (frame, [bx, by]) = snap(acquisition).await?;
-        let found = register(Arc::clone(&reference), frame).await?;
-        if found.pce < plan.min_pce {
-            stage.move_to(start, same_side).await?;
-            return Err(RoutineError::Featureless {
-                at: place,
-                pce: found.pce,
+    let measured = async {
+        stage.move_to(at([0.0, 0.0]), same_side).await?;
+        let reference = Arc::new(snap(acquisition).await?.0);
+        let mut measurement = Measurement {
+            moves: Vec::with_capacity(plan.moves.len()),
+            pce: Vec::with_capacity(plan.moves.len()),
+            backlash_shift: None,
+        };
+        for &place in &plan.moves {
+            stage.move_to(at(place), same_side).await?;
+            let (frame, [bx, by]) = snap(acquisition).await?;
+            let found = register(Arc::clone(&reference), frame).await?;
+            if found.pce < plan.min_pce {
+                return Err(RoutineError::Featureless {
+                    at: place,
+                    pce: found.pce,
+                });
+            }
+            tracing::debug!(?place, shift = ?found.shift, pce = found.pce, "stage–camera move");
+            measurement.moves.push(Move {
+                stage: place,
+                shift: [found.shift[0] * bx, found.shift[1] * by],
             });
+            measurement.pce.push(found.pce);
         }
-        tracing::debug!(?place, shift = ?found.shift, pce = found.pce, "stage–camera move");
-        measurement.moves.push(Move {
-            stage: place,
-            shift: [found.shift[0] * bx, found.shift[1] * by],
-        });
-        measurement.pce.push(found.pce);
-    }
-    if let Some(BacklashPlan {
-        at: [x, y],
-        reach,
-        repeats,
-    }) = plan.backlash
-    {
-        let mut sum = [0.0; 2];
-        for _ in 0..repeats {
-            stage.move_to(at([x - reach, y - reach]), direct).await?;
-            stage.move_to(at([x, y]), direct).await?;
-            let (rising, [bx, by]) = snap(acquisition).await?;
-            stage.move_to(at([x + reach, y + reach]), direct).await?;
-            stage.move_to(at([x, y]), direct).await?;
-            let (falling, _) = snap(acquisition).await?;
-            let found = register(Arc::new(rising), falling).await?;
-            sum = [sum[0] + found.shift[0] * bx, sum[1] + found.shift[1] * by];
+        if let Some(BacklashPlan {
+            at: [x, y],
+            reach,
+            repeats,
+        }) = plan.backlash
+        {
+            let mut sum = [0.0; 2];
+            for _ in 0..repeats {
+                stage.move_to(at([x - reach, y - reach]), direct).await?;
+                stage.move_to(at([x, y]), direct).await?;
+                let (rising, [bx, by]) = snap(acquisition).await?;
+                stage.move_to(at([x + reach, y + reach]), direct).await?;
+                stage.move_to(at([x, y]), direct).await?;
+                let (falling, _) = snap(acquisition).await?;
+                let found = register(Arc::new(rising), falling).await?;
+                sum = [sum[0] + found.shift[0] * bx, sum[1] + found.shift[1] * by];
+            }
+            let n = repeats.max(1) as f64;
+            measurement.backlash_shift = Some([sum[0] / n, sum[1] / n]);
         }
-        let n = repeats.max(1) as f64;
-        measurement.backlash_shift = Some([sum[0] / n, sum[1] / n]);
+        Ok(measurement)
     }
+    .await;
     stage.move_to(start, same_side).await?;
-    Ok(measurement)
+    measured
 }

@@ -118,6 +118,42 @@ describe('LiveImage', () => {
     expect([canvas.element.width, canvas.element.height]).toEqual([820, 616])
   })
 
+  it('says when live view is stopped, and starts it', async () => {
+    const started: Received[] = []
+    const server = fakeServer({
+      'GET /api/v1/camera/overview': (request: Received) => mjpegStream(request).response,
+      'GET /api/v1/camera/stats': () => json({ mode: started.length ? 'live' : 'stopped' }),
+      'POST /api/v1/camera/start_live': (request: Received) => {
+        started.push(request)
+        const href = 'http://microscope.test/api/v1/action_invocations/1'
+        return json({ id: '1', status: 'completed', href }, 201)
+      },
+    })
+    const forms = (name: string, op: string) => [{ href: `/api/v1/camera/${name}`, op: [op] }]
+    const connection = useConnectionStore()
+    connection.client = new WotClient({
+      baseUrl: 'http://microscope.test/api/v1/',
+      fetch: server.fetch,
+      webSocket: null,
+    })
+    connection.descriptions = {
+      camera: {
+        ...camera,
+        properties: { stats: { forms: forms('stats', 'readproperty') } },
+        actions: { start_live: { forms: forms('start_live', 'invokeaction') } },
+      },
+    }
+    connection.state = 'connected'
+    await show()
+    expect(status()).toBe('stopped')
+    expect(message()).toContain('Live view is stopped.')
+    await wrapper!.find('[role="status"] button').trigger('click')
+    await vi.advanceTimersByTimeAsync(0)
+    await flushPromises()
+    expect(started).toHaveLength(1)
+    expect(status()).toBe('connecting')
+  })
+
   it('shows an error while the stream fails, then the frames', async () => {
     failures = 1
     connect()
