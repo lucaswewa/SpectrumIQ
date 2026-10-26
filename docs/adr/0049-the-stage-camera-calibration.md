@@ -35,7 +35,9 @@
   - a reference frame where the stage is;
   - a star of 16 places, at 0.4 and 0.3 of the nominal field each way, on the axes and the
     diagonals, each approached from the same side so that the backlash is the same at every
-    arrival;
+    arrival. The star is centred where the stage is, or, if it would leave the stage's travel
+    there, on the nearest place where it doesn't; the stage comes back after, whether it worked or
+    not (amended after P5.4's testing, when a calibration from the corner of the travel failed);
   - a frame at each, registered against the reference (ADR-0048). A PCE under 100 stops it as
     featureless;
   - then one place approached from either side, four times, for the backlash;
