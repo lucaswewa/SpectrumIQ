@@ -33,6 +33,11 @@ export function bindToaster(next: Toaster | undefined) {
   toaster = next
 }
 
+/** Shows `message` as a toast. */
+export function notify(kind: 'success' | 'info' | 'error', message: string) {
+  toaster?.[kind](message)
+}
+
 /** Shows an action's or a write's failure, with the server's error folded under it. */
 export function notifyFailure(what: string, failure: unknown) {
   const error = ApiError.fromFailure(failure)

@@ -7,6 +7,8 @@
 //!   a calibration, fails its invocation before anything moves.
 //! - **One at a time:** a run holds the global lock throughout, so a manual move during one is
 //!   refused as `GlobalLockBusy`. `pause` and `resume` don't take it.
+//! - **A failed step of a plan whose policy asks** leaves the run `asking`, its `problem` said,
+//!   until `retry` or `skip`, or a cancel (ADR-0057).
 //! - **Cancelling** the invocation (`DELETE /action_invocations/{id}`) cancels the run: a move
 //!   under way is abandoned, a capture finishes, then the stage and focus halt. Its dataset keeps
 //!   what was taken.
@@ -34,8 +36,8 @@ use siq_storage::{Snapshot, free_space};
 use siq_types::{ChannelId, DatasetId};
 use siq_workflow::autofocus::SurfaceKind;
 use siq_workflow::engine::{
-    DatasetTarget, ErrorPolicy, Outcome, Overrun, Plan, Position, Progress, RunControl, RunEvent,
-    Step, TileFocus, ZPlanes, run,
+    DatasetTarget, Decision, ErrorPolicy, Outcome, Overrun, Plan, Position, Progress, RunControl,
+    RunEvent, Step, Then, TileFocus, ZPlanes, run,
 };
 use siq_workflow::scan::{self, Focusing, Order, Region, Tile, Timing};
 use teta_wot::prelude::{ActionCtx, ActionError, Event, Prop, Thing, ThingCtx, thing_impl};
@@ -54,6 +56,19 @@ pub enum RunState {
     Running,
     /// A run is paused before its next step.
     Paused,
+    /// A run waits to be told what to do with a failed step.
+    Asking,
+}
+
+/// A failed step a run waits on.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct Problem {
+    /// The step.
+    pub step: String,
+    /// Its attempt, from 1.
+    pub attempt: u32,
+    /// Why it failed.
+    pub error: String,
 }
 
 /// A frame taken, at its indices.
@@ -227,6 +242,9 @@ pub struct TileScanRequest {
     /// A focus map made first.
     #[serde(default)]
     pub focus_map: Option<FocusMapRequest>,
+    /// What a failed step does: by default, it ends the run.
+    #[serde(default)]
+    pub on_error: ErrorPolicy,
 }
 
 impl Request for TileScanRequest {
@@ -248,7 +266,7 @@ impl Request for TileScanRequest {
         Plan {
             name: self.name.clone(),
             steps: map.chain([scan]).collect(),
-            on_error: ErrorPolicy::default(),
+            on_error: self.on_error,
         }
     }
 }
@@ -263,6 +281,9 @@ pub struct ZStackRequest {
     /// What to take at each: a frame if none.
     #[serde(default)]
     pub steps: Steps,
+    /// What a failed step does: by default, it ends the run.
+    #[serde(default)]
+    pub on_error: ErrorPolicy,
 }
 
 impl Request for ZStackRequest {
@@ -273,7 +294,7 @@ impl Request for ZStackRequest {
                 planes: self.planes,
                 steps: self.steps.0.clone(),
             }],
-            on_error: ErrorPolicy::default(),
+            on_error: self.on_error,
         }
     }
 }
@@ -292,6 +313,9 @@ pub struct MultiPositionRequest {
     /// What to take at each: a frame if none.
     #[serde(default)]
     pub steps: Steps,
+    /// What a failed step does: by default, it ends the run.
+    #[serde(default)]
+    pub on_error: ErrorPolicy,
 }
 
 impl Request for MultiPositionRequest {
@@ -307,7 +331,7 @@ impl Request for MultiPositionRequest {
                 autofocus: self.autofocus,
                 steps: self.steps.0.clone(),
             }],
-            on_error: ErrorPolicy::default(),
+            on_error: self.on_error,
         }
     }
 }
@@ -331,6 +355,9 @@ pub struct TimeLapseRequest {
     /// What to do at each point: a frame if none.
     #[serde(default)]
     pub steps: Steps,
+    /// What a failed step does: by default, it ends the run.
+    #[serde(default)]
+    pub on_error: ErrorPolicy,
 }
 
 impl Request for TimeLapseRequest {
@@ -344,7 +371,7 @@ impl Request for TimeLapseRequest {
                 overrun: self.overrun,
                 steps: self.steps.0.clone(),
             }],
-            on_error: ErrorPolicy::default(),
+            on_error: self.on_error,
         }
     }
 }
@@ -529,6 +556,9 @@ pub struct Workflow {
     /// How far the run under way, or the last, has gone.
     #[property(readonly, default = None)]
     progress: Prop<Option<Progress>>,
+    /// The failed step the run waits on: `null` unless `asking`.
+    #[property(readonly, default = None)]
+    problem: Prop<Option<Problem>>,
     /// The saved positions.
     #[property(readonly, default = Vec::new())]
     positions: Prop<Vec<Position>>,
@@ -548,6 +578,15 @@ impl Workflow {
         self.saved
             .get()
             .expect("a Thing is used only once it has started")
+    }
+
+    /// Tells the run what to do with the failed step it waits on.
+    fn decide(&self, decision: Decision) -> Result<(), ActionError> {
+        if self.state.get() != RunState::Asking {
+            return Err(ActionError::handled("no failed step is waiting"));
+        }
+        self.under_way()?.decide(decision);
+        Ok(())
     }
 
     /// The run under way.
@@ -586,11 +625,27 @@ impl Workflow {
                 let _ = self.state.set(RunState::Paused);
             }
             RunEvent::Resumed => {
-                let _ = self.state.set(RunState::Running);
+                let _ = (self.state.set(RunState::Running), self.problem.set(None));
             }
             RunEvent::Problem {
-                step, error, then, ..
-            } => tracing::warn!(%step, %error, ?then, "a step of {} failed", plan.name),
+                step,
+                attempt,
+                error,
+                then,
+            } => {
+                tracing::warn!(%step, %error, ?then, "a step of {} failed", plan.name);
+                if then == Then::Ask {
+                    let problem = Problem {
+                        step,
+                        attempt,
+                        error,
+                    };
+                    let _ = (
+                        self.problem.set(Some(problem)),
+                        self.state.set(RunState::Asking),
+                    );
+                }
+            }
         };
         let devices = instrument.devices();
         let running = run(&devices, &target, &plan, &control, &observe);
@@ -605,7 +660,7 @@ impl Workflow {
             }
         };
         *self.control.lock().unwrap_or_else(PoisonError::into_inner) = None;
-        let _ = self.state.set(RunState::Idle);
+        let _ = (self.state.set(RunState::Idle), self.problem.set(None));
         let report = ran.map_err(ActionError::handled)?;
         for hook in instrument.hooks() {
             hook.on_dataset_complete(instrument, &report);
@@ -727,6 +782,18 @@ impl Workflow {
     async fn resume(&self) -> Result<(), ActionError> {
         self.under_way()?.resume();
         Ok(())
+    }
+
+    /// Tries the failed step the run waits on again. It doesn't wait for the global lock.
+    #[action(global_lock = false)]
+    async fn retry(&self) -> Result<(), ActionError> {
+        self.decide(Decision::Retry)
+    }
+
+    /// Skips the failed step the run waits on. It doesn't wait for the global lock.
+    #[action(global_lock = false)]
+    async fn skip(&self) -> Result<(), ActionError> {
+        self.decide(Decision::Skip)
     }
 
     /// Saves a position named `name`: where the stage and the focus are, unless given. A name is

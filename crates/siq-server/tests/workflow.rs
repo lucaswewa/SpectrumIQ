@@ -357,3 +357,33 @@ async fn saved_positions_are_kept_and_a_multi_position_visits_them() {
     assert_eq!(names(&kept), ["a", "c"]);
     again.stop().await;
 }
+
+// REQ-WF-005
+#[tokio::test]
+async fn a_failed_step_that_asks_waits_to_be_retried_or_skipped() {
+    let rig = rig().await;
+    let client = &rig.client;
+    // A move beyond the stage's travel, which fails each time, then a frame.
+    let steps = json!([{ "step": "move_to", "x": 1000.0, "y": 0.0 }, { "step": "snap" }]);
+    let plan = json!({ "name": "asked", "steps": steps, "on_error": { "ask": true } });
+    let invocation = client.post_json("/api/v1/workflow/run", Some(&plan)).await;
+    let problem = "/api/v1/workflow/problem";
+    let first = until(client, problem, |p| p["attempt"] == 1).await;
+    assert!(first["error"].to_string().contains("travel"), "{first}");
+    assert_eq!(client.get("/api/v1/workflow/state").await.json(), "asking");
+    invoke(client, "/api/v1/workflow/retry", json!({})).await;
+    let second = until(client, problem, |p| p["attempt"] == 2).await;
+    assert_eq!(second["step"], first["step"]);
+    invoke(client, "/api/v1/workflow/skip", json!({})).await;
+    let ended = finished(client, invocation).await;
+    assert_eq!(ended["status"], "completed", "{ended}");
+    assert_eq!(ended["output"]["frames"], 1);
+    assert_eq!(client.get(problem).await.json(), Value::Null);
+    // Nothing waits now.
+    let skipping = client
+        .post_json("/api/v1/workflow/skip", Some(&json!({})))
+        .await;
+    let refused = finished(client, skipping).await;
+    assert!(refused.to_string().contains("no failed step"), "{refused}");
+    rig.client.stop().await;
+}

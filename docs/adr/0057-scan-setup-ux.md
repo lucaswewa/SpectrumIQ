@@ -94,3 +94,37 @@
 - `crates/siq-server/tests/workflow.rs`: a scan estimated, its frame the field of view's, then run
   within 20 % of its estimate.
 - `crates/siq-workflow/tests/scan.rs`: the stack's and autofocus's terms.
+
+## Amendment (P6.7, 2026-10-26): run control, recovery, and sequences
+
+- **The run panel,** below the Scan page's pane, follows the run under way wherever it was started:
+  its steps done of the plan's, the time left at the pace so far, the step just done; thumbnails of
+  its latest eight frames; Pause or Resume; and Cancel, once a dialog confirms it ("It stops after
+  the frame under way; the frames taken so far are kept"). Once the run ends, how it ended, until
+  closed.
+- **Thumbnails come from the overview stream,** which shows every frame the acquisition publishes,
+  a run's snaps included: each frame taken (`tile_acquired`) is paired with the stream's next
+  image, shrunk to 160 pixels at once, as the stream closes its images. No server code; a frame
+  taken before the stream showed the last is paired with the next image, the latest waiting.
+- **Recovery is a policy's choice** (ADR-0052, amended): a plan's `on_error` may `ask`. A failed
+  step, once tried again as often as it says, leaves the run `asking`, the step and its error as
+  `workflow.problem`; the panel offers Retry and Skip, and Cancel still works. The form's "On a
+  failure" is "End the run", "Skip the step" or "Wait, and ask".
+- **Notifications:** each run's `finished` event is a toast, wherever the run was started:
+  success, cancelled with the frames kept, or failed with the reason.
+- **Sequences,** after `microscope`'s Sequence tab: the Scan page's second mode. Saved positions,
+  or where the stage is; channels; an autofocus and a z-stack at each position; and a time-lapse,
+  every so many seconds, so many times; started through `workflow.run` as a `time_lapse` of a
+  `multi_position` (ADR-0055). Its frames are counted; the server checks the rest.
+- **Alternatives considered:**
+  - **Thumbnails served by the workflow Thing:** a property of the last frame, made small on the
+    server, would be every client's at once, but is server code for what the stream already has.
+  - **Retry and Skip after the run has failed:** the run would have to start again and find its
+    place. Waiting keeps the run, its dataset and the global lock.
+  - **A run monitor page of its own:** the Scan page is where runs start, and the panel follows
+    runs from scripts too. A rail destination can show it later.
+- **Verification:** `web/tests/unit/scan/RunPanel.spec.ts` (the states, Pause, Resume, Retry,
+  Skip, the end; Cancel only once confirmed), `thumbnails.spec.ts`, `sequence.spec.ts`;
+  `web/tests/unit/stores/stores.spec.ts` (a toast for each end); `crates/siq-workflow/tests/engine.rs`
+  and `crates/siq-server/tests/workflow.rs` (a failed step asked about, retried, skipped);
+  `/#/dev/run`.

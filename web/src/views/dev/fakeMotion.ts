@@ -57,7 +57,7 @@ export const motionValues: Record<string, unknown> = {
 
 const followers = new Map<string, Set<(value: unknown) => void>>()
 
-function set(path: string, value: unknown) {
+export function set(path: string, value: unknown) {
   motionValues[path] = value
   followers.get(path)?.forEach((follow) => follow(value))
 }

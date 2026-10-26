@@ -60,9 +60,9 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0049](0049-the-stage-camera-calibration.md) | The stage–camera calibration: its model, storage and versioning | Accepted | P5.2 |
 | [0050](0050-the-shading-correction.md) | The shading correction, and the BaSiC simplification | Accepted | P5.3 |
 | [0051](0051-calibration-ux-and-gating.md) | The calibration UX, and the gating rules | Accepted | P5.4 |
-| [0052](0052-the-workflow-engine.md) | The workflow engine | Accepted | P6.1 |
+| [0052](0052-the-workflow-engine.md) | The workflow engine (amended in P6.7: asking) | Accepted | P6.1 |
 | [0053](0053-the-scan-planning-model.md) | The scan planning model | Accepted | P6.2 |
 | [0054](0054-autofocus-and-focus-surfaces.md) | The autofocus algorithm and the focus surface model | Accepted | P6.3 |
 | [0055](0055-the-sequence-model.md) | The sequence model | Accepted | P6.4 |
-| [0056](0056-the-workflow-api.md) | The workflow API: invocation semantics, locking and cancellation | Accepted | P6.5 |
-| [0057](0057-scan-setup-ux.md) | Scan setup UX | Accepted | P6.6 |
+| [0056](0056-the-workflow-api.md) | The workflow API: invocation semantics, locking and cancellation (amended in P6.7: recovery) | Accepted | P6.5 |
+| [0057](0057-scan-setup-ux.md) | Scan setup UX (amended in P6.7: run control, recovery and sequences) | Accepted | P6.6 |

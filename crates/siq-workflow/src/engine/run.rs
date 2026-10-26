@@ -18,8 +18,8 @@ use siq_storage::{
 use siq_types::{DatasetId, Micrometers, Timestamp};
 
 use super::{
-    ErrorPolicy, Index, Overrun, Plan, Position, Progress, RunControl, RunEvent, Step, Then,
-    TileFocus, count,
+    Decision, ErrorPolicy, Index, Overrun, Plan, Position, Progress, RunControl, RunEvent, Step,
+    Then, TileFocus, count,
 };
 use crate::DeviceSet;
 use crate::autofocus::{self, AutofocusPlan, FittedSurface, FocusSurface};
@@ -687,11 +687,15 @@ impl Runner<'_> {
                 Err(Stop::Cancelled) => return Err(Stop::Cancelled),
                 Err(Stop::Failed(error)) => error,
             };
-            let then = match (attempt <= policy.retries, policy.skip) {
-                (true, _) => Then::Retry,
-                (false, true) => Then::Skip,
-                (false, false) => Then::Stop,
+            let then = match (attempt <= policy.retries, policy.ask, policy.skip) {
+                (true, _, _) => Then::Retry,
+                (false, true, _) => Then::Ask,
+                (false, false, true) => Then::Skip,
+                (false, false, false) => Then::Stop,
             };
+            if then == Then::Ask {
+                self.control.forget();
+            }
             let step = what.clone();
             let problem = RunEvent::Problem {
                 step,
@@ -700,10 +704,22 @@ impl Runner<'_> {
                 then,
             };
             (self.observe)(problem);
+            let then = match then {
+                Then::Ask => {
+                    let decided = self.control.decision().await.ok_or(Stop::Cancelled)?;
+                    (self.observe)(RunEvent::Resumed);
+                    match decided {
+                        Decision::Retry => Then::Retry,
+                        Decision::Skip => Then::Skip,
+                        Decision::Stop => Then::Stop,
+                    }
+                }
+                then => then,
+            };
             match then {
                 Then::Retry => continue,
                 Then::Skip => break,
-                Then::Stop => return Err(Stop::Failed(format!("{what}: {error}"))),
+                Then::Stop | Then::Ask => return Err(Stop::Failed(format!("{what}: {error}"))),
             }
         }
         self.done += 1;
@@ -855,6 +871,7 @@ impl Runner<'_> {
         let (mut found, mut missed) = (Vec::new(), Vec::new());
         let lenient = ErrorPolicy {
             skip: true,
+            ask: false,
             ..policy
         };
         for &[x, y] in places {

@@ -205,8 +205,8 @@ A phase is Done once it is merged.
 | P6.3 | Autofocus and focus maps | 800 | P6.1 | Done |
 | P6.4 | Z-stacks, multi-position, time-lapse | 700 | P6.2, P6.3 | Done |
 | P6.5 | `workflow` Thing, saved positions, scripting | 600 | P6.4 | Done |
-| P6.6 | Scan setup UI | 900 | P6.5, P5.4 | Review |
-| P6.7 | Run monitor and sequence UI | 700 | P6.6 | — |
+| P6.6 | Scan setup UI | 900 | P6.5, P5.4 | Done |
+| P6.7 | Run monitor and sequence UI | 700 | P6.6 | Review |
 
 ### M7 — Real-time live stitching ([brief](milestones/M07-live-stitching.md))
 

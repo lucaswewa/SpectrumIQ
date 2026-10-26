@@ -14,7 +14,8 @@
 //!   - it reports [`Progress`] and other [`RunEvent`]s as it goes;
 //!   - between steps it waits while paused, and stops when cancelled. A move under way is
 //!     abandoned, a capture finishes; then the stage and the focus are halted;
-//!   - a failed step is tried again, skipped or the end of the run, by its [`ErrorPolicy`].
+//!   - a failed step is tried again, skipped or the end of the run, by its [`ErrorPolicy`], or
+//!     the run waits for [`RunControl::decide`] to say which.
 
 mod run;
 
@@ -52,6 +53,10 @@ pub struct ErrorPolicy {
     /// Whether it is then skipped, rather than ending the run.
     #[serde(default)]
     pub skip: bool,
+    /// Whether the run then waits to be told: tried again, skipped or the run's end
+    /// ([`RunControl::decide`]), whatever `skip` says.
+    #[serde(default)]
+    pub ask: bool,
 }
 
 /// A step of a plan.
@@ -386,6 +391,20 @@ pub enum Then {
     Skip,
     /// The run ends.
     Stop,
+    /// The run waits to be told which.
+    Ask,
+}
+
+/// What a run waiting on a failed step is told to do with it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Decision {
+    /// Try it again.
+    Retry,
+    /// Skip it.
+    Skip,
+    /// End the run.
+    Stop,
 }
 
 /// What happens in a run, as it happens.
@@ -439,11 +458,17 @@ pub enum Command {
 
 /// Pauses, resumes and cancels a run, from anywhere: its clones share it.
 #[derive(Debug, Clone)]
-pub struct RunControl(std::sync::Arc<watch::Sender<Command>>);
+pub struct RunControl {
+    commands: std::sync::Arc<watch::Sender<Command>>,
+    decisions: std::sync::Arc<watch::Sender<Option<Decision>>>,
+}
 
 impl Default for RunControl {
     fn default() -> Self {
-        Self(std::sync::Arc::new(watch::Sender::new(Command::Run)))
+        Self {
+            commands: std::sync::Arc::new(watch::Sender::new(Command::Run)),
+            decisions: std::sync::Arc::new(watch::Sender::new(None)),
+        }
     }
 }
 
@@ -455,12 +480,12 @@ impl RunControl {
 
     /// What the run is asked to do now.
     pub fn command(&self) -> Command {
-        *self.0.borrow()
+        *self.commands.borrow()
     }
 
     /// Pauses the run before its next step, unless it is cancelled.
     pub fn pause(&self) {
-        self.0.send_if_modified(|now| {
+        self.commands.send_if_modified(|now| {
             let pause = *now == Command::Run;
             if pause {
                 *now = Command::Pause;
@@ -471,7 +496,7 @@ impl RunControl {
 
     /// Lets a paused run go on.
     pub fn resume(&self) {
-        self.0.send_if_modified(|now| {
+        self.commands.send_if_modified(|now| {
             let resume = *now == Command::Pause;
             if resume {
                 *now = Command::Run;
@@ -482,12 +507,34 @@ impl RunControl {
 
     /// Stops the run.
     pub fn cancel(&self) {
-        self.0.send_replace(Command::Cancel);
+        self.commands.send_replace(Command::Cancel);
+    }
+
+    /// Tells a run waiting on a failed step what to do with it.
+    pub fn decide(&self, decision: Decision) {
+        self.decisions.send_replace(Some(decision));
+    }
+
+    /// Forgets what it was told before a step failed.
+    fn forget(&self) {
+        self.decisions.send_replace(None);
+    }
+
+    /// Waits to be told what to do with a failed step, and takes it: `None` if the run is
+    /// cancelled first.
+    async fn decision(&self) -> Option<Decision> {
+        let mut decisions = self.decisions.subscribe();
+        let told = tokio::select! {
+            told = decisions.wait_for(Option::is_some) => told.ok().and_then(|told| *told),
+            () = self.cancelled() => None,
+        };
+        self.forget();
+        told
     }
 
     /// Resolves once the run is cancelled.
     pub async fn cancelled(&self) {
-        let mut commands = self.0.subscribe();
+        let mut commands = self.commands.subscribe();
         let _ = commands
             .wait_for(|command| *command == Command::Cancel)
             .await;
@@ -495,7 +542,7 @@ impl RunControl {
 
     /// Resolves once the run isn't paused: whether it may go on.
     async fn unpaused(&self) -> bool {
-        let mut commands = self.0.subscribe();
+        let mut commands = self.commands.subscribe();
         let command = commands
             .wait_for(|command| *command != Command::Pause)
             .await;

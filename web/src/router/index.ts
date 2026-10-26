@@ -76,6 +76,11 @@ const devRoutes: RouteRecordRaw[] = import.meta.env.DEV
         name: 'dev-scan',
         component: () => import('@/views/dev/ScanDemoView.vue'),
       },
+      {
+        path: '/dev/run',
+        name: 'dev-run',
+        component: () => import('@/views/dev/RunDemoView.vue'),
+      },
     ]
   : []
 

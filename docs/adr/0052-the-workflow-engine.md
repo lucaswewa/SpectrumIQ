@@ -103,3 +103,13 @@
   - the manifest's plan, instrument and calibration, and plans refused before any dataset.
 - **`run_plan_sim`:** a small time-lapse of a multi-position acquisition in two channels on the
   simulated instrument.
+
+## Amendment (P6.7, 2026-10-26): asking
+
+- **`ErrorPolicy.ask`:** once a failed step has been tried again `retries` times, the run waits to
+  be told what to do with it: `RunControl::decide(Retry | Skip | Stop)`, whatever `skip` says. Its
+  `Problem` event says `Then::Ask`, and a `Resumed` event follows the decision. A cancel ends the
+  wait as it ends a pause.
+- **A decision is taken once:** one made before a step fails is forgotten, so a late Skip doesn't
+  skip the next failure.
+- **A focus map's places** still leave out those with nothing to focus on without asking.

@@ -113,10 +113,10 @@ instrument.
 | `scan::estimate(&grid, start, settle_s, &exposures_s, frame_bytes, &focusing, &timing)` | `Estimate { tiles, frames, seconds, bytes }`, and `fits(free, keep)`; `Focusing { planes, autofocus, map_places }`; `Timing`'s defaults are the simulator's, a focus move 0.15 s |
 | `scan::frame(&l, field)` | A frame's corners about where the stage is, in µm |
 | `plan.check()` | The engine's checks that need no instrument: a name and a step, lengths, ranges, planes, points, positions, and a focus map before any surface. `run` makes them first; the server's requests make them as they are read |
-| `engine::ErrorPolicy { retries, skip }` | A failed step tried again `retries` times, then skipped if `skip`, else the run's end |
+| `engine::ErrorPolicy { retries, skip, ask }` | A failed step tried again `retries` times, then, with `ask`, the run waits for `RunControl::decide(Decision::{Retry, Skip, Stop})`; else skipped if `skip`, else the run's end |
 | `engine::run(&devices, &target, &plan, &control, &observe)` | `RunReport { dataset, path, outcome, error, steps, frames }`, or `RunError` (`Invalid`, `Storage`) before any dataset is made |
 | `engine::DatasetTarget` | `data_root`, `min_free`, `catalog`, and the `instrument`'s snapshot |
-| `engine::RunControl` | `pause`, `resume`, `cancel`, `command`, `cancelled`; its clones share it |
+| `engine::RunControl` | `pause`, `resume`, `cancel`, `decide`, `command`, `cancelled`; its clones share it |
 | `engine::RunEvent` | `Progress { progress }` (`done`, `total`, `eta_s`, `step`), `Frame { t, c, z, p }`, `Paused`, `Resumed`, `Problem { step, attempt, error, then }` |
 | `engine::Outcome` | `Finished`, `Cancelled`, `Failed` |
 | `DeviceSet` | `acquisition`, `camera`, `stage`, `focus`, `illumination`, `filter_wheel`, `turret`, `modality`, `channels`, `calibrations`, `clock` |
@@ -158,7 +158,8 @@ and peripherals:
 - a paused run waiting before its next step, then going on;
 - a cancelled run abandoning its move, the stage halted, its frames kept;
 - a capture under way finishing before a cancelled run stops, and the camera ready after;
-- the error policies: tried again, skipped, the run's end, and a group's own;
+- the error policies: tried again, skipped, the run's end, and a group's own; asked, and told to
+  try again, skip, stop, or cancelled while it waits;
 - the manifest's plan, instrument and calibration; a plan refused before any dataset, and a key
   taken twice;
 - on tokio's paused clock, a time-lapse's schedule through a pause, a cancel while it waits, and

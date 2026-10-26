@@ -100,3 +100,10 @@
   - `saved_positions_are_kept_and_a_multi_position_visits_them`, across a restart.
 - **The scripts** `examples/python/tile_scan.py`, `z_stack.py` and `timelapse.py`, against the
   simulated server.
+
+## Amendment (P6.7, 2026-10-26): recovery
+
+- **`state` gains `asking`:** a run whose policy asks waits on a failed step, which `problem`
+  says (its step, attempt and error). `retry` and `skip` tell it, without the global lock; a
+  `DELETE` of the invocation still cancels it.
+- **Every run takes `on_error`,** the named ones too.

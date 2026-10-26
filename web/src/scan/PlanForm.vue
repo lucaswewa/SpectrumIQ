@@ -31,6 +31,11 @@ const FOCUS = [
   { value: 'map', label: 'On a focus map' },
   { value: 'autofocus', label: 'Autofocus at each tile' },
 ] as const
+const ON_ERROR = [
+  { value: 'stop', label: 'End the run' },
+  { value: 'skip', label: 'Skip the step' },
+  { value: 'ask', label: 'Wait, and ask' },
+] as const
 const DIRECTIONS = [
   { value: 'up', label: 'Up' },
   { value: 'down', label: 'Down' },
@@ -83,6 +88,9 @@ const overlap = computed({
         <AppSelect v-model="form.stack.direction" :options="DIRECTIONS" size="sm" />
       </FormField>
     </template>
+    <FormField label="On a failure">
+      <AppSelect v-model="form.onError" :options="ON_ERROR" size="sm" />
+    </FormField>
   </div>
 </template>
 

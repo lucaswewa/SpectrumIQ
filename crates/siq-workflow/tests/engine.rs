@@ -406,15 +406,15 @@ async fn a_failed_step_is_tried_again_skipped_or_ends_the_run() {
 
     let retried = ErrorPolicy {
         retries: 1,
-        skip: false,
+        ..ErrorPolicy::default()
     };
     let (report, seen) = attempt(retried).await;
     assert_eq!((report.outcome, report.frames), (Outcome::Finished, 1));
     assert_eq!(seen, [(1, Then::Retry)]);
 
     let skipped = ErrorPolicy {
-        retries: 0,
         skip: true,
+        ..ErrorPolicy::default()
     };
     let (report, seen) = attempt(skipped).await;
     assert_eq!((report.outcome, report.steps), (Outcome::Finished, [2, 2]));
@@ -437,6 +437,43 @@ async fn a_failed_step_is_tried_again_skipped_or_ends_the_run() {
     }];
     let report = run(&rig.devices, &rig.target, &plan(steps), &control, &|_| {}).await;
     assert_eq!(report.unwrap().outcome, Outcome::Finished);
+
+    // Asked, the run waits to be told: tried again, skipped, the run's end, or cancelled.
+    let asked = ErrorPolicy {
+        ask: true,
+        skip: true,
+        ..ErrorPolicy::default()
+    };
+    for (decision, expected) in [
+        (Some(Decision::Retry), (Outcome::Finished, [2, 2], 1)),
+        (Some(Decision::Skip), (Outcome::Finished, [2, 2], 1)),
+        (Some(Decision::Stop), (Outcome::Failed, [0, 2], 0)),
+        (None, (Outcome::Cancelled, [0, 2], 0)),
+    ] {
+        let control = RunControl::new();
+        let events = Events::default();
+        let observe = |event: RunEvent| {
+            if matches!(
+                event,
+                RunEvent::Problem {
+                    then: Then::Ask,
+                    ..
+                }
+            ) {
+                match decision {
+                    Some(decision) => control.decide(decision),
+                    None => control.cancel(),
+                }
+            }
+            events.0.lock().unwrap().push(event);
+        };
+        rig.stage.inner.fail_next(fault());
+        let report = run(&rig.devices, &rig.target, &with(asked), &control, &observe).await;
+        let report = report.unwrap();
+        let ended = (report.outcome, report.steps, report.frames);
+        assert_eq!(ended, expected, "{decision:?}");
+        assert_eq!(problems(&events), [(1, Then::Ask)], "{decision:?}");
+    }
 }
 
 #[tokio::test]

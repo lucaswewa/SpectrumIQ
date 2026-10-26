@@ -16,29 +16,29 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
 - **Phase:** P3.1; P3.2 added the observation sockets, the stream budget, the stores and the
   API types; P3.3 the Live page; P3.4 its stage, focus and peripheral controls; P3.5 the desktop
   shell's host; P4.8 the Datasets and Viewer pages; P5.4 the Calibration page and its wizard;
-  P6.6 the Scan page, and the saved positions on the server.
+  P6.6 the Scan page, and the saved positions on the server; P6.7 the run panel and sequences.
 
 ## Layout
 
-| Folder             | What                                                                                                                                                                       |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/theme/`       | The design tokens (two layers, light and dark), and the theme store                                                                                                        |
-| `src/host/`        | The `HostAdapter`: the only way to the platform (links, files, full screen). The browser's, or the desktop shell's (`tauri.ts`, ADR-0040)                                  |
-| `src/api/wot/`     | The TD-driven client: properties, actions as invocations, observations over each Thing's WebSocket (SSE as the fallback), MJPEG over fetch, `ApiError`                     |
-| `src/api/`         | `streams.ts`, the budget of 3 MJPEG streams; `generated/`, the server's OpenAPI document and its types                                                                     |
-| `src/stores/`      | Pinia stores: `connection`, and `camera`, `display`, `stage`, `focus`, `imaging`, `peripherals`, `datasets`, `calibration`, `workflow`, mirroring their Things             |
-| `src/app/`         | The shell: the navigation rail, keyboard shortcuts, and the placeholder of pages not built yet                                                                             |
-| `src/ui/`          | The components: native elements, and wrappers of Reka UI. Only this folder imports `reka-ui`                                                                               |
-| `src/router/`      | One hash route per destination of the rail, and the development galleries                                                                                                  |
-| `src/live/`        | The Live page: the overview and the ROI streams, the ROI dragged on the overview, the display and camera controls, the histogram, the focus readout                        |
-| `src/control/`     | The stage, focus and peripherals on the Live page: the keys and the d-pad, the wheel, click-to-move, STOP, Home, the steps, saved positions (ADR-0039), kept by the server |
-| `src/datasets/`    | The Datasets page: cards with thumbnails, filtered by kind and name, a dataset's manifest and history beside them, its exports, and deleting it                            |
-| `src/viewer2d/`    | The Viewer page: OpenSeadragon with an additive tiled image per channel, the channels' LUT store and controls, z and t, the scale bar, the probe                           |
-| `src/overlay/`     | Overlay layers drawn over an image, from `microscope`, and the Layers menu: used by the viewer, filled by M8                                                               |
-| `src/calibration/` | The Calibration page, and the wizard from `microscope` (ADR-0051): its tasks per objective and channel, the first-run prompt, and the gating rules                         |
-| `src/scan/`        | The Scan page (ADR-0057): the stage map and its geometry, the plan's form and checks, the server's estimate, and Start                                                     |
-| `src/system/`      | The About page                                                                                                                                                             |
-| `src/views/dev/`   | The galleries, `/#/dev/components` and `/#/dev/tokens`, and `/#/dev/observe`: in development builds only                                                                   |
+| Folder             | What                                                                                                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/theme/`       | The design tokens (two layers, light and dark), and the theme store                                                                                                         |
+| `src/host/`        | The `HostAdapter`: the only way to the platform (links, files, full screen). The browser's, or the desktop shell's (`tauri.ts`, ADR-0040)                                   |
+| `src/api/wot/`     | The TD-driven client: properties, actions as invocations, observations over each Thing's WebSocket (SSE as the fallback), MJPEG over fetch, `ApiError`                      |
+| `src/api/`         | `streams.ts`, the budget of 3 MJPEG streams; `generated/`, the server's OpenAPI document and its types                                                                      |
+| `src/stores/`      | Pinia stores: `connection`, and `camera`, `display`, `stage`, `focus`, `imaging`, `peripherals`, `datasets`, `calibration`, `workflow`, mirroring their Things              |
+| `src/app/`         | The shell: the navigation rail, keyboard shortcuts, and the placeholder of pages not built yet                                                                              |
+| `src/ui/`          | The components: native elements, and wrappers of Reka UI. Only this folder imports `reka-ui`                                                                                |
+| `src/router/`      | One hash route per destination of the rail, and the development galleries                                                                                                   |
+| `src/live/`        | The Live page: the overview and the ROI streams, the ROI dragged on the overview, the display and camera controls, the histogram, the focus readout                         |
+| `src/control/`     | The stage, focus and peripherals on the Live page: the keys and the d-pad, the wheel, click-to-move, STOP, Home, the steps, saved positions (ADR-0039), kept by the server  |
+| `src/datasets/`    | The Datasets page: cards with thumbnails, filtered by kind and name, a dataset's manifest and history beside them, its exports, and deleting it                             |
+| `src/viewer2d/`    | The Viewer page: OpenSeadragon with an additive tiled image per channel, the channels' LUT store and controls, z and t, the scale bar, the probe                            |
+| `src/overlay/`     | Overlay layers drawn over an image, from `microscope`, and the Layers menu: used by the viewer, filled by M8                                                                |
+| `src/calibration/` | The Calibration page, and the wizard from `microscope` (ADR-0051): its tasks per objective and channel, the first-run prompt, and the gating rules                          |
+| `src/scan/`        | The Scan page (ADR-0057): the stage map and its geometry, the plan's form and checks, the server's estimate, and Start; the sequence form; the run panel and its thumbnails |
+| `src/system/`      | The About page                                                                                                                                                              |
+| `src/views/dev/`   | The galleries, `/#/dev/components` and `/#/dev/tokens`, and `/#/dev/observe`: in development builds only                                                                    |
 
 The rail lists architecture §11's destinations. Each shows once the instrument serves the Thing it
 needs. Until its page is built, a destination says which milestone builds it.
@@ -77,8 +77,11 @@ npm run dev
 8. Open `/#/dev/scan`: the Scan page against a fake instrument, the 20× in place. Draw a region with
    Rectangle or Polygon, pick a focus map's places with Places, and watch the estimate follow.
    With the server, `/#/scan` plans on the simulated stage, calibrated first on `/#/calibration`.
-9. Switch the theme with the system's setting, or with `localStorage['spectrumiq.theme']`: `light`,
-   `dark` or `system`.
+9. Open `/#/dev/run`: the same page, with runs that take a step every half second. Start a scan
+   or a sequence, then pause, resume and cancel it; with On a failure set to "Wait, and ask", it
+   waits at its fourth step for Retry or Skip.
+10. Switch the theme with the system's setting, or with `localStorage['spectrumiq.theme']`: `light`,
+    `dark` or `system`.
 
 To see the app as the server serves it, build it (`npm run build`). Then either start the server
 with `--webapp-dir web/dist`, or build a release server, which embeds `dist/`, and open

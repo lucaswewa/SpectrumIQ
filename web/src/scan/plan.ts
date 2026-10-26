@@ -3,6 +3,7 @@
 import type { TileScanRequest } from '@/stores/workflow'
 
 import type { Point } from './geometry'
+import { policy, type OnError } from './sequence'
 
 /** A region of the stage, as a tile scan takes it. */
 export type Region = TileScanRequest['region']
@@ -26,6 +27,7 @@ export interface ScanForm {
   /** For `map` and `autofocus`: each autofocus's range, in µm. */
   rangeUm: number
   stack: { on: boolean; rangeUm: number; stepUm: number; direction: 'up' | 'down' }
+  onError: OnError
 }
 
 /** A new form: no region yet, the channel in use, 10 % overlap, a snake, as the focus is. */
@@ -40,6 +42,7 @@ export function newForm(): ScanForm {
     places: [],
     rangeUm: 50,
     stack: { on: false, rangeUm: 10, stepUm: 2, direction: 'up' },
+    onError: 'stop',
   }
 }
 
@@ -89,6 +92,7 @@ export function request(form: ScanForm): TileScanRequest | undefined {
       form.focus === 'map'
         ? { places: form.places, surface: 'thin_plate', range_um: form.rangeUm }
         : null,
+    on_error: policy(form.onError),
   }
 }
 

@@ -1,4 +1,4 @@
-// REQ-NET-002: the stores, against a fake server and fake observation sockets (ADR-0037).
+// REQ-NET-002, REQ-WF-005: the stores, against a fake server and fake observation sockets (ADR-0037).
 import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,6 +9,7 @@ import { useCameraStore } from '@/stores/camera'
 import { useConnectionStore } from '@/stores/connection'
 import { useStageStore } from '@/stores/stage'
 import { bindToaster } from '@/stores/thing'
+import { useWorkflowStore } from '@/stores/workflow'
 import type { Toaster } from '@/ui/overlays'
 
 import { fakeServer, json, type Received } from '../api/fakeServer'
@@ -176,5 +177,32 @@ describe('the stores', () => {
     expect(await store.setExposure(25)).toBe(true)
     expect(store.exposureMs).toBe(25)
     expect(server.received.some((request) => request.method === 'PUT')).toBe(true)
+  })
+})
+
+describe('the workflow store', () => {
+  it('toasts each run as it ends, wherever it was started', async () => {
+    const toaster = { success: vi.fn(), info: vi.fn(), error: vi.fn() } satisfies Toaster
+    bindToaster(toaster)
+    const workflow = describeThing('workflow', { state: true }, [], ['finished'])
+    const { sockets } = await connect({
+      'GET /api/v1/thing_descriptions/': { stage, camera, workflow },
+      'GET /api/v1/workflow/state': 'idle',
+    })
+    const store = useWorkflowStore()
+    await flushPromises()
+    const wire = sockets.opened.find((socket) => socket.url.includes('/workflow/'))!
+    wire.open()
+    const end = (outcome: string, error: string | null = null) => {
+      const data = { name: 'scan', dataset: '1', outcome, error, steps: [3, 3], frames: 3 }
+      wire.receive({ messageType: 'event', data: { finished: { data } } })
+    }
+    end('finished')
+    end('cancelled')
+    end('failed', 'the stage stopped')
+    expect(toaster.success).toHaveBeenCalledExactlyOnceWith('scan finished: 3 frames.')
+    expect(toaster.info).toHaveBeenCalledExactlyOnceWith('scan was cancelled: 3 frames kept.')
+    expect(toaster.error).toHaveBeenCalledExactlyOnceWith('scan failed: the stage stopped.')
+    expect(store.finished?.outcome).toBe('failed')
   })
 })

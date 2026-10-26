@@ -4999,6 +4999,31 @@
         }
       }
     },
+    "/api/v1/workflow/problem": {
+      "get": {
+        "summary": "The failed step the run waits on: `null` unless `asking`.",
+        "description": "## The failed step the run waits on: `null` unless `asking`.\n\nThe failed step the run waits on: `null` unless `asking`.",
+        "operationId": "get_property_api_v1_workflow_problem_get",
+        "responses": {
+          "200": {
+            "description": "Value of problem",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_problem_value"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each new value as JSON in a `data:` line. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workflow/progress": {
       "get": {
         "summary": "How far the run under way, or the last, has gone.",
@@ -5230,6 +5255,74 @@
         }
       }
     },
+    "/api/v1/workflow/retry": {
+      "get": {
+        "summary": "All invocations of retry.",
+        "description": "List all the invocations of retry that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_retry_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Tries the failed step the run waits on again. It doesn't wait for the global lock.",
+        "description": "## Tries the failed step the run waits on again. It doesn't wait for the global lock.\n\nTries the failed step the run waits on again. It doesn't wait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_retry_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_retry_input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_retry_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_retry_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workflow/run": {
       "get": {
         "summary": "All invocations of run.",
@@ -5351,6 +5444,74 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/workflow_save_position_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/skip": {
+      "get": {
+        "summary": "All invocations of skip.",
+        "description": "List all the invocations of skip that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_skip_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of skip.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Skips the failed step the run waits on. It doesn't wait for the global lock.",
+        "description": "## Skips the failed step the run waits on. It doesn't wait for the global lock.\n\nSkips the failed step the run waits on. It doesn't wait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_skip_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_skip_input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_skip_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_skip_output"
                 }
               }
             }
@@ -13071,6 +13232,33 @@
                 "type": "null"
               }
             ]
+          },
+          "on_error": {
+            "description": "What a failed step does: by default, it ends the run.",
+            "default": {
+              "retries": 0,
+              "skip": false,
+              "ask": false
+            },
+            "type": "object",
+            "properties": {
+              "retries": {
+                "description": "How many times it is tried again.",
+                "default": 0,
+                "type": "integer",
+                "minimum": 0
+              },
+              "skip": {
+                "description": "Whether it is then skipped, rather than ending the run.",
+                "default": false,
+                "type": "boolean"
+              },
+              "ask": {
+                "description": "Whether the run then waits to be told: tried again, skipped or the run's end\n([`RunControl::decide`]), whatever `skip` says.",
+                "default": false,
+                "type": "boolean"
+              }
+            }
           }
         },
         "required": [
@@ -13438,6 +13626,33 @@
             "items": {
               "type": "object"
             }
+          },
+          "on_error": {
+            "description": "What a failed step does: by default, it ends the run.",
+            "default": {
+              "retries": 0,
+              "skip": false,
+              "ask": false
+            },
+            "type": "object",
+            "properties": {
+              "retries": {
+                "description": "How many times it is tried again.",
+                "default": 0,
+                "type": "integer",
+                "minimum": 0
+              },
+              "skip": {
+                "description": "Whether it is then skipped, rather than ending the run.",
+                "default": false,
+                "type": "boolean"
+              },
+              "ask": {
+                "description": "Whether the run then waits to be told: tried again, skipped or the run's end\n([`RunControl::decide`]), whatever `skip` says.",
+                "default": false,
+                "type": "boolean"
+              }
+            }
           }
         },
         "required": [
@@ -13773,6 +13988,37 @@
             "y"
           ]
         }
+      },
+      "workflow_problem_value": {
+        "oneOf": [
+          {
+            "description": "A failed step a run waits on.",
+            "type": "object",
+            "properties": {
+              "step": {
+                "description": "The step.",
+                "type": "string"
+              },
+              "attempt": {
+                "description": "Its attempt, from 1.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "error": {
+                "description": "Why it failed.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "step",
+              "attempt",
+              "error"
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "workflow_progress_value": {
         "oneOf": [
@@ -14252,6 +14498,121 @@
           "log"
         ]
       },
+      "workflow_retry_input": {
+        "description": "Represent the input of an action that never takes parameters.\n\nThis may be either an empty dictionary or ``None``.",
+        "oneOf": [
+          {
+            "description": "A model representing an object that must have no keys.",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "workflow_retry_output": {
+        "type": "null"
+      },
+      "workflow_retry_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_retry_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_retry_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
       "workflow_run_input": {
         "description": "Any plan.",
         "type": "object",
@@ -14271,7 +14632,8 @@
             "description": "What a failed step does: by default, it ends the run.",
             "default": {
               "retries": 0,
-              "skip": false
+              "skip": false,
+              "ask": false
             },
             "type": "object",
             "properties": {
@@ -14283,6 +14645,11 @@
               },
               "skip": {
                 "description": "Whether it is then skipped, rather than ending the run.",
+                "default": false,
+                "type": "boolean"
+              },
+              "ask": {
+                "description": "Whether the run then waits to be told: tried again, skipped or the run's end\n([`RunControl::decide`]), whatever `skip` says.",
                 "default": false,
                 "type": "boolean"
               }
@@ -14658,6 +15025,121 @@
           "log"
         ]
       },
+      "workflow_skip_input": {
+        "description": "Represent the input of an action that never takes parameters.\n\nThis may be either an empty dictionary or ``None``.",
+        "oneOf": [
+          {
+            "description": "A model representing an object that must have no keys.",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "workflow_skip_output": {
+        "type": "null"
+      },
+      "workflow_skip_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_skip_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_skip_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
       "workflow_state_value": {
         "description": "What the workflow is doing.",
         "oneOf": [
@@ -14674,6 +15156,11 @@
           {
             "description": "A run is paused before its next step.",
             "const": "paused",
+            "type": "string"
+          },
+          {
+            "description": "A run waits to be told what to do with a failed step.",
+            "const": "asking",
             "type": "string"
           }
         ]
@@ -14986,6 +15473,33 @@
                 "type": "null"
               }
             ]
+          },
+          "on_error": {
+            "description": "What a failed step does: by default, it ends the run.",
+            "default": {
+              "retries": 0,
+              "skip": false,
+              "ask": false
+            },
+            "type": "object",
+            "properties": {
+              "retries": {
+                "description": "How many times it is tried again.",
+                "default": 0,
+                "type": "integer",
+                "minimum": 0
+              },
+              "skip": {
+                "description": "Whether it is then skipped, rather than ending the run.",
+                "default": false,
+                "type": "boolean"
+              },
+              "ask": {
+                "description": "Whether the run then waits to be told: tried again, skipped or the run's end\n([`RunControl::decide`]), whatever `skip` says.",
+                "default": false,
+                "type": "boolean"
+              }
+            }
           }
         },
         "required": [
@@ -15217,6 +15731,33 @@
             "items": {
               "type": "object"
             }
+          },
+          "on_error": {
+            "description": "What a failed step does: by default, it ends the run.",
+            "default": {
+              "retries": 0,
+              "skip": false,
+              "ask": false
+            },
+            "type": "object",
+            "properties": {
+              "retries": {
+                "description": "How many times it is tried again.",
+                "default": 0,
+                "type": "integer",
+                "minimum": 0
+              },
+              "skip": {
+                "description": "Whether it is then skipped, rather than ending the run.",
+                "default": false,
+                "type": "boolean"
+              },
+              "ask": {
+                "description": "Whether the run then waits to be told: tried again, skipped or the run's end\n([`RunControl::decide`]), whatever `skip` says.",
+                "default": false,
+                "type": "boolean"
+              }
+            }
           }
         },
         "required": [
@@ -15438,6 +15979,33 @@
             "type": "array",
             "items": {
               "type": "object"
+            }
+          },
+          "on_error": {
+            "description": "What a failed step does: by default, it ends the run.",
+            "default": {
+              "retries": 0,
+              "skip": false,
+              "ask": false
+            },
+            "type": "object",
+            "properties": {
+              "retries": {
+                "description": "How many times it is tried again.",
+                "default": 0,
+                "type": "integer",
+                "minimum": 0
+              },
+              "skip": {
+                "description": "Whether it is then skipped, rather than ending the run.",
+                "default": false,
+                "type": "boolean"
+              },
+              "ask": {
+                "description": "Whether the run then waits to be told: tried again, skipped or the run's end\n([`RunControl::decide`]), whatever `skip` says.",
+                "default": false,
+                "type": "boolean"
+              }
             }
           }
         },

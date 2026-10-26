@@ -3424,6 +3424,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflow/problem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The failed step the run waits on: `null` unless `asking`.
+         * @description ## The failed step the run waits on: `null` unless `asking`.
+         *
+         *     The failed step the run waits on: `null` unless `asking`.
+         */
+        get: operations["get_property_api_v1_workflow_problem_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workflow/progress": {
         parameters: {
             query?: never;
@@ -3536,6 +3558,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflow/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of retry.
+         * @description List all the invocations of retry that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_retry_get"];
+        put?: never;
+        /**
+         * Tries the failed step the run waits on again. It doesn't wait for the global lock.
+         * @description ## Tries the failed step the run waits on again. It doesn't wait for the global lock.
+         *
+         *     Tries the failed step the run waits on again. It doesn't wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workflow/run": {
         parameters: {
             query?: never;
@@ -3592,6 +3644,36 @@ export interface paths {
          *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
          */
         post: operations["start_action_api_v1_workflow_save_position_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/skip": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of skip.
+         * @description List all the invocations of skip that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_skip_get"];
+        put?: never;
+        /**
+         * Skips the failed step the run waits on. It doesn't wait for the global lock.
+         * @description ## Skips the failed step the run waits on. It doesn't wait for the global lock.
+         *
+         *     Skips the failed step the run waits on. It doesn't wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_skip_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5572,6 +5654,32 @@ export interface components {
                  */
                 range_um?: number;
             } | null;
+            /**
+             * @description What a failed step does: by default, it ends the run.
+             * @default {
+             *       "retries": 0,
+             *       "skip": false,
+             *       "ask": false
+             *     }
+             */
+            on_error?: {
+                /**
+                 * @description How many times it is tried again.
+                 * @default 0
+                 */
+                retries?: number;
+                /**
+                 * @description Whether it is then skipped, rather than ending the run.
+                 * @default false
+                 */
+                skip?: boolean;
+                /**
+                 * @description Whether the run then waits to be told: tried again, skipped or the run's end
+                 *     ([`RunControl::decide`]), whatever `skip` says.
+                 * @default false
+                 */
+                ask?: boolean;
+            };
         };
         /** @description What a tile scan would be. */
         workflow_estimate_tile_scan_output: {
@@ -5666,6 +5774,32 @@ export interface components {
              * @default []
              */
             steps?: Record<string, never>[];
+            /**
+             * @description What a failed step does: by default, it ends the run.
+             * @default {
+             *       "retries": 0,
+             *       "skip": false,
+             *       "ask": false
+             *     }
+             */
+            on_error?: {
+                /**
+                 * @description How many times it is tried again.
+                 * @default 0
+                 */
+                retries?: number;
+                /**
+                 * @description Whether it is then skipped, rather than ending the run.
+                 * @default false
+                 */
+                skip?: boolean;
+                /**
+                 * @description Whether the run then waits to be told: tried again, skipped or the run's end
+                 *     ([`RunControl::decide`]), whatever `skip` says.
+                 * @default false
+                 */
+                ask?: boolean;
+            };
         };
         /** @description How a run ended. */
         workflow_multi_position_output: {
@@ -5740,6 +5874,14 @@ export interface components {
             /** @description The focus, in µm: where it is if not given. */
             focus?: number | null;
         }[];
+        workflow_problem_value: {
+            /** @description The step. */
+            step: string;
+            /** @description Its attempt, from 1. */
+            attempt: number;
+            /** @description Why it failed. */
+            error: string;
+        } | null;
         workflow_progress_value: {
             /** @description The steps done. */
             done: number;
@@ -5842,6 +5984,29 @@ export interface components {
             log: components["schemas"]["LogRecordModel"][];
             error?: components["schemas"]["ProblemDetails"] | null;
         };
+        /**
+         * @description Represent the input of an action that never takes parameters.
+         *
+         *     This may be either an empty dictionary or ``None``.
+         */
+        workflow_retry_input: Record<string, never> | null;
+        workflow_retry_output: null;
+        workflow_retry_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_retry_input"];
+            output?: components["schemas"]["workflow_retry_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
         /** @description Any plan. */
         workflow_run_input: {
             /** @description The dataset's name. */
@@ -5852,7 +6017,8 @@ export interface components {
              * @description What a failed step does: by default, it ends the run.
              * @default {
              *       "retries": 0,
-             *       "skip": false
+             *       "skip": false,
+             *       "ask": false
              *     }
              */
             on_error?: {
@@ -5866,6 +6032,12 @@ export interface components {
                  * @default false
                  */
                 skip?: boolean;
+                /**
+                 * @description Whether the run then waits to be told: tried again, skipped or the run's end
+                 *     ([`RunControl::decide`]), whatever `skip` says.
+                 * @default false
+                 */
+                ask?: boolean;
             };
         };
         /** @description How a run ended. */
@@ -5940,8 +6112,31 @@ export interface components {
             log: components["schemas"]["LogRecordModel"][];
             error?: components["schemas"]["ProblemDetails"] | null;
         };
+        /**
+         * @description Represent the input of an action that never takes parameters.
+         *
+         *     This may be either an empty dictionary or ``None``.
+         */
+        workflow_skip_input: Record<string, never> | null;
+        workflow_skip_output: null;
+        workflow_skip_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_skip_input"];
+            output?: components["schemas"]["workflow_skip_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
         /** @description What the workflow is doing. */
-        workflow_state_value: "idle" | "running" | "paused";
+        workflow_state_value: "idle" | "running" | "paused" | "asking";
         /** @description A frame taken, at its indices. */
         workflow_tile_acquired_data: {
             /** @description The time point. */
@@ -6045,6 +6240,32 @@ export interface components {
                  */
                 range_um?: number;
             } | null;
+            /**
+             * @description What a failed step does: by default, it ends the run.
+             * @default {
+             *       "retries": 0,
+             *       "skip": false,
+             *       "ask": false
+             *     }
+             */
+            on_error?: {
+                /**
+                 * @description How many times it is tried again.
+                 * @default 0
+                 */
+                retries?: number;
+                /**
+                 * @description Whether it is then skipped, rather than ending the run.
+                 * @default false
+                 */
+                skip?: boolean;
+                /**
+                 * @description Whether the run then waits to be told: tried again, skipped or the run's end
+                 *     ([`RunControl::decide`]), whatever `skip` says.
+                 * @default false
+                 */
+                ask?: boolean;
+            };
         };
         /** @description How a run ended. */
         workflow_tile_scan_output: {
@@ -6100,6 +6321,32 @@ export interface components {
              * @default []
              */
             steps?: Record<string, never>[];
+            /**
+             * @description What a failed step does: by default, it ends the run.
+             * @default {
+             *       "retries": 0,
+             *       "skip": false,
+             *       "ask": false
+             *     }
+             */
+            on_error?: {
+                /**
+                 * @description How many times it is tried again.
+                 * @default 0
+                 */
+                retries?: number;
+                /**
+                 * @description Whether it is then skipped, rather than ending the run.
+                 * @default false
+                 */
+                skip?: boolean;
+                /**
+                 * @description Whether the run then waits to be told: tried again, skipped or the run's end
+                 *     ([`RunControl::decide`]), whatever `skip` says.
+                 * @default false
+                 */
+                ask?: boolean;
+            };
         };
         /** @description How a run ended. */
         workflow_time_lapse_output: {
@@ -6156,6 +6403,32 @@ export interface components {
              * @default []
              */
             steps?: Record<string, never>[];
+            /**
+             * @description What a failed step does: by default, it ends the run.
+             * @default {
+             *       "retries": 0,
+             *       "skip": false,
+             *       "ask": false
+             *     }
+             */
+            on_error?: {
+                /**
+                 * @description How many times it is tried again.
+                 * @default 0
+                 */
+                retries?: number;
+                /**
+                 * @description Whether it is then skipped, rather than ending the run.
+                 * @default false
+                 */
+                skip?: boolean;
+                /**
+                 * @description Whether the run then waits to be told: tried again, skipped or the run's end
+                 *     ([`RunControl::decide`]), whatever `skip` says.
+                 * @default false
+                 */
+                ask?: boolean;
+            };
         };
         /** @description How a run ended. */
         workflow_z_stack_output: {
@@ -10827,6 +11100,27 @@ export interface operations {
             };
         };
     };
+    get_property_api_v1_workflow_problem_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of problem */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_problem_value"];
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
     get_property_api_v1_workflow_progress_get: {
         parameters: {
             query?: never;
@@ -11034,6 +11328,68 @@ export interface operations {
             };
         };
     };
+    list_invocations_api_v1_workflow_retry_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of retry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["workflow_retry_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_retry_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_retry_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_invocations_api_v1_workflow_run_get: {
         parameters: {
             query?: never;
@@ -11145,6 +11501,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["workflow_save_position_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_skip_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of skip. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_skip_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["workflow_skip_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_skip_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_skip_invocation"];
                 };
             };
             /** @description Validation Error */

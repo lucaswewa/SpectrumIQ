@@ -189,6 +189,7 @@ expression: descriptions
       "field",
       "plan_schema",
       "positions",
+      "problem",
       "progress",
       "state"
     ],
@@ -199,8 +200,10 @@ expression: descriptions
       "remove_position",
       "rename_position",
       "resume",
+      "retry",
       "run",
       "save_position",
+      "skip",
       "tile_scan",
       "time_lapse",
       "z_stack"
