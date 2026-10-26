@@ -1,6 +1,6 @@
 [package]
 name = "siq-workflow"
-description = "Workflows: the routines that move the instrument and measure it, such as the stage-camera calibration; the plans' engine follows in M6."
+description = "Workflows: the routines that move the instrument and measure it, such as the stage-camera calibration and the shading captures; the plans' engine follows in M6."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

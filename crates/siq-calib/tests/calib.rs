@@ -150,11 +150,11 @@ fn the_registry_keeps_every_version_and_the_newest_is_in_force() {
     let fit = fit(&moves(&mount(), 250.0, 0.1)).unwrap();
     let first = CalibrationRecord::new(ObjectiveId(1), &fit, None, "stage_camera");
     let other = CalibrationRecord::new(ObjectiveId(2), &fit, None, "stage_camera");
-    let path = registry.save(&first).unwrap();
-    registry.save(&other).unwrap();
+    let path = registry.save(&first, &[]).unwrap();
+    registry.save(&other, &[]).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(5));
     let second = CalibrationRecord::new(ObjectiveId(1), &fit, Some([1.9, 2.1]), "stage_camera");
-    registry.save(&second).unwrap();
+    registry.save(&second, &[]).unwrap();
     assert!(path.starts_with(settings.path().join("calibrations").join("objective-1")));
 
     assert_eq!(registry.current(ObjectiveId(1)), Some(second.clone()));

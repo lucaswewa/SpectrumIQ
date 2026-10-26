@@ -2,12 +2,15 @@
 //! (L3) can't depend on the job system (L4).
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
+use siq_calib::shading::{Estimator, ShadingRecord, ShadingRegistry};
 use siq_pyramid::tiles::{DziGeometry, TileAt, TileFormat, TileLut, render};
 use siq_pyramid::{Control, PyramidError, TOP};
 use siq_storage::ometiff::{self, TiffCompression};
 use siq_storage::zarr::{ImageInfo, ZarrImage};
 use siq_storage::{Dataset, DatasetReader, FrameKey, StorageError};
+use siq_types::{ChannelId, ObjectiveId, Roi};
 
 use crate::{Job, JobCtx, JobError, JobOutput, Resources};
 
@@ -300,5 +303,85 @@ impl Job for OmeTiffExportJob {
                 error => JobError::failed(error),
             })?;
         Ok(output(ctx, &self.out))
+    }
+}
+
+/// Estimates the flat of a dataset's frames, its tiles of different places, and keeps it in the
+/// registry for their objective and channel (ADR-0050, BaSiC simplified). The frames of another
+/// channel, or not of the whole sensor, are left out. The job must be given its dataset.
+#[derive(Debug, Clone)]
+pub struct ShadingJob {
+    /// Where the flat is kept.
+    pub registry: Arc<ShadingRegistry>,
+    /// The objective and channel the flat is for: the frames of that channel.
+    pub key: (Option<ObjectiveId>, Option<ChannelId>),
+    /// The dark level the frames are measured less, in ADU.
+    pub dark: f64,
+    /// The sensor's width and height, in pixels.
+    pub sensor: [u32; 2],
+}
+
+impl Job for ShadingJob {
+    fn kind(&self) -> &str {
+        "estimate_shading"
+    }
+
+    fn params(&self) -> serde_json::Value {
+        let (objective, channel) = self.key;
+        serde_json::json!({ "objective": objective, "channel": channel, "dark": self.dark })
+    }
+
+    fn estimate(&self) -> Resources {
+        // The frames are mapped one at a time; each is kept shrunk to the flat's grid.
+        Resources {
+            ram: 256 << 20,
+            vram: 0,
+            gpu: false,
+            threads: 1,
+        }
+    }
+
+    fn run(&mut self, ctx: &JobCtx) -> Result<JobOutput, JobError> {
+        let dataset = ctx
+            .dataset()
+            .ok_or_else(|| JobError::failed("the job needs its dataset"))?;
+        let dataset = Dataset::open(dataset).map_err(JobError::failed)?;
+        let reader = DatasetReader::open(&dataset).map_err(JobError::failed)?;
+        let whole = Roi::full(self.sensor[0], self.sensor[1]);
+        let frames: Vec<_> = reader
+            .frames()
+            .iter()
+            .filter(|frame| {
+                let meta = &frame.sidecar.meta;
+                meta.roi == whole && (self.key.1.is_none() || meta.channel == self.key.1)
+            })
+            .collect();
+        let mut estimator = Estimator::new(self.dark as f32);
+        let mut last = None;
+        for (n, frame) in frames.iter().enumerate() {
+            ctx.check()?;
+            let mapped = frame.map().map_err(JobError::failed)?;
+            let pixels = mapped
+                .image_u16()
+                .ok_or_else(|| JobError::failed("only 16-bit frames can be estimated from"))?;
+            estimator.add(&pixels).map_err(JobError::failed)?;
+            last = Some(frame.sidecar.meta);
+            ctx.progress((n + 1) as f64 / frames.len() as f64);
+        }
+        let meta = last.ok_or_else(|| JobError::failed("no frames of the whole sensor"))?;
+        let flat = estimator
+            .finish(whole, self.sensor)
+            .map_err(JobError::failed)?;
+        let record = ShadingRecord::new(self.key, &meta, frames.len(), "estimate");
+        let record = record.with_flat(flat, self.dark);
+        let path = self.registry.save(&record, &[]).map_err(JobError::failed)?;
+        ctx.log(format!(
+            "the flat of {} frames, kept as {}",
+            frames.len(),
+            record.id
+        ));
+        Ok(JobOutput {
+            outputs: vec![path.to_string_lossy().replace('\\', "/")],
+        })
     }
 }

@@ -207,7 +207,13 @@ fn preview(frame: &FrameLease, display: &DisplaySettings) -> anyhow::Result<Vec<
     let mapping = renderer.mapping(&image, meta.pixel_format.bits(), display);
     let (width, height) = meta.image_size();
     let whole = RectPx::new(0, 0, width, height);
-    renderer.show(&image, whole, fit((width, height), (1920, 1080)), mapping)?;
+    renderer.show(
+        &image,
+        whole,
+        fit((width, height), (1920, 1080)),
+        mapping,
+        None,
+    )?;
     Ok(renderer.encode(85)?)
 }
 
@@ -413,6 +419,24 @@ impl Display {
     #[setter(roi_region)]
     async fn set_roi_region(&self, value: RoiSettings) -> Result<(), PropertyError> {
         bound(&self.instrument).previews.set_roi(value);
+        Ok(())
+    }
+
+    /// Whether the previews are corrected by the dark and flat in force for the objective and
+    /// channel in use (ADR-0050); without a flat, they show as they are.
+    #[property(global_lock = false)]
+    async fn flat_field(&self) -> bool {
+        bound(&self.instrument).previews.flat().enabled
+    }
+
+    #[setter(flat_field)]
+    async fn set_flat_field(&self, value: bool) -> Result<(), PropertyError> {
+        let instrument = bound(&self.instrument);
+        let previews = &instrument.previews;
+        previews.set_flat(siq_preview::PreviewFlat {
+            enabled: value,
+            ..previews.flat()
+        });
         Ok(())
     }
 

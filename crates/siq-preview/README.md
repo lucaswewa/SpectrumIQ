@@ -15,6 +15,10 @@ How it works:
   percentiles, with a grey, inverted or colour map. Only 8-bit JPEGs and statistics leave, never
   raw frames.
 - **Two latency histograms per stream:** from mid-exposure, and of the pipeline's own work.
+- **The flat-field correction, if turned on** (ADR-0050): the dark level and the flat in force,
+  `(value − dark) × gain`, applied after shrinking, as the flat is smooth. The gains are kept
+  between frames while the region, size and flat stay. The auto-contrast window still comes from
+  the raw frame.
 
 The design is in [ADR-0032](../../docs/adr/0032-preview-stream-design.md).
 
@@ -24,13 +28,14 @@ The design is in [ADR-0032](../../docs/adr/0032-preview-stream-design.md).
 - **Depends on:**
   - `siq-acquire`, for the frames;
   - `siq-imgproc`, for the kernels;
+  - `siq-calib`, for the flat;
   - `siq-buffer`, `siq-devices` (the watch), `siq-telemetry` (the histograms), `siq-types`;
   - `jpeg-encoder`, with `simd`. Its licence includes IJG, with the attribution in the README
     (ADR-0028);
   - `rayon`, `thiserror`, `tracing`.
 - **Used by:** P2.3's server, whose camera Thing feeds its MJPEG streams from a `PreviewSink`, and
   whose display Thing sets the `DisplaySettings`.
-- **Phase:** P2.2.
+- **Phase:** P2.2; P5.3 the flat-field correction.
 
 ## API
 
@@ -39,10 +44,11 @@ The design is in [ADR-0032](../../docs/adr/0032-preview-stream-design.md).
 | `Previews::start(&acquisition, &config, preview_sink, stats_sink, clock, registry)` | Starts the three streams. Dropping it stops them |
 | `set_display(DisplaySettings)`, `display()` | `Contrast::Manual { min, max, gamma }` or `Contrast::Auto { low_pct, high_pct }`, and a `Colormap`. The default is auto from 0.1 to 99.9 %, in grey |
 | `set_roi(RoiSettings)`, `roi()` | `RoiSettings { region: Option<RectPx> in sensor pixels, zoom: Zoom::Native or Zoom::Half }`. `None` shows the frame's middle |
+| `set_flat(PreviewFlat)`, `flat()` | `PreviewFlat { enabled, shading: Option<Arc<Shading>> }`, a `Shading` being a dark level and a `FlatField`. Off by default |
 | `PreviewConfig` | Largest sizes (1920 × 1080 each), JPEG quality (85), the rates `[overview, roi, stats]` (10, 10, 5), pool threads (half the cores) |
 | `PreviewSink::push_jpeg(StreamKind, Vec<u8>, &FrameMeta)` | Where each JPEG goes |
 | `StatsSink::push_stats(&FrameStats)` | `FrameStats { meta, region, histogram: [u32; 256], window, focus }` |
-| `Renderer`, `fit`, `roi_region`, `measure` | The pipelines' steps, for tests and other consumers |
+| `Renderer`, `fit`, `roi_region`, `measure` | The pipelines' steps, for tests and other consumers. `Renderer::show(frame, region, size, mapping, shading)` takes the shading and the frame's metadata, or `None` |
 
 **Metrics,** with a registry:
 
@@ -75,6 +81,8 @@ None.
   frame and region;
 - the LUT, through its window, gamma and colormaps;
 - auto-contrast percentiles;
+- a frame lit by a known flat over a dark level shown flat once corrected, shrunk and at 1:1,
+  over a binned region, and not without the correction;
 - statistics: the histogram's counts, the window and the focus measure;
 - the running streams on the simulated camera: their rate caps, and the latency histogram.
 

@@ -1,6 +1,7 @@
-//! Calibration (ADR-0049): the stage–camera affine of an objective, fitted from known stage moves
-//! and the image shifts they cause, its backlash, and the registry that versions the results.
-//! Pure: the routine that moves the stage and takes the frames is `siq-workflow`'s.
+//! Calibration: the stage–camera affine of an objective, fitted from known stage moves and the
+//! image shifts they cause, and its backlash (ADR-0049); the shading, the dark and the flat of an
+//! objective and channel ([`shading`], ADR-0050); and the registry that versions them. Pure: the
+//! routines that move the stage and take the frames are `siq-workflow`'s.
 //!
 //! - **The model** (architecture §13, ADR-0018): a point at stage position `S` appears at sensor
 //!   pixel `c + L·(S − P)` with the stage at `P`. Moving the stage by `m` moves the image's
@@ -13,14 +14,16 @@
 //! - **[`CalibrationRecord`]** is a calibration as it is kept, and the [`CalibrationRegistry`]
 //!   keeps every one, in force or not.
 
+mod npy;
 mod registry;
+pub mod shading;
 
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use siq_types::{Affine2, CalibrationId, ObjectiveId};
 
-pub use registry::CalibrationRegistry;
+pub use registry::{CalibrationRegistry, Registry, Versioned};
 
 /// A stage move and the image shift it caused.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -124,6 +127,9 @@ pub enum CalibError {
     /// A calibration couldn't be read or kept.
     #[error("{0}")]
     Storage(String),
+    /// A dark or a flat couldn't be made.
+    #[error("the shading can't be measured: {0}")]
+    Shading(String),
 }
 
 /// `L` from `moves` by least squares: `shift = t − L·stage` for each, `t` common to them all.

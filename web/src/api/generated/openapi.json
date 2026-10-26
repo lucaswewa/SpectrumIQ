@@ -1134,6 +1134,60 @@
         }
       }
     },
+    "/api/v1/display/flat_field": {
+      "get": {
+        "summary": "Whether the previews are corrected by the dark and flat in force for the objective and",
+        "description": "## Whether the previews are corrected by the dark and flat in force for the objective and\n\nWhether the previews are corrected by the dark and flat in force for the objective and\nchannel in use (ADR-0050); without a flat, they show as they are.",
+        "operationId": "get_property_api_v1_display_flat_field_get",
+        "responses": {
+          "200": {
+            "description": "Value of flat_field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/display_flat_field_value"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set Whether the previews are corrected by the dark and flat in force for the objective and",
+        "description": "## Whether the previews are corrected by the dark and flat in force for the objective and\n\nWhether the previews are corrected by the dark and flat in force for the objective and\nchannel in use (ADR-0050); without a flat, they show as they are.",
+        "operationId": "set_property_api_v1_display_flat_field_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/display_flat_field_value"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Property set successfully",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/display/focus_measure": {
       "get": {
         "summary": "The ROI's focus measure, the mean squared Sobel gradient, from the latest statistics.",
@@ -4293,6 +4347,213 @@
         }
       }
     },
+    "/api/v1/calibration/capture_dark": {
+      "get": {
+        "summary": "All invocations of capture_dark.",
+        "description": "List all the invocations of capture_dark that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_calibration_capture_dark_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of capture_dark.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Takes the dark of the objective and channel in use: `frames` frames (16 by default) with",
+        "description": "## Takes the dark of the objective and channel in use: `frames` frames (16 by default) with\n\nTakes the dark of the objective and channel in use: `frames` frames (16 by default) with\nevery light off, averaged, at the camera's settings, of the whole sensor. Kept as a new\nversion, it is in force for them from then on.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_calibration_capture_dark_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/calibration_capture_dark_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calibration_capture_dark_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calibration_capture_dark_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/calibration/capture_flat": {
+      "get": {
+        "summary": "All invocations of capture_flat.",
+        "description": "List all the invocations of capture_flat that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_calibration_capture_flat_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of capture_flat.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Takes the flat of the objective and channel in use: `frames` frames (18 by default) at",
+        "description": "## Takes the flat of the objective and channel in use: `frames` frames (18 by default) at\n\nTakes the flat of the objective and channel in use: `frames` frames (18 by default) at\nnine places a field apart about the stage, `defocus_um` out of focus (0 by default, for a\nblank slide), averaged, less the dark in force, and fitted. Kept as a new version, it is in\nforce for them from then on.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_calibration_capture_flat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/calibration_capture_flat_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calibration_capture_flat_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calibration_capture_flat_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/calibration/estimate_shading": {
+      "get": {
+        "summary": "All invocations of estimate_shading.",
+        "description": "List all the invocations of estimate_shading that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_calibration_estimate_shading_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of estimate_shading.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Estimates the flat of dataset `dataset`'s frames of the whole sensor, its tiles of",
+        "description": "## Estimates the flat of dataset `dataset`'s frames of the whole sensor, its tiles of\n\nEstimates the flat of dataset `dataset`'s frames of the whole sensor, its tiles of\ndifferent places, as a background job, whose id it gives (BaSiC, simplified). The flat is\nkept, and in force, for the first frame's objective and channel when the job ends.\n`dark_level` is what the frames are measured less, in ADU: by default the level of the\ndark in force for them, or 0. It doesn't wait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_calibration_estimate_shading_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/calibration_estimate_shading_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calibration_estimate_shading_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calibration_estimate_shading_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/calibration/stage_camera": {
       "get": {
         "summary": "All invocations of stage_camera.",
@@ -4316,7 +4577,7 @@
       },
       "post": {
         "summary": "Calibrates the objective in use against the stage: a star of 16 moves about where the stage",
-        "description": "## Calibrates the objective in use against the stage: a star of 16 moves about where the stage\n\nCalibrates the objective in use against the stage: a star of 16 moves about where the stage\nis, out to a third of the field, a frame at each registered against the first; the affine\nfitted, checked, and the backlash measured. Kept as a new version, it is in force for the\nobjective's frames from then on. Something must be in the field to register.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "description": "## Calibrates the objective in use against the stage: a star of 16 moves about where the stage\n\nCalibrates the objective in use against the stage: a star of 16 moves about where the stage\nis, out to 0.4 of the field, a frame at each registered against the first; the affine\nfitted, checked, and the backlash measured. Kept as a new version, it is in force for the\nobjective's frames from then on. Something must be in the field to register.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
         "operationId": "start_action_api_v1_calibration_stage_camera_post",
         "requestBody": {
           "content": {
@@ -4363,8 +4624,8 @@
     },
     "/api/v1/calibration/status": {
       "get": {
-        "summary": "Each configured objective, with the stage–camera calibration in force for it, if any.",
-        "description": "## Each configured objective, with the stage–camera calibration in force for it, if any.\n\nEach configured objective, with the stage–camera calibration in force for it, if any.",
+        "summary": "Each configured objective, with its stage–camera calibration in force, and its dark and",
+        "description": "## Each configured objective, with its stage–camera calibration in force, and its dark and\n\nEach configured objective, with its stage–camera calibration in force, and its dark and\nflat with each channel.",
         "operationId": "get_property_api_v1_calibration_status_get",
         "responses": {
           "200": {
@@ -4373,12 +4634,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/calibration_status_value"
-                }
-              },
-              "text/event-stream": {
-                "schema": {
-                  "type": "string",
-                  "description": "Server-sent events: each new value as JSON in a `data:` line. Ask for them with `Accept: text/event-stream`."
                 }
               }
             }
@@ -5686,6 +5941,9 @@
           "input",
           "log"
         ]
+      },
+      "display_flat_field_value": {
+        "type": "boolean"
       },
       "display_focus_measure_value": {
         "oneOf": [
@@ -10140,6 +10398,690 @@
           "log"
         ]
       },
+      "calibration_capture_dark_input": {
+        "type": "object",
+        "properties": {
+          "frames": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "calibration_capture_dark_output": {
+        "description": "A dark or a flat as it is kept, for one objective and channel.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Its id.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "A dark or a flat.",
+            "oneOf": [
+              {
+                "description": "Each pixel's offset, taken with no light: the data beside it, `dark.npy`.",
+                "const": "dark",
+                "type": "string"
+              },
+              {
+                "description": "How the light falls across the sensor.",
+                "const": "flat",
+                "type": "string"
+              }
+            ]
+          },
+          "objective": {
+            "description": "The objective it is for.",
+            "oneOf": [
+              {
+                "description": "An objective of the instrument configuration.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 65535
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "channel": {
+            "description": "The channel it is for.",
+            "oneOf": [
+              {
+                "description": "A channel of the instrument configuration: illumination, filter, exposure and display\ncolour.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 65535
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created": {
+            "description": "When it was made.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "method": {
+            "description": "How it was made: `capture`, or `estimate` from a dataset's frames.",
+            "type": "string"
+          },
+          "frames": {
+            "description": "The frames it was made from.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "exposure_ms": {
+            "description": "Their exposure, in ms.",
+            "type": "number"
+          },
+          "binning": {
+            "description": "Their binning.",
+            "type": "object",
+            "properties": {
+              "horizontal": {
+                "description": "Sensor columns per image column.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 255
+              },
+              "vertical": {
+                "description": "Sensor rows per image row.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 255
+              }
+            },
+            "required": [
+              "horizontal",
+              "vertical"
+            ]
+          },
+          "level": {
+            "description": "A dark's mean level, or the dark level a flat was measured less, in ADU.",
+            "type": "number"
+          },
+          "flat": {
+            "description": "A flat's surface.",
+            "oneOf": [
+              {
+                "description": "How the light falls across the sensor, relative to its mean.",
+                "type": "object",
+                "properties": {
+                  "sensor": {
+                    "description": "The sensor's width and height, in pixels.",
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxItems": 2,
+                    "minItems": 2
+                  },
+                  "coefficients": {
+                    "description": "The coefficients of `xⁱ yʲ`, `i + j ≤ DEGREE`, `j` major, with `x` and `y` from −1 to 1\nacross the sensor.",
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "required": [
+                  "sensor",
+                  "coefficients"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "range": {
+            "description": "A flat's least and greatest light, relative to its mean.",
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "created",
+          "method",
+          "frames",
+          "exposure_ms",
+          "binning",
+          "level"
+        ]
+      },
+      "calibration_capture_dark_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/calibration_capture_dark_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/calibration_capture_dark_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "calibration_capture_flat_input": {
+        "type": "object",
+        "properties": {
+          "defocus_um": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "frames": {
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "calibration_capture_flat_output": {
+        "description": "A dark or a flat as it is kept, for one objective and channel.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Its id.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "A dark or a flat.",
+            "oneOf": [
+              {
+                "description": "Each pixel's offset, taken with no light: the data beside it, `dark.npy`.",
+                "const": "dark",
+                "type": "string"
+              },
+              {
+                "description": "How the light falls across the sensor.",
+                "const": "flat",
+                "type": "string"
+              }
+            ]
+          },
+          "objective": {
+            "description": "The objective it is for.",
+            "oneOf": [
+              {
+                "description": "An objective of the instrument configuration.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 65535
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "channel": {
+            "description": "The channel it is for.",
+            "oneOf": [
+              {
+                "description": "A channel of the instrument configuration: illumination, filter, exposure and display\ncolour.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 65535
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created": {
+            "description": "When it was made.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "method": {
+            "description": "How it was made: `capture`, or `estimate` from a dataset's frames.",
+            "type": "string"
+          },
+          "frames": {
+            "description": "The frames it was made from.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "exposure_ms": {
+            "description": "Their exposure, in ms.",
+            "type": "number"
+          },
+          "binning": {
+            "description": "Their binning.",
+            "type": "object",
+            "properties": {
+              "horizontal": {
+                "description": "Sensor columns per image column.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 255
+              },
+              "vertical": {
+                "description": "Sensor rows per image row.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 255
+              }
+            },
+            "required": [
+              "horizontal",
+              "vertical"
+            ]
+          },
+          "level": {
+            "description": "A dark's mean level, or the dark level a flat was measured less, in ADU.",
+            "type": "number"
+          },
+          "flat": {
+            "description": "A flat's surface.",
+            "oneOf": [
+              {
+                "description": "How the light falls across the sensor, relative to its mean.",
+                "type": "object",
+                "properties": {
+                  "sensor": {
+                    "description": "The sensor's width and height, in pixels.",
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "maxItems": 2,
+                    "minItems": 2
+                  },
+                  "coefficients": {
+                    "description": "The coefficients of `xⁱ yʲ`, `i + j ≤ DEGREE`, `j` major, with `x` and `y` from −1 to 1\nacross the sensor.",
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "required": [
+                  "sensor",
+                  "coefficients"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "range": {
+            "description": "A flat's least and greatest light, relative to its mean.",
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "created",
+          "method",
+          "frames",
+          "exposure_ms",
+          "binning",
+          "level"
+        ]
+      },
+      "calibration_capture_flat_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/calibration_capture_flat_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/calibration_capture_flat_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "calibration_estimate_shading_input": {
+        "type": "object",
+        "properties": {
+          "dataset": {
+            "description": "A dataset: a scan, a stack, a snapshot, and everything derived from it.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "dark_level": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "additionalProperties": false
+      },
+      "calibration_estimate_shading_output": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "calibration_estimate_shading_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/calibration_estimate_shading_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/calibration_estimate_shading_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
       "calibration_stage_camera_input": {
         "description": "Represent the input of an action that never takes parameters.\n\nThis may be either an empty dictionary or ``None``.",
         "oneOf": [
@@ -10359,7 +11301,7 @@
       "calibration_status_value": {
         "type": "array",
         "items": {
-          "description": "An objective, and its calibration in force.",
+          "description": "An objective, and the calibrations in force for it.",
           "type": "object",
           "properties": {
             "objective": {
@@ -10483,11 +11425,377 @@
                   "type": "null"
                 }
               ]
+            },
+            "shading": {
+              "description": "Its dark and flat with each channel, and with none.",
+              "type": "array",
+              "items": {
+                "description": "A channel's dark and flat under one objective.",
+                "type": "object",
+                "properties": {
+                  "channel": {
+                    "description": "The channel: `null` for frames taken with none.",
+                    "oneOf": [
+                      {
+                        "description": "A channel of the instrument configuration: illumination, filter, exposure and display\ncolour.",
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 65535
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "name": {
+                    "description": "Its name.",
+                    "type": "string"
+                  },
+                  "dark": {
+                    "description": "The dark in force.",
+                    "oneOf": [
+                      {
+                        "description": "A dark or a flat as it is kept, for one objective and channel.",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "description": "Its id.",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "kind": {
+                            "description": "A dark or a flat.",
+                            "oneOf": [
+                              {
+                                "description": "Each pixel's offset, taken with no light: the data beside it, `dark.npy`.",
+                                "const": "dark",
+                                "type": "string"
+                              },
+                              {
+                                "description": "How the light falls across the sensor.",
+                                "const": "flat",
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "objective": {
+                            "description": "The objective it is for.",
+                            "oneOf": [
+                              {
+                                "description": "An objective of the instrument configuration.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 65535
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "channel": {
+                            "description": "The channel it is for.",
+                            "oneOf": [
+                              {
+                                "description": "A channel of the instrument configuration: illumination, filter, exposure and display\ncolour.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 65535
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "created": {
+                            "description": "When it was made.",
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "method": {
+                            "description": "How it was made: `capture`, or `estimate` from a dataset's frames.",
+                            "type": "string"
+                          },
+                          "frames": {
+                            "description": "The frames it was made from.",
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "exposure_ms": {
+                            "description": "Their exposure, in ms.",
+                            "type": "number"
+                          },
+                          "binning": {
+                            "description": "Their binning.",
+                            "type": "object",
+                            "properties": {
+                              "horizontal": {
+                                "description": "Sensor columns per image column.",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 255
+                              },
+                              "vertical": {
+                                "description": "Sensor rows per image row.",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 255
+                              }
+                            },
+                            "required": [
+                              "horizontal",
+                              "vertical"
+                            ]
+                          },
+                          "level": {
+                            "description": "A dark's mean level, or the dark level a flat was measured less, in ADU.",
+                            "type": "number"
+                          },
+                          "flat": {
+                            "description": "A flat's surface.",
+                            "oneOf": [
+                              {
+                                "description": "How the light falls across the sensor, relative to its mean.",
+                                "type": "object",
+                                "properties": {
+                                  "sensor": {
+                                    "description": "The sensor's width and height, in pixels.",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    "maxItems": 2,
+                                    "minItems": 2
+                                  },
+                                  "coefficients": {
+                                    "description": "The coefficients of `xⁱ yʲ`, `i + j ≤ DEGREE`, `j` major, with `x` and `y` from −1 to 1\nacross the sensor.",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "sensor",
+                                  "coefficients"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "range": {
+                            "description": "A flat's least and greatest light, relative to its mean.",
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "number"
+                                },
+                                "maxItems": 2,
+                                "minItems": 2
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "created",
+                          "method",
+                          "frames",
+                          "exposure_ms",
+                          "binning",
+                          "level"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "flat": {
+                    "description": "The flat in force.",
+                    "oneOf": [
+                      {
+                        "description": "A dark or a flat as it is kept, for one objective and channel.",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "description": "Its id.",
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "kind": {
+                            "description": "A dark or a flat.",
+                            "oneOf": [
+                              {
+                                "description": "Each pixel's offset, taken with no light: the data beside it, `dark.npy`.",
+                                "const": "dark",
+                                "type": "string"
+                              },
+                              {
+                                "description": "How the light falls across the sensor.",
+                                "const": "flat",
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          "objective": {
+                            "description": "The objective it is for.",
+                            "oneOf": [
+                              {
+                                "description": "An objective of the instrument configuration.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 65535
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "channel": {
+                            "description": "The channel it is for.",
+                            "oneOf": [
+                              {
+                                "description": "A channel of the instrument configuration: illumination, filter, exposure and display\ncolour.",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 65535
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "created": {
+                            "description": "When it was made.",
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "method": {
+                            "description": "How it was made: `capture`, or `estimate` from a dataset's frames.",
+                            "type": "string"
+                          },
+                          "frames": {
+                            "description": "The frames it was made from.",
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "exposure_ms": {
+                            "description": "Their exposure, in ms.",
+                            "type": "number"
+                          },
+                          "binning": {
+                            "description": "Their binning.",
+                            "type": "object",
+                            "properties": {
+                              "horizontal": {
+                                "description": "Sensor columns per image column.",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 255
+                              },
+                              "vertical": {
+                                "description": "Sensor rows per image row.",
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 255
+                              }
+                            },
+                            "required": [
+                              "horizontal",
+                              "vertical"
+                            ]
+                          },
+                          "level": {
+                            "description": "A dark's mean level, or the dark level a flat was measured less, in ADU.",
+                            "type": "number"
+                          },
+                          "flat": {
+                            "description": "A flat's surface.",
+                            "oneOf": [
+                              {
+                                "description": "How the light falls across the sensor, relative to its mean.",
+                                "type": "object",
+                                "properties": {
+                                  "sensor": {
+                                    "description": "The sensor's width and height, in pixels.",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    "maxItems": 2,
+                                    "minItems": 2
+                                  },
+                                  "coefficients": {
+                                    "description": "The coefficients of `xⁱ yʲ`, `i + j ≤ DEGREE`, `j` major, with `x` and `y` from −1 to 1\nacross the sensor.",
+                                    "type": "array",
+                                    "items": {
+                                      "type": "number"
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "sensor",
+                                  "coefficients"
+                                ]
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "range": {
+                            "description": "A flat's least and greatest light, relative to its mean.",
+                            "oneOf": [
+                              {
+                                "type": "array",
+                                "items": {
+                                  "type": "number"
+                                },
+                                "maxItems": 2,
+                                "minItems": 2
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "created",
+                          "method",
+                          "frames",
+                          "exposure_ms",
+                          "binning",
+                          "level"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
             }
           },
           "required": [
             "objective",
-            "name"
+            "name",
+            "shading"
           ]
         }
       }

@@ -15,6 +15,7 @@ schemars.workspace = true
 serde.workspace = true
 siq-acquire = { path = "../siq-acquire" }
 siq-buffer = { path = "../siq-buffer" }
+siq-calib = { path = "../siq-calib" }
 siq-devices = { path = "../siq-devices" }
 siq-imgproc = { path = "../siq-imgproc" }
 siq-telemetry = { path = "../siq-telemetry" }

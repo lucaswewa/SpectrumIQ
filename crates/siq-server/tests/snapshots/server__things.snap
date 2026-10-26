@@ -9,6 +9,9 @@ expression: descriptions
       "status"
     ],
     "actions": [
+      "capture_dark",
+      "capture_flat",
+      "estimate_shading",
       "stage_camera"
     ],
     "events": []
@@ -50,6 +53,7 @@ expression: descriptions
   "display": {
     "title": "Display",
     "properties": [
+      "flat_field",
       "focus_measure",
       "histogram",
       "lut",

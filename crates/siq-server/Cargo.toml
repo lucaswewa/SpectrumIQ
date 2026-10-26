@@ -44,6 +44,7 @@ http-body-util.workspace = true
 insta.workspace = true
 png.workspace = true
 siq-acquire = { path = "../siq-acquire" }
+siq-datagen = { path = "../../apps/siq-datagen" }
 tempfile.workspace = true
 teta-wot = { workspace = true, features = ["testing"] }
 tokio = { workspace = true, features = ["io-util", "macros", "net", "rt", "sync", "time"] }

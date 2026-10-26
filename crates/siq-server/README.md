@@ -14,7 +14,8 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
   - `imaging`, the channels (ADR-0035);
   - `jobs`, the background jobs (ADR-0043);
   - `datasets`, the datasets, a snap made into one, and their exports (ADR-0041, amended);
-  - `calibration`, the stage–camera calibration of the objective in use (ADR-0049).
+  - `calibration`, the stage–camera calibration of the objective in use (ADR-0049), and the dark
+    and flat of the objective and channel in use (ADR-0050).
 
   The global lock is on. The `halt` actions, `jobs.cancel` and the `datasets` actions other than
   `snap_to_dataset` bypass it.
@@ -44,7 +45,8 @@ This is the only crate that depends on teta-wot.
 - **Phase:** P2.3; P2.4 added the peripherals, the channels, and the metrics and memory routes;
   P3.1 the web app; P4.3 the `jobs` Thing; P4.5 the data routes, with the catalog and the tile
   cache; P4.7 the `datasets` Thing, a dataset's manifest and thumbnail; P4.8 an image's metadata;
-  P5.2 the `calibration` Thing, and the frames' objective and calibration.
+  P5.2 the `calibration` Thing, and the frames' objective and calibration; P5.3 the darks and
+  flats, and the previews' correction.
 
 ## API
 
@@ -65,7 +67,7 @@ This is the only crate that depends on teta-wot.
 | Thing | Properties | Actions | Events and streams |
 |---|---|---|---|
 | `camera` | `exposure_ms`, `region`, `binning`, `pixel_format` (writable); `frame_rate`, `sensor`, `stats` | `start_live`, `stop_live`, `snap` → JPEG | `frames_lost`; MJPEG `overview` and `roi` |
-| `display` | `lut`, `roi_region` (writable); `histogram`, `focus_measure` | `auto_contrast_once` | — |
+| `display` | `lut`, `roi_region`, `flat_field` (writable): the previews corrected by the dark and flat in force; `histogram`, `focus_measure` | `auto_contrast_once` | — |
 | `stage` | `position`, `state`, `homed` (observable); `speed`; `limits` | `move_to`, `move_by`, `jog`, `home`, `halt` | `arrived`, `alarm` |
 | `focus` | `position`, `state`, `homed` (observable); `limits` | `move_to`, `move_by`, `halt` | `arrived` |
 | `illumination` | `levels` (observable); `sources` | `set_level(source, level)`, by the source's name | `changed` |
@@ -74,14 +76,15 @@ This is the only crate that depends on teta-wot.
 | `modality` | `modality`, `moving` (observable); `modes`, `patterns` | `set_modality(mode, pattern?)` | `changed` |
 | `imaging` | `channel` (observable); `channels` | `select_channel(id)`: every light off, the filter, the exposure and colour, the light, then the frames' channel | `channel_changed` |
 | `jobs` | `queue`, `running` (observable): each job's id, kind, priority, state, progress, estimate and times | `cancel(id)` | — |
-| `calibration` | `status`: each objective, with its calibration in force or `null` | `stage_camera`: the objective in use calibrated against the stage, kept as a new version, and stamped on its frames from then on; a snap's dataset keeps a copy, and its pixel size | — |
+| `calibration` | `status`: each objective, with its calibration in force or `null`, and its dark and flat with each channel, and with none | `stage_camera`: the objective in use calibrated against the stage, kept as a new version, and stamped on its frames from then on; a snap's dataset keeps a copy, and its pixel size. `capture_dark(frames?)`: the objective and channel's dark, every light off, of the whole sensor. `capture_flat(defocus_um?, frames?)`: their flat, at nine places, out of focus or of a blank slide, less the dark. `estimate_shading(dataset, dark_level?)`: a dataset's tiles' flat, as a background job | — |
 | `datasets` | — | `summary(offset, limit)`: a page of the datasets, newest first; `snap_to_dataset(channels?, name?)`: a frame per channel, recorded raw, written as the image `snap` by a job, and its pyramid submitted; `export_ome_tiff(dataset, image)` and `export_dzi(dataset, image, c, z, t, format)`, as background jobs; `delete(dataset)`, refused while a job works on it | `created` |
 
 The peripherals' Things are served only if their `[peripherals]` section is present.
 
 **The objective in use** is the frames' context's, set by `objective.select`; else the turret's
 position; else the only one configured. Every frame carries it and its calibration in force, if
-any: at start, on `objective.select`, and after a calibration.
+any: at start, on `objective.select`, and after a calibration. The previews' dark and flat follow
+the objective and the channel in the same way.
 
 ### The system routes
 
@@ -193,6 +196,14 @@ no calibrations, through teta-wot's in-process `TestClient`.
 - the residuals under 1 µm RMS, and the backlash within 1 µm of the 2 injected;
 - the calibration kept, in force, in `status`, on the next frame with its objective, and copied
   into a snap's dataset.
+
+`shading`, end to end over HTTP on a blank slide, with the camera's cos⁴ vignetting:
+
+- the dark at the sensor's 100 ADU, the lights back as they were;
+- the flat 50 µm out of focus, the focus back where it was, within 0.07 % of the vignetting;
+- both in force and in `status`; the previews' correction turned on;
+- a `siq-datagen` tile scan's flat estimated as a job, and kept for its frames' objective and
+  channel.
 
 `webapp`, from a build in a temporary folder:
 

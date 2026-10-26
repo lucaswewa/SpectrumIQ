@@ -9,6 +9,8 @@
 //! - **Statistics:** the ROI's histogram, window and focus measure.
 //! - **Display mapping is the server's:** a window, gamma and colormap, fixed or from the frame's
 //!   percentiles. Only 8-bit JPEGs and statistics leave, never raw frames (REQ-PRV-004).
+//! - **The flat-field correction is optional** (ADR-0050): the dark level and the flat in force,
+//!   applied after shrinking, as the flat is smooth. The window still comes from the raw frame.
 //! - **Each stream has a rate cap.** Two histograms time its JPEGs: from the frame's mid-exposure
 //!   (`latency_ms`), and from taking the frame, the pipeline's own work (`work_ms`).
 
@@ -29,8 +31,18 @@ use tracing::warn;
 mod view;
 
 pub use view::{
-    Contrast, DisplaySettings, FrameStats, Renderer, RoiSettings, Zoom, fit, measure, roi_region,
+    Contrast, DisplaySettings, FrameStats, Renderer, RoiSettings, Shading, Zoom, fit, measure,
+    roi_region,
 };
+
+/// The previews' flat-field correction (ADR-0050).
+#[derive(Debug, Clone, Default)]
+pub struct PreviewFlat {
+    /// Whether the previews are corrected.
+    pub enabled: bool,
+    /// The dark level and the flat in force; without them, nothing is corrected.
+    pub shading: Option<Arc<Shading>>,
+}
 
 /// A JPEG stream.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -114,6 +126,7 @@ const STEP: Duration = Duration::from_millis(50);
 pub struct Previews {
     display: Arc<watch::Sender<DisplaySettings>>,
     roi: Arc<watch::Sender<RoiSettings>>,
+    flat: Arc<watch::Sender<PreviewFlat>>,
     stop: Arc<AtomicBool>,
     threads: Vec<JoinHandle<()>>,
 }
@@ -124,6 +137,7 @@ struct Jpegs {
     sink: Arc<dyn PreviewSink>,
     display: Arc<watch::Sender<DisplaySettings>>,
     roi: Arc<watch::Sender<RoiSettings>>,
+    flat: Arc<watch::Sender<PreviewFlat>>,
     size: (u32, u32),
     quality: u8,
     /// From the frame's mid-exposure, and from taking it, to its JPEG.
@@ -140,6 +154,8 @@ impl Jpegs {
         let taken = self.clock.now();
         let renderer = &mut self.renderer;
         let mapping = renderer.mapping(&image, meta.pixel_format.bits(), &self.display.borrow());
+        let flat = self.flat.borrow().clone();
+        let shading = flat.shading.filter(|_| flat.enabled);
         let (region, size) = match self.kind {
             StreamKind::Overview => {
                 let (width, height) = meta.image_size();
@@ -150,7 +166,8 @@ impl Jpegs {
             }
             StreamKind::Roi => roi_region(meta, &self.roi.borrow(), self.size),
         };
-        renderer.show(&image, region, size, mapping)?;
+        let shading = shading.as_deref().map(|shading| (shading, meta));
+        renderer.show(&image, region, size, mapping, shading)?;
         let jpeg = renderer.encode(self.quality)?;
         if let Some([exposed, work]) = &self.latency {
             let now = self.clock.now();
@@ -188,6 +205,7 @@ impl Previews {
         let pool = Arc::new(pool);
         let display = Arc::new(watch::Sender::new(DisplaySettings::default()));
         let roi = Arc::new(watch::Sender::new(RoiSettings::default()));
+        let flat = Arc::new(watch::Sender::new(PreviewFlat::default()));
         let stop = Arc::new(AtomicBool::new(false));
         let jpegs = |kind, size, name: &str| -> Result<Jpegs, PreviewError> {
             let metric = |what: &str| {
@@ -202,6 +220,7 @@ impl Previews {
                 sink: previews.clone(),
                 display: display.clone(),
                 roi: roi.clone(),
+                flat: flat.clone(),
                 size,
                 quality: config.quality,
                 latency: exposed.zip(work).map(|(exposed, work)| [exposed, work]),
@@ -256,6 +275,7 @@ impl Previews {
         Ok(Self {
             display,
             roi,
+            flat,
             stop,
             threads,
         })
@@ -279,6 +299,16 @@ impl Previews {
     /// The ROI stream's region and zoom.
     pub fn roi(&self) -> RoiSettings {
         *self.roi.borrow()
+    }
+
+    /// Sets the flat-field correction, from the next preview.
+    pub fn set_flat(&self, flat: PreviewFlat) {
+        self.flat.send_replace(flat);
+    }
+
+    /// The flat-field correction.
+    pub fn flat(&self) -> PreviewFlat {
+        self.flat.borrow().clone()
     }
 }
 

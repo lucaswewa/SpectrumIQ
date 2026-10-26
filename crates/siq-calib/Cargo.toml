@@ -1,6 +1,6 @@
 [package]
 name = "siq-calib"
-description = "Calibration: the stage-camera affine fitted from moves and image shifts, the backlash, and the registry of versioned calibrations."
+description = "Calibration: the stage-camera affine fitted from moves and image shifts, the backlash, the dark and flat shading, and the registry of versioned calibrations."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -13,11 +13,15 @@ chrono.workspace = true
 schemars = { workspace = true, features = ["chrono04"] }
 serde.workspace = true
 serde_json.workspace = true
+siq-imgproc = { path = "../siq-imgproc" }
 siq-types = { path = "../siq-types" }
 thiserror.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+siq-devices = { path = "../siq-devices" }
+siq-sim = { path = "../siq-sim" }
+siq-synth = { path = "../siq-synth" }
 tempfile.workspace = true
 
 [lints]

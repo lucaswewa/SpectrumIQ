@@ -108,7 +108,10 @@ Done so far:
   - P5.2, [`siq-calib`](crates/siq-calib/README.md) and
     [`siq-workflow`](crates/siq-workflow/README.md)'s first routine: the stage–camera calibration
     of each objective, measured, fitted, versioned in the settings folder and stamped on every
-    frame, through the `calibration` Thing (`siq-server --example calibrate_sim`).
+    frame, through the `calibration` Thing (`siq-server --example calibrate_sim`);
+  - P5.3, the shading in [`siq-calib`](crates/siq-calib/README.md): the dark and the flat of each
+    objective and channel, captured or estimated from a scan's tiles as a job, applied as frames
+    are read and, on request, to the previews (`siq-jobs --example estimate_flat`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

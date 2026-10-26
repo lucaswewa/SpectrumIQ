@@ -8,8 +8,8 @@
 //!   budgets; one GPU job at a time. A job that has waited too long stops others overtaking it.
 //! - Jobs run on threads of below-normal priority, and so does their thread pool.
 //! - A job on a dataset is recorded in its manifest's processing history.
-//! - [`kinds`] has the jobs the service runs: [`PyramidJob`](kinds::PyramidJob) and
-//!   [`DziExportJob`](kinds::DziExportJob) so far.
+//! - [`kinds`] has the jobs the service runs: the snap's Zarr writer, pyramids, the DZI and
+//!   OME-TIFF exports, and the shading estimate ([`ShadingJob`](kinds::ShadingJob)).
 //!
 //! The unsafe code is in `priority`, a small Windows-API module (ADR-0007).
 

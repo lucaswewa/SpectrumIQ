@@ -4,10 +4,11 @@
 use jpeg_encoder::{ColorType, Encoder};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use siq_calib::shading::FlatField;
 use siq_imgproc::{
-    Colormap, DisplayMapping, FocusMeasure, Histogram, Lut, downsample_area, focus, histogram,
+    Colormap, DisplayMapping, FocusMeasure, Histogram, Lut, copy, downsample_area, focus, histogram,
 };
-use siq_types::{FrameMeta, ImageView, ImageViewMut, RectPx};
+use siq_types::{FrameMeta, ImageView, ImageViewMut, OwnedImage, RectPx};
 
 use crate::PreviewError;
 
@@ -145,8 +146,16 @@ pub struct Renderer {
     colours: Vec<[u8; 3]>,
     lut: Option<(DisplayMapping, Lut)>,
     histogram: Option<Box<Histogram>>,
+    gains: Option<(GainsKey, OwnedImage<f32>)>,
     shown: (u32, u32, bool),
 }
+
+/// A dark level and a flat: what corrects a preview (ADR-0050).
+pub type Shading = (f32, FlatField);
+
+/// What the last corrected preview's gains were for: its grid's origin and step on the sensor,
+/// its size, and the flat's coefficients.
+type GainsKey = ([f64; 4], (usize, usize), Vec<f64>);
 
 /// Every `step`-th pixel both ways, for about a million samples.
 fn sample_step(view: &ImageView<'_, u16>) -> usize {
@@ -185,26 +194,38 @@ impl Renderer {
         }
     }
 
-    /// Shows `region` of `frame` at `size`, averaging by area to shrink, through `mapping`.
+    /// Shows `region` of `frame` at `size`, averaging by area to shrink, through `mapping`;
+    /// corrected by `shading` if given, for the frame of `meta`: `(value − dark) × gain`, after
+    /// shrinking, as the gain is smooth.
     pub fn show(
         &mut self,
         frame: &ImageView<'_, u16>,
         region: RectPx,
         (width, height): (u32, u32),
         mapping: DisplayMapping,
+        shading: Option<(&Shading, &FrameMeta)>,
     ) -> Result<(), PreviewError> {
         if self.lut.as_ref().is_none_or(|(kept, _)| *kept != mapping) {
             self.lut = Some((mapping, Lut::new(&mapping)?));
         }
-        let lut = &self.lut.as_ref().expect("a LUT").1;
         let input = frame.sub_view(region)?;
         let (w, h) = (width as usize, height as usize);
-        let source = if (w, h) == (input.width(), input.height()) {
-            input
-        } else {
+        let resized = (w, h) != (input.width(), input.height());
+        if resized || shading.is_some() {
             self.scaled.resize(w * h, 0);
-            downsample_area(&input, &mut ImageViewMut::new(&mut self.scaled, w, h, w)?)?;
-            ImageView::new(&self.scaled, w, h, w)?
+            let mut out = ImageViewMut::new(&mut self.scaled, w, h, w)?;
+            match resized {
+                true => downsample_area(&input, &mut out)?,
+                false => copy(&input, &mut out)?,
+            }
+        }
+        if let Some((shading, meta)) = shading {
+            self.correct(shading, meta, region, (w, h));
+        }
+        let lut = &self.lut.as_ref().expect("a LUT").1;
+        let source = match resized || shading.is_some() {
+            true => ImageView::new(&self.scaled, w, h, w)?,
+            false => input,
         };
         let colour = matches!(mapping.colormap, Colormap::Colour(_));
         if colour {
@@ -216,6 +237,37 @@ impl Renderer {
         }
         self.shown = (width, height, colour);
         Ok(())
+    }
+
+    /// Corrects the shrunk preview of `region` of the frame of `meta`, of `size`, in place.
+    fn correct(
+        &mut self,
+        (dark, flat): &Shading,
+        meta: &FrameMeta,
+        region: RectPx,
+        (w, h): (usize, usize),
+    ) {
+        let (bx, by) = meta.binning.factors();
+        let (bx, by) = (f64::from(bx), f64::from(by));
+        let grid = [
+            f64::from(meta.roi.offset_x) + f64::from(region.x) * bx,
+            f64::from(meta.roi.offset_y) + f64::from(region.y) * by,
+            f64::from(region.width) / w as f64 * bx,
+            f64::from(region.height) / h as f64 * by,
+        ];
+        let key = (grid, (w, h), flat.coefficients.clone());
+        if self.gains.as_ref().is_none_or(|(kept, _)| *kept != key) {
+            let gains = flat.gains_on([grid[0], grid[1]], [grid[2], grid[3]], (w, h));
+            self.gains = Some((key, gains));
+        }
+        let gains = &self.gains.as_ref().expect("the gains").1;
+        let max = f32::from(meta.pixel_format.max_value());
+        let values = self.scaled.iter_mut();
+        for (value, &gain) in values.zip(gains.view().rows().flatten()) {
+            *value = ((f32::from(*value) - dark).max(0.0) * gain)
+                .round()
+                .min(max) as u16;
+        }
     }
 
     /// The last image shown: its size, and its bytes, one per pixel in grey or three in colour.

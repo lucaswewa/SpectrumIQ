@@ -60,6 +60,7 @@ use imaging::Imaging;
 use jobs::Jobs;
 use peripherals::{FilterWheel, Illumination, ModalityUnit, Objective};
 use siq_calib::CalibrationRegistry;
+use siq_calib::shading::ShadingRegistry;
 use siq_jobs::{Scheduler, SchedulerConfig};
 use siq_pyramid::tiles::TileService;
 use siq_storage::Catalog;
@@ -97,6 +98,8 @@ pub struct Instrument {
     pub tiles: Arc<TileService>,
     /// The calibrations of `[server] settings`, versioned (ADR-0049).
     pub calibrations: Arc<CalibrationRegistry>,
+    /// The darks and flats of `[server] settings`, versioned (ADR-0050).
+    pub shading: Arc<ShadingRegistry>,
     slot_bytes: usize,
     started: Instant,
 }
@@ -255,6 +258,7 @@ impl Service {
         let catalog = Arc::new(Catalog::scan(&config.server.data_root)?);
         let tiles = Arc::new(TileService::new(budgets.tile_cache_mb as usize * 1_000_000));
         let calibrations = Arc::new(CalibrationRegistry::open(&config.server.settings)?);
+        let shading = Arc::new(ShadingRegistry::open(&config.server.settings)?);
         let instrument = Arc::new(Instrument {
             config,
             camera: devices.camera,
@@ -270,6 +274,7 @@ impl Service {
             catalog,
             tiles,
             calibrations,
+            shading,
             slot_bytes: full,
             started: Instant::now(),
         });

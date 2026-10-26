@@ -111,6 +111,8 @@ pub(crate) async fn apply(instrument: &Instrument, channel: &ChannelConfig) -> a
         ..acquisition.context()
     };
     acquisition.set_context(labelled);
+    // The previews' dark and flat are the channel's.
+    crate::calibration::stamp(instrument);
     Ok(())
 }
 

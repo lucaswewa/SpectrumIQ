@@ -114,6 +114,9 @@ pub enum RoutineError {
     /// A registration's thread failed.
     #[error("the registration failed: {0}")]
     Failed(String),
+    /// The frames couldn't be summed or fitted.
+    #[error(transparent)]
+    Calib(#[from] siq_calib::CalibError),
 }
 
 /// A frame, copied out of the pool, and its binning.

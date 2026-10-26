@@ -1,5 +1,6 @@
-//! The preview pipelines: geometry, display mapping, auto-contrast and statistics on synthetic
-//! frames; then the running streams on the simulated camera, for their rate caps and latency.
+//! The preview pipelines: geometry, display mapping, auto-contrast, the flat-field correction and
+//! statistics on synthetic frames; then the running streams on the simulated camera, for their
+//! rate caps and latency.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -8,6 +9,7 @@ use std::time::{Duration, Instant};
 use proptest::prelude::*;
 use siq_acquire::Acquisition;
 use siq_buffer::{Backend, PoolConfig};
+use siq_calib::shading::FlatField;
 use siq_devices::{CameraSettings, TriggerMode};
 use siq_imgproc::{Colormap, DisplayMapping, Histogram, Lut};
 use siq_preview::{
@@ -59,10 +61,82 @@ fn the_overview_fits_its_box_and_keeps_the_frame_s_aspect() {
     let mapping = renderer.mapping(&frame.view(), 14, &DisplaySettings::default());
     let size = fit((1000, 700), (400, 400));
     renderer
-        .show(&frame.view(), RectPx::new(0, 0, 1000, 700), size, mapping)
+        .show(
+            &frame.view(),
+            RectPx::new(0, 0, 1000, 700),
+            size,
+            mapping,
+            None,
+        )
         .unwrap();
     assert_eq!(size, (400, 280));
     assert_eq!(jpeg_size(&renderer.encode(85).unwrap()), size);
+}
+
+#[test]
+fn a_shaded_frame_shows_flat_once_corrected_wherever_the_region_is() {
+    // A frame of sensor columns 400.. and rows 200.., binned 2 × 2, lit `1 − 0.2 x² − 0.1 y²` over
+    // a 2000 × 1500 sensor, over a dark level of 100.
+    let flat = FlatField {
+        sensor: [2000, 1500],
+        coefficients: {
+            let mut c = vec![0.0; 28];
+            (c[0], c[2], c[13]) = (1.0, -0.2, -0.1);
+            c
+        },
+    };
+    let roi = Roi {
+        offset_x: 400,
+        offset_y: 200,
+        width: 1200,
+        height: 1000,
+    };
+    let frame_meta = meta(roi, Binning::new(2, 2).unwrap());
+    let frame = OwnedImage::<u16>::from_fn(600, 500, |x, y| {
+        let at = |i: usize, offset: u32| f64::from(offset) + (i as f64 + 0.5) * 2.0;
+        let light = flat.at(at(x, roi.offset_x), at(y, roi.offset_y));
+        (100.0 + 8000.0 * light).round() as u16
+    });
+    let mapping = DisplayMapping {
+        min: 0,
+        max: 16_383,
+        gamma: 1.0,
+        colormap: Colormap::Grey,
+    };
+    let mut renderer = Renderer::default();
+    let shading = (100.0, flat);
+    let regions = [
+        (RectPx::new(0, 0, 600, 500), (150, 125)),
+        (RectPx::new(450, 20, 150, 100), (150, 100)),
+    ];
+    for (region, size) in regions {
+        renderer
+            .show(
+                &frame.view(),
+                region,
+                size,
+                mapping,
+                Some((&shading, &frame_meta)),
+            )
+            .unwrap();
+        let (_, levels) = renderer.shown();
+        let (low, high) = (levels.iter().min().unwrap(), levels.iter().max().unwrap());
+        assert!(high - low <= 1, "{region:?}: {low} to {high}");
+    }
+    renderer
+        .show(
+            &frame.view(),
+            RectPx::new(0, 0, 600, 500),
+            (150, 125),
+            mapping,
+            None,
+        )
+        .unwrap();
+    let (_, levels) = renderer.shown();
+    assert!(
+        levels.iter().max().unwrap() - levels.iter().min().unwrap() > 10,
+        "uncorrected"
+    );
 }
 
 #[test]
@@ -162,7 +236,7 @@ fn a_lut_maps_the_window_through_its_gamma_and_colormap() {
         };
         assert_eq!(mapping, expected);
         renderer
-            .show(&frame.view(), whole, (256, 4), mapping)
+            .show(&frame.view(), whole, (256, 4), mapping, None)
             .unwrap();
         let lut = Lut::new(&expected).unwrap();
         let ((width, height), bytes) = renderer.shown();

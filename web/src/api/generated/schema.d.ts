@@ -684,6 +684,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/display/flat_field": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether the previews are corrected by the dark and flat in force for the objective and
+         * @description ## Whether the previews are corrected by the dark and flat in force for the objective and
+         *
+         *     Whether the previews are corrected by the dark and flat in force for the objective and
+         *     channel in use (ADR-0050); without a flat, they show as they are.
+         */
+        get: operations["get_property_api_v1_display_flat_field_get"];
+        /**
+         * Set Whether the previews are corrected by the dark and flat in force for the objective and
+         * @description ## Whether the previews are corrected by the dark and flat in force for the objective and
+         *
+         *     Whether the previews are corrected by the dark and flat in force for the objective and
+         *     channel in use (ADR-0050); without a flat, they show as they are.
+         */
+        put: operations["set_property_api_v1_display_flat_field_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/display/focus_measure": {
         parameters: {
             query?: never;
@@ -2990,6 +3020,105 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/calibration/capture_dark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of capture_dark.
+         * @description List all the invocations of capture_dark that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_calibration_capture_dark_get"];
+        put?: never;
+        /**
+         * Takes the dark of the objective and channel in use: `frames` frames (16 by default) with
+         * @description ## Takes the dark of the objective and channel in use: `frames` frames (16 by default) with
+         *
+         *     Takes the dark of the objective and channel in use: `frames` frames (16 by default) with
+         *     every light off, averaged, at the camera's settings, of the whole sensor. Kept as a new
+         *     version, it is in force for them from then on.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_calibration_capture_dark_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calibration/capture_flat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of capture_flat.
+         * @description List all the invocations of capture_flat that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_calibration_capture_flat_get"];
+        put?: never;
+        /**
+         * Takes the flat of the objective and channel in use: `frames` frames (18 by default) at
+         * @description ## Takes the flat of the objective and channel in use: `frames` frames (18 by default) at
+         *
+         *     Takes the flat of the objective and channel in use: `frames` frames (18 by default) at
+         *     nine places a field apart about the stage, `defocus_um` out of focus (0 by default, for a
+         *     blank slide), averaged, less the dark in force, and fitted. Kept as a new version, it is in
+         *     force for them from then on.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_calibration_capture_flat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calibration/estimate_shading": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of estimate_shading.
+         * @description List all the invocations of estimate_shading that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_calibration_estimate_shading_get"];
+        put?: never;
+        /**
+         * Estimates the flat of dataset `dataset`'s frames of the whole sensor, its tiles of
+         * @description ## Estimates the flat of dataset `dataset`'s frames of the whole sensor, its tiles of
+         *
+         *     Estimates the flat of dataset `dataset`'s frames of the whole sensor, its tiles of
+         *     different places, as a background job, whose id it gives (BaSiC, simplified). The flat is
+         *     kept, and in force, for the first frame's objective and channel when the job ends.
+         *     `dark_level` is what the frames are measured less, in ADU: by default the level of the
+         *     dark in force for them, or 0. It doesn't wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_calibration_estimate_shading_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/calibration/stage_camera": {
         parameters: {
             query?: never;
@@ -3008,7 +3137,7 @@ export interface paths {
          * @description ## Calibrates the objective in use against the stage: a star of 16 moves about where the stage
          *
          *     Calibrates the objective in use against the stage: a star of 16 moves about where the stage
-         *     is, out to a third of the field, a frame at each registered against the first; the affine
+         *     is, out to 0.4 of the field, a frame at each registered against the first; the affine
          *     fitted, checked, and the backlash measured. Kept as a new version, it is in force for the
          *     objective's frames from then on. Something must be in the field to register.
          *
@@ -3031,10 +3160,11 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Each configured objective, with the stage–camera calibration in force for it, if any.
-         * @description ## Each configured objective, with the stage–camera calibration in force for it, if any.
+         * Each configured objective, with its stage–camera calibration in force, and its dark and
+         * @description ## Each configured objective, with its stage–camera calibration in force, and its dark and
          *
-         *     Each configured objective, with the stage–camera calibration in force for it, if any.
+         *     Each configured objective, with its stage–camera calibration in force, and its dark and
+         *     flat with each channel.
          */
         get: operations["get_property_api_v1_calibration_status_get"];
         put?: never;
@@ -3412,6 +3542,7 @@ export interface components {
             log: components["schemas"]["LogRecordModel"][];
             error?: components["schemas"]["ProblemDetails"] | null;
         };
+        display_flat_field_value: boolean;
         display_focus_measure_value: number | null;
         display_histogram_value: {
             /** @description The frame measured. */
@@ -4410,6 +4541,162 @@ export interface components {
             log: components["schemas"]["LogRecordModel"][];
             error?: components["schemas"]["ProblemDetails"] | null;
         };
+        calibration_capture_dark_input: {
+            frames?: number | null;
+        };
+        /** @description A dark or a flat as it is kept, for one objective and channel. */
+        calibration_capture_dark_output: {
+            /**
+             * Format: uuid
+             * @description Its id.
+             */
+            id: string;
+            /** @description A dark or a flat. */
+            kind: "dark" | "flat";
+            /** @description The objective it is for. */
+            objective?: number | null;
+            /** @description The channel it is for. */
+            channel?: number | null;
+            /**
+             * Format: date-time
+             * @description When it was made.
+             */
+            created: string;
+            /** @description How it was made: `capture`, or `estimate` from a dataset's frames. */
+            method: string;
+            /** @description The frames it was made from. */
+            frames: number;
+            /** @description Their exposure, in ms. */
+            exposure_ms: number;
+            /** @description Their binning. */
+            binning: {
+                /** @description Sensor columns per image column. */
+                horizontal: number;
+                /** @description Sensor rows per image row. */
+                vertical: number;
+            };
+            /** @description A dark's mean level, or the dark level a flat was measured less, in ADU. */
+            level: number;
+            /** @description A flat's surface. */
+            flat?: {
+                /** @description The sensor's width and height, in pixels. */
+                sensor: number[];
+                /**
+                 * @description The coefficients of `xⁱ yʲ`, `i + j ≤ DEGREE`, `j` major, with `x` and `y` from −1 to 1
+                 *     across the sensor.
+                 */
+                coefficients: number[];
+            } | null;
+            /** @description A flat's least and greatest light, relative to its mean. */
+            range?: number[] | null;
+        };
+        calibration_capture_dark_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["calibration_capture_dark_input"];
+            output?: components["schemas"]["calibration_capture_dark_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        calibration_capture_flat_input: {
+            defocus_um?: number | null;
+            frames?: number | null;
+        };
+        /** @description A dark or a flat as it is kept, for one objective and channel. */
+        calibration_capture_flat_output: {
+            /**
+             * Format: uuid
+             * @description Its id.
+             */
+            id: string;
+            /** @description A dark or a flat. */
+            kind: "dark" | "flat";
+            /** @description The objective it is for. */
+            objective?: number | null;
+            /** @description The channel it is for. */
+            channel?: number | null;
+            /**
+             * Format: date-time
+             * @description When it was made.
+             */
+            created: string;
+            /** @description How it was made: `capture`, or `estimate` from a dataset's frames. */
+            method: string;
+            /** @description The frames it was made from. */
+            frames: number;
+            /** @description Their exposure, in ms. */
+            exposure_ms: number;
+            /** @description Their binning. */
+            binning: {
+                /** @description Sensor columns per image column. */
+                horizontal: number;
+                /** @description Sensor rows per image row. */
+                vertical: number;
+            };
+            /** @description A dark's mean level, or the dark level a flat was measured less, in ADU. */
+            level: number;
+            /** @description A flat's surface. */
+            flat?: {
+                /** @description The sensor's width and height, in pixels. */
+                sensor: number[];
+                /**
+                 * @description The coefficients of `xⁱ yʲ`, `i + j ≤ DEGREE`, `j` major, with `x` and `y` from −1 to 1
+                 *     across the sensor.
+                 */
+                coefficients: number[];
+            } | null;
+            /** @description A flat's least and greatest light, relative to its mean. */
+            range?: number[] | null;
+        };
+        calibration_capture_flat_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["calibration_capture_flat_input"];
+            output?: components["schemas"]["calibration_capture_flat_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        calibration_estimate_shading_input: {
+            /**
+             * Format: uuid
+             * @description A dataset: a scan, a stack, a snapshot, and everything derived from it.
+             */
+            dataset: string;
+            dark_level?: number | null;
+        };
+        calibration_estimate_shading_output: number;
+        calibration_estimate_shading_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["calibration_estimate_shading_input"];
+            output?: components["schemas"]["calibration_estimate_shading_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
         /**
          * @description Represent the input of an action that never takes parameters.
          *
@@ -4507,6 +4794,105 @@ export interface components {
                 /** @description How it was measured, such as `stage_camera`. */
                 method: string;
             } | null;
+            /** @description Its dark and flat with each channel, and with none. */
+            shading: {
+                /** @description The channel: `null` for frames taken with none. */
+                channel?: number | null;
+                /** @description Its name. */
+                name: string;
+                /** @description The dark in force. */
+                dark?: {
+                    /**
+                     * Format: uuid
+                     * @description Its id.
+                     */
+                    id: string;
+                    /** @description A dark or a flat. */
+                    kind: "dark" | "flat";
+                    /** @description The objective it is for. */
+                    objective?: number | null;
+                    /** @description The channel it is for. */
+                    channel?: number | null;
+                    /**
+                     * Format: date-time
+                     * @description When it was made.
+                     */
+                    created: string;
+                    /** @description How it was made: `capture`, or `estimate` from a dataset's frames. */
+                    method: string;
+                    /** @description The frames it was made from. */
+                    frames: number;
+                    /** @description Their exposure, in ms. */
+                    exposure_ms: number;
+                    /** @description Their binning. */
+                    binning: {
+                        /** @description Sensor columns per image column. */
+                        horizontal: number;
+                        /** @description Sensor rows per image row. */
+                        vertical: number;
+                    };
+                    /** @description A dark's mean level, or the dark level a flat was measured less, in ADU. */
+                    level: number;
+                    /** @description A flat's surface. */
+                    flat?: {
+                        /** @description The sensor's width and height, in pixels. */
+                        sensor: number[];
+                        /**
+                         * @description The coefficients of `xⁱ yʲ`, `i + j ≤ DEGREE`, `j` major, with `x` and `y` from −1 to 1
+                         *     across the sensor.
+                         */
+                        coefficients: number[];
+                    } | null;
+                    /** @description A flat's least and greatest light, relative to its mean. */
+                    range?: number[] | null;
+                } | null;
+                /** @description The flat in force. */
+                flat?: {
+                    /**
+                     * Format: uuid
+                     * @description Its id.
+                     */
+                    id: string;
+                    /** @description A dark or a flat. */
+                    kind: "dark" | "flat";
+                    /** @description The objective it is for. */
+                    objective?: number | null;
+                    /** @description The channel it is for. */
+                    channel?: number | null;
+                    /**
+                     * Format: date-time
+                     * @description When it was made.
+                     */
+                    created: string;
+                    /** @description How it was made: `capture`, or `estimate` from a dataset's frames. */
+                    method: string;
+                    /** @description The frames it was made from. */
+                    frames: number;
+                    /** @description Their exposure, in ms. */
+                    exposure_ms: number;
+                    /** @description Their binning. */
+                    binning: {
+                        /** @description Sensor columns per image column. */
+                        horizontal: number;
+                        /** @description Sensor rows per image row. */
+                        vertical: number;
+                    };
+                    /** @description A dark's mean level, or the dark level a flat was measured less, in ADU. */
+                    level: number;
+                    /** @description A flat's surface. */
+                    flat?: {
+                        /** @description The sensor's width and height, in pixels. */
+                        sensor: number[];
+                        /**
+                         * @description The coefficients of `xⁱ yʲ`, `i + j ≤ DEGREE`, `j` major, with `x` and `y` from −1 to 1
+                         *     across the sensor.
+                         */
+                        coefficients: number[];
+                    } | null;
+                    /** @description A flat's least and greatest light, relative to its mean. */
+                    range?: number[] | null;
+                } | null;
+            }[];
         }[];
     };
     responses: never;
@@ -5555,6 +5941,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["display_auto_contrast_once_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_display_flat_field_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of flat_field */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["display_flat_field_value"];
+                };
+            };
+        };
+    };
+    set_property_api_v1_display_flat_field_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["display_flat_field_value"];
+            };
+        };
+        responses: {
+            /** @description Property set successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -8493,6 +8932,192 @@ export interface operations {
             };
         };
     };
+    list_invocations_api_v1_calibration_capture_dark_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of capture_dark. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_calibration_capture_dark_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["calibration_capture_dark_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["calibration_capture_dark_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["calibration_capture_dark_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_calibration_capture_flat_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of capture_flat. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_calibration_capture_flat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["calibration_capture_flat_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["calibration_capture_flat_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["calibration_capture_flat_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_calibration_estimate_shading_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of estimate_shading. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_calibration_estimate_shading_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["calibration_estimate_shading_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["calibration_estimate_shading_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["calibration_estimate_shading_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_invocations_api_v1_calibration_stage_camera_get: {
         parameters: {
             query?: never;
@@ -8571,7 +9196,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["calibration_status_value"];
-                    "text/event-stream": string;
                 };
             };
         };
