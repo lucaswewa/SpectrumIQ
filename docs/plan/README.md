@@ -185,13 +185,13 @@ A phase is Done once it is merged.
 | P4.6 | OME-TIFF export | 800 | P4.4 | Done |
 | P4.7 | `datasets` Thing and processing on snap | 700 | P4.3–P4.5 | Done |
 | P4.8 | Dataset browser and 2D viewer UI | 900 | P4.7, P3.2 | Done |
-| P4.9 | Synthetic dataset generator | 700 | P1.6, P4.1 | Review |
+| P4.9 | Synthetic dataset generator | 700 | P1.6, P4.1 | Done |
 
 ### M5 — Registration and calibration ([brief](milestones/M05-registration-calibration.md))
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P5.1 | Phase correlation | 800 | P1.5 | — |
+| P5.1 | Phase correlation | 800 | P1.5 | Review |
 | P5.2 | Stage–camera calibration | 800 | P5.1, P2.4 | — |
 | P5.3 | Shading correction | 850 | P5.2, P4.3 | — |
 | P5.4 | Calibration UI | 800 | P5.2, P5.3, P3.4 | — |

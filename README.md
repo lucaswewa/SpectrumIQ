@@ -79,7 +79,7 @@ Done so far:
     click-to-move and STOP (`/#/dev/control` without a server);
   - P3.5, the [desktop shell](apps/spectrumiq-desktop/README.md): a Tauri window that finds the
     local service and loads its web app (`npm run tauri dev` in `apps/spectrumiq-desktop`).
-- Milestone 4 (storage, jobs and the 2D deep-zoom viewer), complete, awaiting approval: a 100 MP
+- Milestone 4 (storage, jobs and the 2D deep-zoom viewer), complete: a 100 MP
   snap is a dataset whose first tile comes 1.5 s after the snap, a 533 MP synthetic mosaic browses
   with tiles in milliseconds, Fiji and QuPath open the OME-TIFF export, and napari the OME-Zarr:
   - P4.1, [`siq-storage`](crates/siq-storage/README.md)'s datasets, with a manifest of their
@@ -102,6 +102,9 @@ Done so far:
     in their colours, each channel's LUT, z and t, the scale bar and the probe (`/#/dev/viewer2d`);
   - P4.9, [`siq-datagen`](apps/siq-datagen/README.md): synthetic tile scans, z-stacks and bead
     stacks with their exact ground truth (`cargo run -p siq-datagen -- tilescan --smoke`).
+- Milestone 5 (registration and calibration), under way:
+  - P5.1, [`siq-register`](crates/siq-register/README.md): sub-pixel translation between two
+    images by phase correlation, with its confidence (`--example register_pair`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

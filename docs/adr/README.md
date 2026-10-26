@@ -56,3 +56,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0045](0045-on-demand-dzi-from-ome-zarr.md) | Deep-zoom tiles rendered on demand from OME-Zarr | Accepted | P4.5 |
 | [0046](0046-the-ome-tiff-export-profile.md) | The OME-TIFF export profile | Accepted | P4.6 |
 | [0047](0047-synthetic-datasets-and-ground-truth.md) | Synthetic datasets and their ground-truth files | Accepted | P4.9 |
+| [0048](0048-the-registration-method.md) | The registration method | Accepted | P5.1 |

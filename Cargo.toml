@@ -40,6 +40,10 @@ memmap2 = "0.9.11"
 proptest = "1.11"
 png = "0.18.1"
 rayon = "1.12"
+# Real-to-complex FFTs, for phase correlation (ADR-0048): the rows by realfft, the columns by the
+# rustfft under it.
+realfft = "3.5"
+rustfft = "6.4"
 # Dialect templates compile to regexes. regex-automata and regex-syntax are already in the lockfile.
 regex = "1.13.1"
 # The web app's build, embedded in release builds of the server and read from disk in debug ones.

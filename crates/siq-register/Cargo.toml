@@ -1,0 +1,23 @@
+[package]
+name = "siq-register"
+description = "Image registration: sub-pixel translation between two images by phase correlation, with its confidence."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+realfft.workspace = true
+rustfft.workspace = true
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+
+[dev-dependencies]
+siq-devices = { path = "../siq-devices" }
+siq-sim = { path = "../siq-sim" }
+siq-synth = { path = "../siq-synth" }
+
+[lints]
+workspace = true

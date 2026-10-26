@@ -74,7 +74,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 
 | ID | Requirement | Source | Phases | Verified by |
 |---|---|---|---|---|
-| REQ-CAL-001 | A stage↔camera affine calibration per objective: pixel size, rotation, shear. | G | P5.1, P5.2, P5.4 | |
+| REQ-CAL-001 | A stage↔camera affine calibration per objective: pixel size, rotation, shear. | G | P5.1, P5.2, P5.4 | The shifts it is measured from, in P5.1 (ADR-0048): phase correlation at any size with the four wrap hypotheses chosen by the overlap's correlation, refined in windows of the overlap, sub-pixel by a Gaussian, with its confidence (`siq-register` `tests/register.rs`: `known_shifts_are_found_within_a_tenth_of_a_pixel`, `large_shifts_are_found_coarse_to_fine`, `a_low_overlap_is_found_by_its_correlation`, `periodic_and_unrelated_images_are_told_as_doubtful`) |
 | REQ-CAL-002 | Dark/flat calibration per objective × channel, and retrospective shading estimation. | Q | P1.5, P5.3, P5.4 | The correction kernel, in P1.5: `(raw − dark) × gain`, clamped, into a buffer or in place (`correction_matches_the_reference`). The calibration routines follow in P5.3 and P5.4 |
 | REQ-CAL-003 | Calibrations are versioned and referenced by frames and datasets. | D | P0.2, P5.2 | The reference, in P0.2: `FrameMeta.calibration: Option<CalibrationId>` (UUID v7), pinned by `frame_metadata_json_is_stable`. Versioning follows in P5.2 |
 
@@ -94,7 +94,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 | ID | Requirement | Source | Phases | Verified by |
 |---|---|---|---|---|
 | REQ-STI-001 | Real-time live stitching on the GPU from calibration and stage pose, with a downscaled feed to the UI. | G | P7.1–P7.4 | |
-| REQ-STI-002 | Post-acquisition stitching: stage-guided sub-pixel phase correlation, global optimization, blending. | G | P5.1, P8.1–P8.4, P8.6 | |
+| REQ-STI-002 | Post-acquisition stitching: stage-guided sub-pixel phase correlation, global optimization, blending. | G | P5.1, P8.1–P8.4, P8.6 | The registration, in P5.1 (ADR-0048): phase correlation at any size with the four wrap hypotheses chosen by the overlap's correlation, refined in windows of the overlap, sub-pixel by a Gaussian, with its confidence (`siq-register` `tests/register.rs`: `known_shifts_are_found_within_a_tenth_of_a_pixel`, `large_shifts_are_found_coarse_to_fine`, `a_low_overlap_is_found_by_its_correlation`, `periodic_and_unrelated_images_are_told_as_doubtful`) |
 | REQ-STI-003 | Mosaics of ≥ 500 MP, with an out-of-core design that scales beyond. | G | P4.4, P6.2, P7.2, P8.3, P8.5 | The pyramid, in P4.4 (ADR-0044): built chunk by chunk, holding a few chunks per thread whatever the image's size (`siq-pyramid` `tests/memory.rs`: `building_holds_a_few_chunks_per_thread_not_the_image`, 8.4 MB at the peak for a 32 MB image). `build_pyramid`: a 400 MP image's levels in 1.3 s, the process's peak working set 84 MB |
 | REQ-STI-004 | Accuracy on synthetic ground truth: RMS ≤ 0.3 px, max ≤ 1 px. | D | P4.9, P8.2, P8.5 | The ground truth, in P4.9 (ADR-0047): each tile's true pose and the ideal mosaic, which stitching's accuracy is measured against in P8.2 and P8.5 (`siq-datagen` `tests/datagen.rs`: `a_tile_scan_s_tiles_lie_where_the_truth_puts_them`) |
 
