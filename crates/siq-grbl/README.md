@@ -37,7 +37,7 @@ The design is in
 | Item | What |
 |---|---|
 | `GrblStage::connect(transport, options, clock)` | Connects over any `LineTransport`, and spawns the link task, which owns the transport. Its timing is on `clock`, which also timestamps the status. Fails if `$$` lacks the axes' settings, or reports in inches |
-| `GrblStage` | A `siq_devices::Stage` and `Device`. The `Device` info's vendor is `GRBL` or `grblHAL`, and its firmware is the banner. `limits()` is −`$13x` to 0 µm per axis |
+| `GrblStage` | A `siq_devices::Stage` and `Device`. The `Device` info's vendor is `GRBL` or `grblHAL`, and its firmware is the banner. `limits()` is −`$13x` to 0 µm per axis; `kinematics()` the slower of x's and y's `$11x` and `$12x` |
 | `GrblOptions { poll, motion }` | From `&GrblStageConfig` or `&SimStageConfig` |
 | `protocol::{parse_status, parse_setting, error, loses_position}` | GRBL's replies: status reports (with the last `WCO` kept by the caller), `$N=V` settings, `error:N` as a `DeviceError`, and the alarms that lose the position |
 

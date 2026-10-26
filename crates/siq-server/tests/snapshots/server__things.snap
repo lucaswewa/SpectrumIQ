@@ -186,12 +186,14 @@ expression: descriptions
   "workflow": {
     "title": "Workflow",
     "properties": [
+      "field",
       "plan_schema",
       "positions",
       "progress",
       "state"
     ],
     "actions": [
+      "estimate_tile_scan",
       "multi_position",
       "pause",
       "remove_position",

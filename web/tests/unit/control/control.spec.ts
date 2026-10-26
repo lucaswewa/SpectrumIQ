@@ -25,6 +25,7 @@ const things = {
     { objectives: false, position: false, moving: false, current: false },
     ['select'],
   ),
+  workflow: describeThing('workflow', { positions: false }, ['save_position']),
 }
 const OBJECTIVES = [
   { id: 1, name: '10x/0.30', magnification: 10, numerical_aperture: 0.3, turret_position: 0 },
@@ -72,7 +73,13 @@ async function showPage({ connect = true } = {}) {
       body: JSON.parse(request.body!),
     })
     const record = { id: '1', status: 'completed', href: `${BASE}api/v1/action_invocations/1` }
-    const output = request.url.pathname.includes('move') ? { state: 'idle' } : null
+    // The server saves where the stage and focus are.
+    const saved = { x: 10, y: 20, z: 0, focus: 5 }
+    const output = request.url.pathname.includes('move')
+      ? { state: 'idle' }
+      : request.url.pathname.endsWith('save_position')
+        ? [{ name: JSON.parse(request.body!).name, ...saved }]
+        : null
     return json({ ...record, output }, 201)
   }
   const server = fakeServer({
@@ -89,10 +96,16 @@ async function showPage({ connect = true } = {}) {
     'GET /api/v1/objective/objectives': OBJECTIVES,
     'GET /api/v1/objective/position': 0,
     'GET /api/v1/objective/current': OBJECTIVES[0]!,
+    'GET /api/v1/workflow/positions': [],
     ...Object.fromEntries(
-      [...ACTIONS, 'focus/move_to', 'focus/move_by', 'focus/halt', 'objective/select'].map(
-        (path) => [`POST /api/v1/${path}`, post],
-      ),
+      [
+        ...ACTIONS,
+        'focus/move_to',
+        'focus/move_by',
+        'focus/halt',
+        'objective/select',
+        'workflow/save_position',
+      ].map((path) => [`POST /api/v1/${path}`, post]),
     ),
   })
   if (connect) {
@@ -186,14 +199,16 @@ describe('the stage and the focus', () => {
     ])
   })
 
-  it('go back to a saved position, the stage first, then the focus', async () => {
+  it('save a position on the server, then go back to it, the stage first', async () => {
     const page = await showPage()
     await button(page, 'Saved positions').trigger('click')
     await flushPromises()
     await button(page, 'Save this position').trigger('click')
+    await flushPromises()
     await button(page, 'Go').trigger('click')
     await flushPromises()
     expect(posts).toEqual([
+      { path: 'workflow/save_position', body: { name: 'Position 1' } },
       { path: 'stage/move_to', body: { x: 10, y: 20, z: 0 } },
       { path: 'focus/move_to', body: { z: 5, unidirectional: false } },
     ])

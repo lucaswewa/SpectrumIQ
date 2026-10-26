@@ -12,6 +12,8 @@
 //!   what was taken.
 //! - **What's observed:** `state` and `progress`, each frame as `tile_acquired`, and each run's
 //!   end as `finished`.
+//! - **Before a tile scan:** `field`, the frame about where the stage is, and
+//!   `estimate_tile_scan`, its tiles, time and bytes, and what may go wrong (ADR-0057).
 //! - **Saved positions,** in `positions.json` in the settings folder: `positions`, and
 //!   `save_position`, `rename_position` and `remove_position`. A multi-position given none visits
 //!   them.
@@ -28,16 +30,17 @@ use std::sync::{Mutex, PoisonError};
 use anyhow::Context;
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use siq_storage::Snapshot;
+use siq_storage::{Snapshot, free_space};
 use siq_types::{ChannelId, DatasetId};
 use siq_workflow::autofocus::SurfaceKind;
 use siq_workflow::engine::{
     DatasetTarget, ErrorPolicy, Outcome, Overrun, Plan, Position, Progress, RunControl, RunEvent,
     Step, TileFocus, ZPlanes, run,
 };
-use siq_workflow::scan::{Order, Region};
+use siq_workflow::scan::{self, Focusing, Order, Region, Tile, Timing};
 use teta_wot::prelude::{ActionCtx, ActionError, Event, Prop, Thing, ThingCtx, thing_impl};
 
+use crate::Instrument;
 use crate::things::{Bound, bind, bound};
 
 /// What the workflow is doing.
@@ -346,6 +349,126 @@ impl Request for TimeLapseRequest {
     }
 }
 
+/// What a tile scan would be.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct ScanEstimate {
+    /// The tiles, in their order.
+    pub tiles: Vec<Tile>,
+    /// A frame's corners about its tile's centre, in µm.
+    pub frame: [[f64; 2]; 4],
+    /// The frames.
+    pub frames: usize,
+    /// How long it takes, in s.
+    pub seconds: f64,
+    /// The frames' bytes on disk.
+    pub bytes: u64,
+    /// The bytes free on the data root's disk, if known.
+    pub free_bytes: Option<u64>,
+    /// Whether the frames fit there, leaving the bytes kept free.
+    pub fits: bool,
+    /// What may go wrong.
+    pub warnings: Vec<String>,
+}
+
+/// The calibration in force, and the frame in sensor pixels.
+fn optics(instrument: &Instrument) -> Option<(siq_types::Affine2, [f64; 2])> {
+    let calibration = instrument.acquisition.context().calibration;
+    let record = calibration.and_then(|id| instrument.calibrations.get(id))?;
+    let roi = instrument.camera.settings().roi;
+    Some((
+        record.affine(),
+        [f64::from(roi.width), f64::from(roi.height)],
+    ))
+}
+
+/// What `request` would take on `instrument`.
+fn estimate(instrument: &Instrument, request: &TileScanRequest) -> Result<ScanEstimate, String> {
+    let why = "a tile scan needs the objective's stage–camera calibration: calibrate it";
+    let (l, field) = optics(instrument).ok_or(why)?;
+    let grid = scan::plan(&request.region, &l, field, request.overlap, request.order);
+    let grid = grid.map_err(|error| error.to_string())?;
+    let frame = scan::frame(&l, field).ok_or("the calibration isn't invertible")?;
+    let config = &instrument.config;
+    let settings = instrument.camera.settings();
+    let exposures = match request.channels.is_empty() {
+        true => vec![settings.exposure.0 / 1000.0],
+        false => request
+            .channels
+            .iter()
+            .map(|id| {
+                let found = config.channels.iter().find(|channel| channel.id == *id);
+                let channel = found.ok_or_else(|| format!("there is no channel {id}"))?;
+                Ok(channel.exposure.0 / 1000.0)
+            })
+            .collect::<Result<_, String>>()?,
+    };
+    let binning = settings.binning;
+    let pixels = (field[0] as u64 / u64::from(binning.horizontal.get()))
+        * (field[1] as u64 / u64::from(binning.vertical.get()));
+    let focusing = Focusing {
+        planes: request.z_stack.map_or(1, |planes| planes.planes().len()),
+        autofocus: matches!(request.focus, TileFocus::Autofocus { .. }),
+        map_places: request.focus_map.as_ref().map_or(0, |map| map.places.len()),
+    };
+    let mut timing = Timing::default();
+    if let Some(kinematics) = instrument.stage.kinematics() {
+        timing.speed_um_s = kinematics.speed_um_s;
+        timing.acceleration_um_s2 = kinematics.acceleration_um_s2;
+    }
+    let at = instrument.stage.status().borrow().position;
+    let settle_s = request.settle_ms / 1000.0;
+    let (start, bytes) = ([at.x.0, at.y.0], pixels * 2);
+    let estimated = scan::estimate(
+        &grid, start, settle_s, &exposures, bytes, &focusing, &timing,
+    );
+    let free_bytes = free_space(instrument.catalog.data_root()).ok();
+    let keep = (config.server.min_free_gb * 1e9) as u64;
+    let fits = free_bytes.is_none_or(|free| estimated.fits(free, keep));
+    let gb = |bytes: u64| bytes as f64 / 1e9;
+    let mut warnings = Vec::new();
+    if let (false, Some(free)) = (fits, free_bytes) {
+        warnings.push(format!(
+            "the frames take {:.1} GB; the disk has {:.1} GB free, {:.1} GB of it kept free",
+            gb(estimated.bytes),
+            gb(free),
+            gb(keep)
+        ));
+    }
+    if bytes as usize > instrument.slot_bytes {
+        warnings.push("a frame is larger than the frame pool's slots".to_owned());
+    }
+    let travel = instrument.stage.limits();
+    let (low, high) = (travel.min, travel.max);
+    let outside = grid.tiles.iter().filter(|tile| {
+        !(low.x.0..=high.x.0).contains(&tile.x) || !(low.y.0..=high.y.0).contains(&tile.y)
+    });
+    match outside.count() {
+        0 => {}
+        n => warnings.push(format!("{n} tiles are outside the stage's travel")),
+    }
+    if let Some(planes) = request.z_stack {
+        let focus = instrument.focus.status().borrow().position.0;
+        let travel = instrument.focus.limits();
+        let half = planes.range_um / 2.0;
+        if focus - half < travel.min.0 || focus + half > travel.max.0 {
+            warnings.push("the z-stack leaves the focus drive's travel".to_owned());
+        }
+    }
+    if request.overlap < 0.05 {
+        warnings.push("under 5 % overlap leaves stitching little to register".to_owned());
+    }
+    Ok(ScanEstimate {
+        tiles: grid.tiles,
+        frame,
+        frames: estimated.frames,
+        seconds: estimated.seconds,
+        bytes: estimated.bytes,
+        free_bytes,
+        fits,
+        warnings,
+    })
+}
+
 /// The saved positions, in a file of the settings folder.
 struct Saved {
     path: PathBuf,
@@ -513,6 +636,25 @@ impl Workflow {
         self.positions.set(saved.list())?;
         let _ = self.saved.set(saved);
         Ok(())
+    }
+
+    /// A frame's corners about where the stage is, in µm, by the calibration in force and the
+    /// camera's region: `null` without a calibration.
+    #[property(global_lock = false)]
+    async fn field(&self) -> Option<[[f64; 2]; 4]> {
+        let (l, field) = optics(bound(&self.instrument))?;
+        scan::frame(&l, field)
+    }
+
+    /// What `tile_scan` would do with this request, without doing it: its tiles in their order,
+    /// a frame's corners about a tile, its time and bytes, whether the disk holds them, and what
+    /// may go wrong. It doesn't wait for the global lock.
+    #[action(global_lock = false)]
+    async fn estimate_tile_scan(
+        &self,
+        #[input] request: Requested<TileScanRequest>,
+    ) -> Result<ScanEstimate, ActionError> {
+        estimate(bound(&self.instrument), &request.0).map_err(ActionError::handled)
     }
 
     /// The JSON Schema of a plan: its steps, which nest.

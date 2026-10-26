@@ -132,7 +132,9 @@ Done so far:
     (`siq-workflow --example timelapse_sim`);
   - P6.5, the `workflow` Thing: plans run over HTTP under the global lock, followed, paused and
     cancelled, and the saved positions (`python examples/python/tile_scan.py`, `z_stack.py`,
-    `timelapse.py`).
+    `timelapse.py`);
+  - P6.6, the Scan page: a region drawn on the stage map, its focusing and z-stacks, its tiles and
+    estimate from the server, and Start (`/#/scan`, `/#/dev/scan`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

@@ -502,6 +502,15 @@ Content-Type: application/json
 
 {"name": "tile-scan", "region": {"shape": "rect", "x0": -24000, "y0": -18000, "x1": -16000, "y1": -12000}, "channels": [1], "focus": {"mode": "surface"}, "focus_map": {"places": [[-22000, -16000], [-18000, -16000], [-20000, -14000]]}}
 
+### What the tile scan would take: its tiles, a frame's corners, its time and bytes, and warnings
+POST {{api}}/workflow/estimate_tile_scan
+Content-Type: application/json
+
+{"name": "tile-scan", "region": {"shape": "rect", "x0": -24000, "y0": -18000, "x1": -16000, "y1": -12000}, "channels": [1]}
+
+### The frame's corners about where the stage is, by the calibration in force
+GET {{api}}/workflow/field
+
 ### A time-lapse: a frame every 10 s, 30 times
 # @name lapse
 POST {{api}}/workflow/time_lapse

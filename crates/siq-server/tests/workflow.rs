@@ -1,13 +1,13 @@
-//! The `workflow` Thing (ADR-0056) over HTTP, on the simulated instrument: a tile scan run under
-//! the global lock, its progress observed and a manual move refused meanwhile, its dataset told to
-//! the hooks; a time-lapse paused, resumed and cancelled by deleting its invocation; plans refused
+//! The `workflow` Thing (ADR-0056) over HTTP, on the simulated instrument: a tile scan estimated,
+//! then run under the global lock, its progress observed and a manual move refused meanwhile, its
+//! dataset told to the hooks; a time-lapse paused, resumed and cancelled by deleting its invocation; plans refused
 //! with 422; and the saved positions, kept across restarts, which a multi-position visits.
 //! REQ-WF-005, REQ-WF-006, REQ-NET-002.
 
 mod common;
 
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use common::{config, finished, finished_within, invoke, serve};
 use serde_json::{Value, json};
@@ -116,6 +116,24 @@ async fn a_tile_scan_holds_the_global_lock_and_reports_its_progress() {
         "channels": [1],
         "z_stack": { "range_um": 4.0, "step_um": 2.0 },
     });
+    // Its estimate first: its tiles, their frame, the field of view's, and the disk's room.
+    let estimate = "/api/v1/workflow/estimate_tile_scan";
+    let estimated = invoke(client, estimate, scan.clone()).await;
+    assert_eq!(
+        estimated["tiles"].as_array().unwrap().len(),
+        4,
+        "{estimated}"
+    );
+    assert_eq!(
+        (&estimated["frames"], &estimated["fits"]),
+        (&json!(12), &json!(true))
+    );
+    assert_eq!(estimated["warnings"], json!([]));
+    let field = client.get("/api/v1/workflow/field").await.json();
+    assert_eq!(field, estimated["frame"]);
+    let width = field[1][0].as_f64().unwrap() - field[0][0].as_f64().unwrap();
+    assert!((width - 256.0 * 0.376).abs() < 1.0, "{field}");
+    let began = Instant::now();
     let invocation = client
         .post_json("/api/v1/workflow/tile_scan", Some(&scan))
         .await;
@@ -134,6 +152,14 @@ async fn a_tile_scan_holds_the_global_lock_and_reports_its_progress() {
 
     let ended = finished_within(client, invocation, Duration::from_secs(120)).await;
     assert_eq!(ended["status"], "completed", "{ended}");
+    let (took, expected) = (
+        began.elapsed().as_secs_f64(),
+        estimated["seconds"].as_f64().unwrap(),
+    );
+    assert!(
+        (took / expected - 1.0).abs() < 0.2,
+        "{took:.2} s, estimated {expected:.2} s"
+    );
     let output = &ended["output"];
     assert_eq!(output["outcome"], "finished", "{output}");
     assert_eq!(output["frames"], 12);

@@ -3235,6 +3235,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflow/estimate_tile_scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of estimate_tile_scan.
+         * @description List all the invocations of estimate_tile_scan that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_workflow_estimate_tile_scan_get"];
+        put?: never;
+        /**
+         * What `tile_scan` would do with this request, without doing it: its tiles in their order,
+         * @description ## What `tile_scan` would do with this request, without doing it: its tiles in their order,
+         *
+         *     What `tile_scan` would do with this request, without doing it: its tiles in their order,
+         *     a frame's corners about a tile, its time and bytes, whether the disk holds them, and what
+         *     may go wrong. It doesn't wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_workflow_estimate_tile_scan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflow/field": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A frame's corners about where the stage is, in µm, by the calibration in force and the
+         * @description ## A frame's corners about where the stage is, in µm, by the calibration in force and the
+         *
+         *     A frame's corners about where the stage is, in µm, by the calibration in force and the
+         *     camera's region: `null` without a calibration.
+         */
+        get: operations["get_property_api_v1_workflow_field_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/workflow/finished": {
         parameters: {
             query?: never;
@@ -5425,6 +5480,144 @@ export interface components {
                 } | null;
             }[];
         }[];
+        /** @description A tile scan, after a focus map if one is given (ADR-0053). */
+        workflow_estimate_tile_scan_input: {
+            /** @description The dataset's name. */
+            name: string;
+            /** @description The region, in stage µm. */
+            region: {
+                /** @description A corner. */
+                x0: number;
+                /** @description A corner. */
+                y0: number;
+                /** @description The opposite corner. */
+                x1: number;
+                /** @description The opposite corner. */
+                y1: number;
+                /** @constant */
+                shape: "rect";
+            } | {
+                /** @description The vertices, `[x, y]` in µm. */
+                points: number[][];
+                /** @constant */
+                shape: "polygon";
+            };
+            /**
+             * @description The overlap between neighbours, of the frame: 0.1 if not given.
+             * @default 0.1
+             */
+            overlap?: number;
+            /**
+             * @description The order the tiles are visited in: a snake if not given.
+             * @default snake
+             */
+            order?: "snake" | "raster" | "nearest";
+            /**
+             * @description The channels, in order: the one in use if none.
+             * @default []
+             */
+            channels?: number[];
+            /**
+             * @description How long the stage settles after each move, in ms.
+             * @default 0
+             */
+            settle_ms?: number;
+            /**
+             * @description How each tile is focused: as the focus is, if not given; `surface` with a focus map.
+             * @default {
+             *       "mode": "none"
+             *     }
+             */
+            focus?: {
+                /** @constant */
+                mode: "none";
+            } | {
+                /** @description Where, in µm. */
+                z: number;
+                /** @constant */
+                mode: "fixed";
+            } | {
+                /** @constant */
+                mode: "surface";
+            } | {
+                /** @description The range searched, in µm. */
+                range_um: number;
+                /** @constant */
+                mode: "autofocus";
+            };
+            /** @description A z-stack at each tile, in place of one frame. */
+            z_stack?: {
+                /** @description From the lowest plane to the highest, in µm, at most: a whole number of steps. */
+                range_um: number;
+                /** @description Between planes, in µm. */
+                step_um: number;
+                /**
+                 * @description The way the planes are taken: up if not given.
+                 * @default up
+                 */
+                direction?: "up" | "down";
+            } | null;
+            /** @description A focus map made first. */
+            focus_map?: {
+                /** @description The places, `[x, y]` in stage µm: three or more. */
+                places: number[][];
+                /**
+                 * @description The surface: a thin-plate spline if not given.
+                 * @default thin_plate
+                 */
+                surface?: "plane" | "thin_plate";
+                /**
+                 * @description Each autofocus's range, in µm: 50 if not given.
+                 * @default 50
+                 */
+                range_um?: number;
+            } | null;
+        };
+        /** @description What a tile scan would be. */
+        workflow_estimate_tile_scan_output: {
+            /** @description The tiles, in their order. */
+            tiles: {
+                /** @description Its column. */
+                column: number;
+                /** @description Its row. */
+                row: number;
+                /** @description Where the stage goes, in µm. */
+                x: number;
+                /** @description Where the stage goes, in µm. */
+                y: number;
+            }[];
+            /** @description A frame's corners about its tile's centre, in µm. */
+            frame: number[][];
+            /** @description The frames. */
+            frames: number;
+            /** @description How long it takes, in s. */
+            seconds: number;
+            /** @description The frames' bytes on disk. */
+            bytes: number;
+            /** @description The bytes free on the data root's disk, if known. */
+            free_bytes?: number | null;
+            /** @description Whether the frames fit there, leaving the bytes kept free. */
+            fits: boolean;
+            /** @description What may go wrong. */
+            warnings: string[];
+        };
+        workflow_estimate_tile_scan_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["workflow_estimate_tile_scan_input"];
+            output?: components["schemas"]["workflow_estimate_tile_scan_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        workflow_field_value: number[][] | null;
         /** @description How a run ended. */
         workflow_finished_data: {
             /** @description The plan's name. */
@@ -10363,6 +10556,88 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ThingDescription"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_workflow_estimate_tile_scan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of estimate_tile_scan. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_workflow_estimate_tile_scan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["workflow_estimate_tile_scan_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_estimate_tile_scan_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_estimate_tile_scan_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_workflow_field_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of field */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["workflow_field_value"];
                 };
             };
         };

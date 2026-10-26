@@ -162,6 +162,20 @@ pub trait Stage: Device {
 
     /// Where each axis may go.
     fn limits(&self) -> Travel<Xyz>;
+
+    /// How fast it moves in the plane, for estimates: `None` if the device doesn't say.
+    fn kinematics(&self) -> Option<Kinematics> {
+        None
+    }
+}
+
+/// How fast a stage moves in the plane: the slower axis's top speed and acceleration.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct Kinematics {
+    /// The top speed, in µm/s.
+    pub speed_um_s: f64,
+    /// The acceleration, in µm/s².
+    pub acceleration_um_s2: f64,
 }
 
 /// The focus drive: the fine z, for z-stacks, autofocus and focus maps. Its operations work as

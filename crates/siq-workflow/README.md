@@ -22,7 +22,8 @@ instrument.
   - **The tiles kept** are those whose frame meets the region, a rectangle or a polygon.
   - **The order:** a snake, a raster, or the nearest tile next.
   - **The estimate:** the moves at the stage's speed and acceleration, settling, channel
-    switches, exposures and readouts, and the bytes, against the disk.
+    switches, exposures and readouts, a z-stack's planes and focus moves, autofocus, and a focus
+    map's places (`Focusing`, P6.6); and the bytes, against the disk.
   - **In a plan,** a `tile_scan` needs the calibration in force. Its grid goes in the dataset's
     `layout.json`, each tile's column, row and planned position. Each tile is focused as the
     focus is, at a fixed focus, on the surface in force, or by autofocus.
@@ -109,7 +110,8 @@ instrument.
 | `engine::resolve(&devices, &steps, &mut layout)` | The steps with each tile scan and multi-position made into their own, and their grids and positions in the `Layout`; `engine::LAYOUT`, `layout.json` |
 | `scan::plan(&region, &l, field, overlap, order)` | `Grid { tiles, steps, overlap }`, each `Tile { column, row, x, y }`; `ScanError` for a region, overlap or `L` that can't make one, or over `MAX_TILES` |
 | `scan::Region`, `scan::Order` | `Rect { x0, y0, x1, y1 }` or `Polygon { points }`; `Snake`, `Raster`, `Nearest` |
-| `scan::estimate(&grid, start, settle_s, &exposures_s, frame_bytes, &timing)` | `Estimate { tiles, frames, seconds, bytes }`, and `fits(free, keep)`; `Timing`'s defaults are the simulator's |
+| `scan::estimate(&grid, start, settle_s, &exposures_s, frame_bytes, &focusing, &timing)` | `Estimate { tiles, frames, seconds, bytes }`, and `fits(free, keep)`; `Focusing { planes, autofocus, map_places }`; `Timing`'s defaults are the simulator's, a focus move 0.15 s |
+| `scan::frame(&l, field)` | A frame's corners about where the stage is, in µm |
 | `plan.check()` | The engine's checks that need no instrument: a name and a step, lengths, ranges, planes, points, positions, and a focus map before any surface. `run` makes them first; the server's requests make them as they are read |
 | `engine::ErrorPolicy { retries, skip }` | A failed step tried again `retries` times, then skipped if `skip`, else the run's end |
 | `engine::run(&devices, &target, &plan, &control, &observe)` | `RunReport { dataset, path, outcome, error, steps, frames }`, or `RunError` (`Invalid`, `Storage`) before any dataset is made |

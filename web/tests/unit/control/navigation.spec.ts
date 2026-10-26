@@ -6,7 +6,7 @@ import { nextTick } from 'vue'
 
 import { clickMove } from '@/control/clickToMove'
 import { NAVIGATION_KEY, useNavigationPreferences } from '@/control/navigation'
-import { POSITIONS_KEY, useSavedPositions } from '@/control/positions'
+import { nextName } from '@/control/positions'
 import { notches, wheelFocus } from '@/control/wheel'
 
 beforeEach(() => {
@@ -92,31 +92,10 @@ describe('click-to-move', () => {
 })
 
 describe('the saved positions', () => {
-  it('are numbered, renamed, forgotten and kept in this browser', async () => {
-    const saved = useSavedPositions()
-    saved.add({ x: 1, y: 2, z: 3 }, 40)
-    saved.add({ x: -5, y: 0, z: 0 })
-    saved.positions[0]!.name = 'Cell A'
-    saved.remove(2)
-    saved.add({ x: 7, y: 7, z: 7 })
-    await nextTick()
-    setActivePinia(createPinia())
-    expect(useSavedPositions().positions).toEqual([
-      { id: 1, name: 'Cell A', x: 1, y: 2, z: 3, focus: 40 },
-      { id: 2, name: 'Position 2', x: 7, y: 7, z: 7 },
-    ])
-  })
-
-  it('leave out what makes no sense', () => {
-    const entries = [
-      { id: 1, name: 'ok', x: 0, y: 0, z: 0 },
-      { id: 2, name: 'no z', x: 0, y: 0 },
-      7,
-    ]
-    window.localStorage.setItem(POSITIONS_KEY, JSON.stringify(entries))
-    expect(useSavedPositions().positions.map((each) => each.name)).toEqual(['ok'])
-    window.localStorage.setItem(POSITIONS_KEY, '{')
-    setActivePinia(createPinia())
-    expect(useSavedPositions().positions).toEqual([])
+  it('are named Position 1, 2, … by the first number not taken', () => {
+    expect(nextName([])).toBe('Position 1')
+    expect(nextName([{ name: 'Position 1' }, { name: 'Cell A' }, { name: 'Position 3' }])).toBe(
+      'Position 2',
+    )
   })
 })

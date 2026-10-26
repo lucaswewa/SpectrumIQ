@@ -26,8 +26,8 @@ pub use camera::{
     TriggerMode,
 };
 pub use motion::{
-    Approach, AxisStatus, FocusDrive, FocusStatus, MotionState, MoveOpts, Stage, StageStatus,
-    Travel, Xyz,
+    Approach, AxisStatus, FocusDrive, FocusStatus, Kinematics, MotionState, MoveOpts, Stage,
+    StageStatus, Travel, Xyz,
 };
 pub use peripherals::{
     Changer, ChangerStatus, FilterWheel, Illumination, IlluminationStatus, Modality,

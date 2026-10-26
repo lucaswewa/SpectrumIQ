@@ -1,8 +1,8 @@
 // A fake instrument for the development pages: a `fetch` that answers as a SpectrumIQ server
 // does, with a camera and a display Thing, MJPEG streams drawn in the browser, the stage, focus
-// and peripherals of `fakeMotion.ts`, which the drawing follows, and the calibrations of
-// `fakeCalibration.ts`. For development only (`/#/dev/live`, `/#/dev/control`,
-// `/#/dev/calibration`).
+// and peripherals of `fakeMotion.ts`, which the drawing follows, the calibrations of
+// `fakeCalibration.ts`, and the workflows of `fakeWorkflow.ts`. For development only
+// (`/#/dev/live`, `/#/dev/control`, `/#/dev/calibration`, `/#/dev/scan`).
 import type { Pinia } from 'pinia'
 import { createApp, defineComponent, h, type Component } from 'vue'
 
@@ -15,6 +15,7 @@ import OverlayProvider from '@/ui/OverlayProvider.vue'
 
 import { calibrate, status } from './fakeCalibration'
 import { act, BEST_FOCUS, follow, motionValues } from './fakeMotion'
+import { workflowAct, workflowValues } from './fakeWorkflow'
 
 const BASE = `${location.origin}/`
 
@@ -69,6 +70,15 @@ const THINGS = {
   calibration: describe('calibration', ['status'], {
     actions: ['stage_camera', 'capture_dark', 'capture_flat'],
   }),
+  workflow: describe('workflow', ['state', 'progress', 'positions', 'field'], {
+    actions: [
+      'estimate_tile_scan',
+      'tile_scan',
+      'save_position',
+      'rename_position',
+      'remove_position',
+    ],
+  }),
 }
 
 /** The fake's state: what reads answer, and what writes change. */
@@ -81,6 +91,7 @@ const values: Record<string, unknown> = {
   'camera/sensor': { width: 4000, height: 3000, pixel_size: 3.76, pixel_formats: ['Mono14'] },
   'display/lut': { contrast: { kind: 'auto', low_pct: 0.1, high_pct: 99.9 }, colormap: 'grey' },
   'display/roi_region': { region: null, zoom: 'native' },
+  ...workflowValues,
 }
 let published = 0
 let live = true
@@ -181,6 +192,14 @@ export const fakeFetch: typeof fetch = async (input, init = {}) => {
   if (path === 'calibration/status') return json(status())
   if (method === 'POST' && path.startsWith('calibration/')) {
     const output = await calibrate(path.split('/')[1]!)
+    return json(
+      { id: '1', status: 'completed', href: `${BASE}api/v1/action_invocations/1`, output },
+      201,
+    )
+  }
+  if (method === 'POST' && path.startsWith('workflow/')) {
+    const output = workflowAct(path.split('/')[1]!, JSON.parse(String(init.body ?? '{}')))
+    Object.assign(values, workflowValues)
     return json(
       { id: '1', status: 'completed', href: `${BASE}api/v1/action_invocations/1`, output },
       201,

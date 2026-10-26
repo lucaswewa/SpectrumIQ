@@ -21,8 +21,8 @@ use std::time::Duration;
 
 use siq_config::model::{GrblMotion, GrblStageConfig, SimStageConfig};
 use siq_devices::{
-    Approach, BoxFuture, Device, DeviceError, DeviceInfo, DeviceResult, MotionState, MoveOpts,
-    Stage, StageStatus, Travel, Xyz, watch,
+    Approach, BoxFuture, Device, DeviceError, DeviceInfo, DeviceResult, Kinematics, MotionState,
+    MoveOpts, Stage, StageStatus, Travel, Xyz, watch,
 };
 use siq_serial::{LineTransport, SerialError};
 use siq_types::{Clock, Hertz, MicrometersPerSecond};
@@ -489,5 +489,14 @@ impl Stage for GrblStage {
             min: Xyz::from_um(x, y, z),
             max: Xyz::from_um(0.0, 0.0, 0.0),
         }
+    }
+
+    /// The slower of x's and y's `$11x` and `$12x`.
+    fn kinematics(&self) -> Option<Kinematics> {
+        let [rate, accel] = [self.axes.rate, self.axes.accel].map(|axes| axes[0].min(axes[1]));
+        Some(Kinematics {
+            speed_um_s: rate / 60.0 * 1000.0,
+            acceleration_um_s2: accel * 1000.0,
+        })
     }
 }

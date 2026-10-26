@@ -36,7 +36,7 @@ The design is in [ADR-0023](../../docs/adr/0023-device-abstraction.md).
 | `CameraCapabilities` | Sensor, pixel size, formats, binnings, `RoiRules`, exposure range, `FrameRateModel`. `check(&settings)` is the one settings check, and `frame_rate.max_rate(&settings)` the rate for an ROI and binning |
 | `CameraSettings` | ROI, binning, format, exposure, gain, `TriggerMode` (`FreeRun`, `Software`, `External`). `full_frame`, `image_size`, `frame_bytes`, `frame_meta` |
 | `FrameSink` | Where a camera hands each `(FillGuard, FrameMeta)`: the acquisition engine, which adds the pose and publishes |
-| `Stage`, `FocusDrive` | `move_to`, `move_by` (with `MoveOpts { speed, approach: Direct or Unidirectional }`), `jog(velocity)`, `stop`, `home`, `status()`, `limits()` → `Travel`. Moves resolve once settled, with the status |
+| `Stage`, `FocusDrive` | `move_to`, `move_by` (with `MoveOpts { speed, approach: Direct or Unidirectional }`), `jog(velocity)`, `stop`, `home`, `status()`, `limits()` → `Travel`. Moves resolve once settled, with the status. A `Stage`'s `kinematics()`, `Kinematics { speed_um_s, acceleration_um_s2 }` in the plane, for estimates, is `None` unless its driver says (P6.6) |
 | `AxisStatus<P>`, `MotionState` | `position`, `state` (`Idle`, `Moving`, `Jogging`, `Homing`, `Holding`, `Alarm(code)`, `Disconnected`), `homed`, `ts` on the shared clock. `StageStatus` for `Xyz`, `FocusStatus` for `Micrometers` |
 | `Illumination` | `sources`, `set_level(source, 0..=1)`, `status()` → levels |
 | `Changer`, `FilterWheel`, `ObjectiveTurret` | `positions` (names), `select(position)`, `status()` → `ChangerStatus` |

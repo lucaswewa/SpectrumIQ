@@ -4711,6 +4711,94 @@
         }
       }
     },
+    "/api/v1/workflow/estimate_tile_scan": {
+      "get": {
+        "summary": "All invocations of estimate_tile_scan.",
+        "description": "List all the invocations of estimate_tile_scan that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_workflow_estimate_tile_scan_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of estimate_tile_scan.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "What `tile_scan` would do with this request, without doing it: its tiles in their order,",
+        "description": "## What `tile_scan` would do with this request, without doing it: its tiles in their order,\n\nWhat `tile_scan` would do with this request, without doing it: its tiles in their order,\na frame's corners about a tile, its time and bytes, whether the disk holds them, and what\nmay go wrong. It doesn't wait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_workflow_estimate_tile_scan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workflow_estimate_tile_scan_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_estimate_tile_scan_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_estimate_tile_scan_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workflow/field": {
+      "get": {
+        "summary": "A frame's corners about where the stage is, in µm, by the calibration in force and the",
+        "description": "## A frame's corners about where the stage is, in µm, by the calibration in force and the\n\nA frame's corners about where the stage is, in µm, by the calibration in force and the\ncamera's region: `null` without a calibration.",
+        "operationId": "get_property_api_v1_workflow_field_get",
+        "responses": {
+          "200": {
+            "description": "Value of field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workflow_field_value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/workflow/finished": {
       "get": {
         "summary": "A run ended.",
@@ -12707,6 +12795,504 @@
             "shading"
           ]
         }
+      },
+      "workflow_estimate_tile_scan_input": {
+        "description": "A tile scan, after a focus map if one is given (ADR-0053).",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The dataset's name.",
+            "type": "string"
+          },
+          "region": {
+            "description": "The region, in stage µm.",
+            "oneOf": [
+              {
+                "description": "The rectangle between two corners.",
+                "type": "object",
+                "properties": {
+                  "x0": {
+                    "description": "A corner.",
+                    "type": "number"
+                  },
+                  "y0": {
+                    "description": "A corner.",
+                    "type": "number"
+                  },
+                  "x1": {
+                    "description": "The opposite corner.",
+                    "type": "number"
+                  },
+                  "y1": {
+                    "description": "The opposite corner.",
+                    "type": "number"
+                  },
+                  "shape": {
+                    "const": "rect",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "shape",
+                  "x0",
+                  "y0",
+                  "x1",
+                  "y1"
+                ]
+              },
+              {
+                "description": "A polygon, by its vertices in order.",
+                "type": "object",
+                "properties": {
+                  "points": {
+                    "description": "The vertices, `[x, y]` in µm.",
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "maxItems": 2,
+                      "minItems": 2
+                    }
+                  },
+                  "shape": {
+                    "const": "polygon",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "shape",
+                  "points"
+                ]
+              }
+            ]
+          },
+          "overlap": {
+            "description": "The overlap between neighbours, of the frame: 0.1 if not given.",
+            "default": 0.1,
+            "type": "number"
+          },
+          "order": {
+            "description": "The order the tiles are visited in: a snake if not given.",
+            "oneOf": [
+              {
+                "description": "Row by row, turning at each end.",
+                "const": "snake",
+                "type": "string"
+              },
+              {
+                "description": "Row by row, every row the same way.",
+                "const": "raster",
+                "type": "string"
+              },
+              {
+                "description": "The nearest tile not yet visited, from the first.",
+                "const": "nearest",
+                "type": "string"
+              }
+            ],
+            "default": "snake"
+          },
+          "channels": {
+            "description": "The channels, in order: the one in use if none.",
+            "default": [],
+            "type": "array",
+            "items": {
+              "description": "A channel of the instrument configuration: illumination, filter, exposure and display\ncolour.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            }
+          },
+          "settle_ms": {
+            "description": "How long the stage settles after each move, in ms.",
+            "default": 0.0,
+            "type": "number"
+          },
+          "focus": {
+            "description": "How each tile is focused: as the focus is, if not given; `surface` with a focus map.",
+            "oneOf": [
+              {
+                "description": "As the focus is.",
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              },
+              {
+                "description": "At `z` µm, for every tile.",
+                "type": "object",
+                "properties": {
+                  "z": {
+                    "description": "Where, in µm.",
+                    "type": "number"
+                  },
+                  "mode": {
+                    "const": "fixed",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mode",
+                  "z"
+                ]
+              },
+              {
+                "description": "On the surface in force: a focus map's, made before.",
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "const": "surface",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              },
+              {
+                "description": "Autofocused at each tile.",
+                "type": "object",
+                "properties": {
+                  "range_um": {
+                    "description": "The range searched, in µm.",
+                    "type": "number"
+                  },
+                  "mode": {
+                    "const": "autofocus",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mode",
+                  "range_um"
+                ]
+              }
+            ],
+            "default": {
+              "mode": "none"
+            }
+          },
+          "z_stack": {
+            "description": "A z-stack at each tile, in place of one frame.",
+            "oneOf": [
+              {
+                "description": "A z-stack's planes: `range_um` across, a whole number of `step_um` steps, centred on the\nfocus, taken going `direction`.",
+                "type": "object",
+                "properties": {
+                  "range_um": {
+                    "description": "From the lowest plane to the highest, in µm, at most: a whole number of steps.",
+                    "type": "number"
+                  },
+                  "step_um": {
+                    "description": "Between planes, in µm.",
+                    "type": "number"
+                  },
+                  "direction": {
+                    "description": "The way the planes are taken: up if not given.",
+                    "oneOf": [
+                      {
+                        "description": "From the lowest: each plane approached from below, as the focus drive arrives.",
+                        "const": "up",
+                        "type": "string"
+                      },
+                      {
+                        "description": "From the highest: each plane overshot and approached from below.",
+                        "const": "down",
+                        "type": "string"
+                      }
+                    ],
+                    "default": "up"
+                  }
+                },
+                "required": [
+                  "range_um",
+                  "step_um"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "focus_map": {
+            "description": "A focus map made first.",
+            "oneOf": [
+              {
+                "description": "A focus map made before a tile scan.",
+                "type": "object",
+                "properties": {
+                  "places": {
+                    "description": "The places, `[x, y]` in stage µm: three or more.",
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "maxItems": 2,
+                      "minItems": 2
+                    }
+                  },
+                  "surface": {
+                    "description": "The surface: a thin-plate spline if not given.",
+                    "oneOf": [
+                      {
+                        "description": "A plane, by least squares, places more than three deviations off it set aside.",
+                        "const": "plane",
+                        "type": "string"
+                      },
+                      {
+                        "description": "A thin-plate spline through every place: a tilt and a curve both.",
+                        "const": "thin_plate",
+                        "type": "string"
+                      }
+                    ],
+                    "default": "thin_plate"
+                  },
+                  "range_um": {
+                    "description": "Each autofocus's range, in µm: 50 if not given.",
+                    "default": 50.0,
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "places"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "region"
+        ]
+      },
+      "workflow_estimate_tile_scan_output": {
+        "description": "What a tile scan would be.",
+        "type": "object",
+        "properties": {
+          "tiles": {
+            "description": "The tiles, in their order.",
+            "type": "array",
+            "items": {
+              "description": "A tile of a scan: its grid column and row, and where the stage goes for it, in µm.",
+              "type": "object",
+              "properties": {
+                "column": {
+                  "description": "Its column.",
+                  "type": "integer"
+                },
+                "row": {
+                  "description": "Its row.",
+                  "type": "integer"
+                },
+                "x": {
+                  "description": "Where the stage goes, in µm.",
+                  "type": "number"
+                },
+                "y": {
+                  "description": "Where the stage goes, in µm.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "column",
+                "row",
+                "x",
+                "y"
+              ]
+            }
+          },
+          "frame": {
+            "description": "A frame's corners about its tile's centre, in µm.",
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "maxItems": 4,
+            "minItems": 4
+          },
+          "frames": {
+            "description": "The frames.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "seconds": {
+            "description": "How long it takes, in s.",
+            "type": "number"
+          },
+          "bytes": {
+            "description": "The frames' bytes on disk.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "free_bytes": {
+            "description": "The bytes free on the data root's disk, if known.",
+            "oneOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fits": {
+            "description": "Whether the frames fit there, leaving the bytes kept free.",
+            "type": "boolean"
+          },
+          "warnings": {
+            "description": "What may go wrong.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "tiles",
+          "frame",
+          "frames",
+          "seconds",
+          "bytes",
+          "fits",
+          "warnings"
+        ]
+      },
+      "workflow_estimate_tile_scan_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/workflow_estimate_tile_scan_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/workflow_estimate_tile_scan_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "workflow_field_value": {
+        "oneOf": [
+          {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "maxItems": 4,
+            "minItems": 4
+          },
+          {
+            "type": "null"
+          }
+        ]
       },
       "workflow_finished_data": {
         "description": "How a run ended.",

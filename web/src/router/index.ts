@@ -11,6 +11,7 @@ import CalibrationPage from '@/calibration/CalibrationPage.vue'
 import { DESTINATIONS } from '@/app/navigation'
 import DatasetsPage from '@/datasets/DatasetsPage.vue'
 import LivePage from '@/live/LivePage.vue'
+import ScanPage from '@/scan/ScanPage.vue'
 import AboutPage from '@/system/AboutPage.vue'
 import ViewerPage from '@/viewer2d/ViewerPage.vue'
 
@@ -20,6 +21,7 @@ const PAGES: Record<string, Component> = {
   calibration: CalibrationPage,
   datasets: DatasetsPage,
   live: LivePage,
+  scan: ScanPage,
   viewer: ViewerPage,
 }
 
@@ -68,6 +70,11 @@ const devRoutes: RouteRecordRaw[] = import.meta.env.DEV
         path: '/dev/calibration',
         name: 'dev-calibration',
         component: () => import('@/views/dev/CalibrationDemoView.vue'),
+      },
+      {
+        path: '/dev/scan',
+        name: 'dev-scan',
+        component: () => import('@/views/dev/ScanDemoView.vue'),
       },
     ]
   : []

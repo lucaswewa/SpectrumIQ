@@ -272,6 +272,9 @@ pub struct Timing {
     pub channel_s: f64,
     /// A frame's readout and delivery, beyond its exposure, in s.
     pub readout_s: f64,
+    /// A focus move of a few micrometres, in s: the drive seeing it done, and a frame waiting for
+    /// its new position.
+    pub focus_move_s: f64,
 }
 
 impl Default for Timing {
@@ -284,6 +287,7 @@ impl Default for Timing {
             move_overhead_s: 0.1,
             channel_s: 0.15,
             readout_s: 0.12,
+            focus_move_s: 0.15,
         }
     }
 }
@@ -318,14 +322,49 @@ fn move_time(distance: f64, timing: &Timing) -> f64 {
     }
 }
 
+/// What a scan's focusing adds to it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Focusing {
+    /// The planes of a z-stack at each tile: 1 without one.
+    pub planes: usize,
+    /// Whether each tile is autofocused.
+    pub autofocus: bool,
+    /// The places of a focus map made first.
+    pub map_places: usize,
+}
+
+impl Default for Focusing {
+    /// A frame at each tile, as the focus is.
+    fn default() -> Self {
+        Self {
+            planes: 1,
+            autofocus: false,
+            map_places: 0,
+        }
+    }
+}
+
+/// The frames of an autofocus's two sweeps (ADR-0054).
+const AUTOFOCUS_FRAMES: f64 = 24.0;
+
+/// A frame's corners about where the stage is, in µm, in order round it: `field` sensor pixels
+/// through `L⁻¹`. `None` if `L` isn't invertible.
+pub fn frame(l: &Affine2, [width, height]: [f64; 2]) -> Option<[[f64; 2]; 4]> {
+    let inverse = l.invert()?;
+    let corners = [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]];
+    Some(corners.map(|[u, v]| inverse.apply_vector([u * width / 2.0, v * height / 2.0])))
+}
+
 /// What `grid` takes from `start`, settling `settle_s` after each move, with a frame of
-/// `frame_bytes` in each of `exposures_s` (a channel's exposure each) at every tile.
+/// `frame_bytes` in each of `exposures_s` (a channel's exposure each) at every tile and plane,
+/// and `focusing`'s autofocus and map.
 pub fn estimate(
     grid: &Grid,
     start: [f64; 2],
     settle_s: f64,
     exposures_s: &[f64],
     frame_bytes: u64,
+    focusing: &Focusing,
     timing: &Timing,
 ) -> Estimate {
     let mut at = start;
@@ -335,10 +374,11 @@ pub fn estimate(
         seconds += move_time(distance, timing) + timing.move_overhead_s + settle_s;
         at = [tile.x, tile.y];
     }
-    // One channel is put in place once; several, at each tile.
+    // One channel is put in place once; several, at each tile's every plane.
+    let (tiles, planes) = (grid.tiles.len(), focusing.planes.max(1));
     let switches = match exposures_s.len() {
         0 | 1 => 1,
-        n => n * grid.tiles.len(),
+        n => n * tiles * planes,
     };
     let per_frame: f64 = exposures_s
         .iter()
@@ -348,10 +388,24 @@ pub fn estimate(
     let half_exposures: f64 = exposures_s.iter().map(|e| (e / 2.0).min(1.0)).sum();
     let average_half = half_exposures / exposures_s.len().max(1) as f64;
     seconds += switches as f64 * (timing.channel_s + average_half);
-    seconds += per_frame * grid.tiles.len() as f64;
-    let frames = grid.tiles.len() * exposures_s.len().max(1);
+    seconds += per_frame * (tiles * planes) as f64;
+    // A stack moves the focus to each plane, then back to the middle.
+    if planes > 1 {
+        seconds += (tiles * (planes + 1)) as f64 * timing.focus_move_s;
+    }
+    // An autofocus: its frames, each after a focus move, at the first channel's exposure.
+    let first = exposures_s.first().copied().unwrap_or(0.0);
+    let autofocus = AUTOFOCUS_FRAMES * (first + timing.readout_s + timing.focus_move_s);
+    if focusing.autofocus {
+        seconds += tiles as f64 * autofocus;
+    }
+    // A focus map: a move of about a step to each place, and an autofocus there.
+    let step = grid.steps[0][0].hypot(grid.steps[0][1]);
+    let to_place = move_time(step, timing) + timing.move_overhead_s;
+    seconds += focusing.map_places as f64 * (to_place + autofocus);
+    let frames = tiles * exposures_s.len().max(1) * planes;
     Estimate {
-        tiles: grid.tiles.len(),
+        tiles,
         frames,
         seconds,
         bytes: frames as u64 * frame_bytes,

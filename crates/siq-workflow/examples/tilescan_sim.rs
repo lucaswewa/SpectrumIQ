@@ -35,7 +35,7 @@ use siq_workflow::DeviceSet;
 use siq_workflow::engine::{
     DatasetTarget, ErrorPolicy, LAYOUT, Plan, RunControl, RunEvent, Step, TileFocus, run,
 };
-use siq_workflow::scan::{Order, Region, Timing, estimate, plan};
+use siq_workflow::scan::{Focusing, Order, Region, Timing, estimate, plan};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -184,6 +184,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         0.05,
         &exposures,
         bytes,
+        &Focusing::default(),
         &Timing::default(),
     );
     println!(

@@ -65,3 +65,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0054](0054-autofocus-and-focus-surfaces.md) | The autofocus algorithm and the focus surface model | Accepted | P6.3 |
 | [0055](0055-the-sequence-model.md) | The sequence model | Accepted | P6.4 |
 | [0056](0056-the-workflow-api.md) | The workflow API: invocation semantics, locking and cancellation | Accepted | P6.5 |
+| [0057](0057-scan-setup-ux.md) | Scan setup UX | Accepted | P6.6 |

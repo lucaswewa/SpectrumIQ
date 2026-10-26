@@ -10,7 +10,7 @@ use proptest::prelude::*;
 use siq_storage::{Dataset, DatasetKind, DatasetReader};
 use siq_types::{Affine2, AffineParams, ChannelId, ObjectiveId};
 use siq_workflow::engine::{ErrorPolicy, LAYOUT, Outcome, Plan, RunControl, Step, TileFocus, run};
-use siq_workflow::scan::{Grid, Order, Region, Timing, estimate, plan};
+use siq_workflow::scan::{Focusing, Grid, Order, Region, Timing, estimate, plan};
 
 const FIELD: [f64; 2] = [256.0, 192.0];
 
@@ -211,6 +211,7 @@ async fn a_3_by_3_scan_on_the_simulator_gives_its_dataset_in_about_the_time_esti
         0.02,
         &[exposure],
         256 * 192 * 2,
+        &Focusing::default(),
         &Timing::default(),
     );
 
@@ -231,6 +232,26 @@ async fn a_3_by_3_scan_on_the_simulator_gives_its_dataset_in_about_the_time_esti
         "took {took:.2} s, estimated {:.2} s",
         expected.seconds
     );
+    // A three-plane stack at each tile: three times the frames, each plane's focus move and one
+    // back; an autofocus at each adds its 24 frames.
+    let at = [at.x.0, at.y.0];
+    let timing = Timing::default();
+    let stacked = Focusing {
+        planes: 3,
+        ..Focusing::default()
+    };
+    let with = |focusing: &Focusing| estimate(&grid, at, 0.02, &[exposure], 1, focusing, &timing);
+    let (flat, deep) = (with(&Focusing::default()), with(&stacked));
+    assert_eq!((deep.frames, deep.bytes), (27, 27));
+    let per_frame = exposure + timing.readout_s;
+    let added = 9.0 * (2.0 * per_frame + 4.0 * timing.focus_move_s);
+    assert!((deep.seconds - flat.seconds - added).abs() < 1e-9);
+    let focused = with(&Focusing {
+        autofocus: true,
+        ..Focusing::default()
+    });
+    let autofocus = 9.0 * 24.0 * (per_frame + timing.focus_move_s);
+    assert!((focused.seconds - flat.seconds - autofocus).abs() < 1e-9);
 
     // The dataset: a tile scan, its layout, and a frame at each tile, where the tile is.
     let dataset = Dataset::open(&report.path).unwrap();
