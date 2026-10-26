@@ -17,9 +17,14 @@ use siq_storage::{
 };
 use siq_types::{DatasetId, Micrometers, Timestamp};
 
-use super::{ErrorPolicy, Plan, Progress, RunControl, RunEvent, Step, Then, count};
+use super::{ErrorPolicy, Index, Plan, Progress, RunControl, RunEvent, Step, Then, count};
 use crate::DeviceSet;
 use crate::routines::channel;
+use crate::scan::{self, Grid};
+
+/// The file in a dataset's folder that holds its tile scans' grids: each tile's grid column and
+/// row, and where the stage went for it.
+pub const LAYOUT: &str = "layout.json";
 
 /// Where a run's dataset goes, and what it records it was made with.
 #[derive(Debug, Clone)]
@@ -109,8 +114,14 @@ pub async fn run(
     control: &RunControl,
     observe: &(dyn Fn(RunEvent) + Send + Sync),
 ) -> Result<RunReport, RunError> {
-    validate(devices, plan)?;
-    let mut new = NewDataset::new(DatasetKind::Sequence, &plan.name);
+    let mut grids = Vec::new();
+    let steps = resolve(devices, &plan.steps, &mut grids)?;
+    validate(devices, &plan.name, &steps)?;
+    let kind = match grids.is_empty() {
+        true => DatasetKind::Sequence,
+        false => DatasetKind::TileScan,
+    };
+    let mut new = NewDataset::new(kind, &plan.name);
     new.instrument = target.instrument.clone();
     let calibration = devices.acquisition.context().calibration;
     let record = calibration.and_then(|id| devices.calibrations.get(id));
@@ -118,6 +129,16 @@ pub async fn run(
     new.calibration = snapshot.map_err(|error| RunError::Invalid(error.to_string()))?;
     new.plan = Some(serde_json::to_value(plan).map_err(|e| RunError::Invalid(e.to_string()))?);
     let dataset = Dataset::create(&target.data_root, new)?;
+    if !grids.is_empty() {
+        let path = dataset.path().join(LAYOUT);
+        let layout = serde_json::json!({ "scans": grids });
+        let text =
+            serde_json::to_string_pretty(&layout).map_err(|e| RunError::Invalid(e.to_string()))?;
+        std::fs::write(&path, text).map_err(|error| StorageError::Io {
+            path,
+            source: error,
+        })?;
+    }
 
     let keys = Arc::new(Mutex::new(VecDeque::new()));
     let frames = devices
@@ -149,10 +170,10 @@ pub async fn run(
         indices: [0; 3],
         channel: 0,
         done: 0,
-        total: count(&plan.steps),
+        total: count(&steps),
         began: devices.clock.now(),
     };
-    let ended = runner.steps(&plan.steps, plan.on_error).await;
+    let ended = runner.steps(&steps, plan.on_error).await;
     if ended.is_err() {
         // However it stopped, the stage and focus are still.
         let (stage, focus) = tokio::join!(devices.stage.stop(), devices.focus.stop());
@@ -180,8 +201,80 @@ pub async fn run(
     })
 }
 
+/// `steps` with each tile scan made into its moves and snaps, by the stage–camera calibration in
+/// force and the camera's region, its grid added to `grids`.
+pub fn resolve(
+    devices: &DeviceSet,
+    steps: &[Step],
+    grids: &mut Vec<Grid>,
+) -> Result<Vec<Step>, RunError> {
+    let mut out = Vec::with_capacity(steps.len());
+    for step in steps {
+        match step {
+            Step::TileScan {
+                region,
+                overlap,
+                order,
+                channels,
+                settle_ms,
+                focus,
+            } => {
+                let calibration = devices.acquisition.context().calibration;
+                let record = calibration.and_then(|id| devices.calibrations.get(id));
+                let why =
+                    "a tile scan needs the objective's stage–camera calibration: calibrate it";
+                let record = record.ok_or_else(|| RunError::Invalid(why.to_owned()))?;
+                let roi = devices.camera.settings().roi;
+                let field = [f64::from(roi.width), f64::from(roi.height)];
+                let grid = scan::plan(region, &record.affine(), field, *overlap, *order)
+                    .map_err(|error| RunError::Invalid(error.to_string()))?;
+                out.extend(focus.map(|z| Step::Focus { z }));
+                if let [id] = channels[..] {
+                    out.push(Step::Channel { id });
+                }
+                for (p, tile) in (0..).zip(&grid.tiles) {
+                    out.push(Step::Index {
+                        index: Index::P,
+                        value: p,
+                    });
+                    let (x, y) = (tile.x, tile.y);
+                    out.push(Step::MoveTo { x, y, z: None });
+                    if *settle_ms > 0.0 {
+                        out.push(Step::Wait { ms: *settle_ms });
+                    }
+                    match channels.len() {
+                        0 | 1 => out.push(Step::Snap),
+                        _ => {
+                            let each = channels
+                                .iter()
+                                .map(|&id| [Step::Channel { id }, Step::Snap]);
+                            out.extend(each.flatten());
+                        }
+                    }
+                }
+                grids.push(grid);
+            }
+            Step::Repeat {
+                count,
+                index,
+                steps,
+            } => out.push(Step::Repeat {
+                count: *count,
+                index: *index,
+                steps: resolve(devices, steps, grids)?,
+            }),
+            Step::Policy { on_error, steps } => out.push(Step::Policy {
+                on_error: *on_error,
+                steps: resolve(devices, steps, grids)?,
+            }),
+            step => out.push(step.clone()),
+        }
+    }
+    Ok(out)
+}
+
 /// Refuses a plan that can't run: an unknown channel, no steps, or a wait of no length.
-fn validate(devices: &DeviceSet, plan: &Plan) -> Result<(), RunError> {
+fn validate(devices: &DeviceSet, name: &str, steps: &[Step]) -> Result<(), RunError> {
     fn check(devices: &DeviceSet, steps: &[Step]) -> Result<(), String> {
         for step in steps {
             match step {
@@ -197,10 +290,10 @@ fn validate(devices: &DeviceSet, plan: &Plan) -> Result<(), RunError> {
         }
         Ok(())
     }
-    if plan.name.trim().is_empty() || count(&plan.steps) == 0 {
+    if name.trim().is_empty() || count(steps) == 0 {
         return Err(RunError::Invalid("it needs a name, and a step".to_owned()));
     }
-    check(devices, &plan.steps).map_err(RunError::Invalid)
+    check(devices, steps).map_err(RunError::Invalid)
 }
 
 impl Runner<'_> {
@@ -295,7 +388,10 @@ impl Runner<'_> {
             Step::Channel { id } => format!("channel {id}"),
             Step::Snap => format!("snap t{t} c{} z{z} p{p}", self.channel),
             Step::Wait { ms } => format!("wait {ms} ms"),
-            Step::Repeat { .. } | Step::Policy { .. } | Step::Index { .. } => String::new(),
+            Step::Repeat { .. }
+            | Step::Policy { .. }
+            | Step::Index { .. }
+            | Step::TileScan { .. } => String::new(),
         }
     }
 
@@ -363,7 +459,10 @@ impl Runner<'_> {
                 tokio::time::sleep(Duration::from_secs_f64(ms / 1000.0)).await;
                 Ok(())
             }
-            Step::Repeat { .. } | Step::Policy { .. } | Step::Index { .. } => Ok(()),
+            Step::Repeat { .. }
+            | Step::Policy { .. }
+            | Step::Index { .. }
+            | Step::TileScan { .. } => Ok(()),
         }
     }
 

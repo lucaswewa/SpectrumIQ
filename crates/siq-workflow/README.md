@@ -6,13 +6,22 @@ traits: the engine that runs acquisition plans, and the routines that measure th
 - **`engine`** (ADR-0052): one executor for every acquisition plan.
   - **A `Plan`** is its dataset's name and steps: `move_to`, `focus`, `channel`, `snap` and
     `wait`; `repeat`, which numbers the frames' `t`, `z` or `p` within it; `index`, which sets one
-    for the steps after it; and `policy`, steps with an error policy of their own. It is serde,
-    with its JSON Schema.
+    for the steps after it; `policy`, steps with an error policy of their own; and `tile_scan`,
+    made into its moves and snaps when the run starts. It is serde, with its JSON Schema.
   - **`run`** makes the plan's dataset, with the plan, the instrument and the calibration in force
     in its manifest, and records each snap there under the key of the indices and the channel.
     It reports progress and events, waits while paused, and stops when cancelled: a move under
     way is abandoned, a capture finishes, then the stage and the focus are halted. A failed step
     is tried again, skipped or the run's end, by its policy.
+- **`scan`** (ADR-0053): tile scans planned and estimated.
+  - **The grid runs along the camera's axes,** by the stage–camera calibration: neighbours overlap
+    by exactly the share of the frame asked, whatever the camera's rotation.
+  - **The tiles kept** are those whose frame meets the region, a rectangle or a polygon.
+  - **The order:** a snake, a raster, or the nearest tile next.
+  - **The estimate:** the moves at the stage's speed and acceleration, settling, channel
+    switches, exposures and readouts, and the bytes, against the disk.
+  - **In a plan,** a `tile_scan` needs the calibration in force. Its grid goes in the dataset's
+    `layout.json`, each tile's column, row and planned position.
 - **`DeviceSet`:** the instrument as the workflows see it, shared handles to each device, the
   acquisition, the channels and the calibrations.
 
@@ -50,14 +59,19 @@ traits: the engine that runs acquisition plans, and the routines that measure th
   `tokio`, `tracing`.
 - **Used by:** `siq-server` (the `calibration` and `imaging` Things; the `workflow` Thing in
   P6.5).
-- **Phase:** P5.2; P5.3 the shading's captures; P6.1 the engine and the channel routine.
+- **Phase:** P5.2; P5.3 the shading's captures; P6.1 the engine and the channel routine; P6.2
+  the tile scans.
 
 ## API
 
 | Item | What |
 |---|---|
 | `engine::Plan { name, steps, on_error }` | A plan; `engine::count(&steps)`, its device steps |
-| `engine::Step` | `MoveTo { x, y, z? }`, `Focus { z }`, `Channel { id }`, `Snap`, `Wait { ms }`, `Repeat { count, index?, steps }`, `Index { index, value }`, `Policy { on_error, steps }` |
+| `engine::Step` | `MoveTo { x, y, z? }`, `Focus { z }`, `Channel { id }`, `Snap`, `Wait { ms }`, `Repeat { count, index?, steps }`, `Index { index, value }`, `Policy { on_error, steps }`, `TileScan { region, overlap, order, channels, settle_ms, focus? }` |
+| `engine::resolve(&devices, &steps, &mut grids)` | The steps with each tile scan made into its own, and their grids; `engine::LAYOUT`, `layout.json` |
+| `scan::plan(&region, &l, field, overlap, order)` | `Grid { tiles, steps, overlap }`, each `Tile { column, row, x, y }`; `ScanError` for a region, overlap or `L` that can't make one, or over `MAX_TILES` |
+| `scan::Region`, `scan::Order` | `Rect { x0, y0, x1, y1 }` or `Polygon { points }`; `Snake`, `Raster`, `Nearest` |
+| `scan::estimate(&grid, start, settle_s, &exposures_s, frame_bytes, &timing)` | `Estimate { tiles, frames, seconds, bytes }`, and `fits(free, keep)`; `Timing`'s defaults are the simulator's |
 | `engine::ErrorPolicy { retries, skip }` | A failed step tried again `retries` times, then skipped if `skip`, else the run's end |
 | `engine::run(&devices, &target, &plan, &control, &observe)` | `RunReport { dataset, path, outcome, error, steps, frames }`, or `RunError` (`Invalid`, `Storage`) before any dataset is made |
 | `engine::DatasetTarget` | `data_root`, `min_free`, `catalog`, and the `instrument`'s snapshot |
@@ -82,6 +96,7 @@ still leaves a third of the frame to register on.
 
 | Example | What it shows | Run |
 |---|---|---|
+| `tilescan_sim` | A 5 × 5 tile scan in brightfield and DAPI on the simulated instrument (3 × 3 in one channel, the `fast` profile, in smoke mode): its estimate, then its run | `cargo run --release -p siq-workflow --example tilescan_sim [-- --out <data root>]` |
 | `run_plan_sim` | A plan on the simulated instrument: twice, at three places, a frame in brightfield and in DAPI, through the GRBL driver and the simulated lights and filter wheel; each step as it is done, then the dataset's frames and where they were taken | `cargo run --release -p siq-workflow --example run_plan_sim [-- --out <data root>]` |
 
 Every example also runs in smoke mode (`SIQ_SMOKE=1`) in `cargo xtask ci`. `siq-server`'s
@@ -103,6 +118,14 @@ and peripherals:
 - the error policies: tried again, skipped, the run's end, and a group's own;
 - the manifest's plan, instrument and calibration; a plan refused before any dataset, and a key
   taken twice.
+
+And `scan`:
+
+- as a property, a rectangle covered with the overlap asked, whatever the camera's rotation, each
+  tile once;
+- a concave polygon keeping only the tiles that meet it; the three orders;
+- a 3 × 3 scan on the simulator, through the GRBL driver against its emulator: its dataset, its
+  layout, each frame within 1 µm of its tile, and its time within 20 % of the estimate.
 
 The routines run through `siq-server`'s tests, on the simulated instrument:
 

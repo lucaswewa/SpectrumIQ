@@ -2,7 +2,8 @@
 //!
 //! - **A [`Plan`]** is its dataset's name and steps: moves of the stage and the focus, channels,
 //!   snaps and waits, and repeats of steps that number the frames' `t`, `z` or `p`. A group of
-//!   steps may have an error policy of its own. It is serde, with a JSON Schema.
+//!   steps may have an error policy of its own. A tile scan (ADR-0053) is made into its moves and
+//!   snaps when the run starts, by the calibration in force. It is serde, with a JSON Schema.
 //! - **[`run`]** runs it on a [`DeviceSet`](crate::DeviceSet):
 //!   - it makes the plan's dataset, with the plan, the instrument and the calibration in force in
 //!     its manifest, and records each snap there, keyed by the indices and the channel;
@@ -18,7 +19,9 @@ use serde::{Deserialize, Serialize};
 use siq_types::ChannelId;
 use tokio::sync::watch;
 
-pub use run::{DatasetTarget, Outcome, RunError, RunReport, run};
+use crate::scan::{Order, Region};
+
+pub use run::{DatasetTarget, LAYOUT, Outcome, RunError, RunReport, resolve, run};
 
 /// What to acquire: a dataset's name, and the steps that fill it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -92,6 +95,28 @@ pub enum Step {
         /// Its value.
         value: u32,
     },
+    /// Covers `region` with tiles (ADR-0053), numbering them `p`: at each, the stage moved and
+    /// settled, then a frame in each channel. One channel is put in place once, before the first
+    /// tile; several, at each.
+    TileScan {
+        /// The region, in stage µm.
+        region: Region,
+        /// The overlap between neighbours, of the frame: 0.1 if not given.
+        #[serde(default = "overlap")]
+        overlap: f64,
+        /// The order the tiles are visited in: a snake if not given.
+        #[serde(default)]
+        order: Order,
+        /// The channels, in order: the one in use if none.
+        #[serde(default)]
+        channels: Vec<ChannelId>,
+        /// How long the stage settles after each move, in ms.
+        #[serde(default)]
+        settle_ms: f64,
+        /// The focus for every tile, in µm: where it is if not given.
+        #[serde(default)]
+        focus: Option<f64>,
+    },
     /// Runs `steps` with an error policy of their own.
     Policy {
         /// What a failed step of theirs does.
@@ -113,7 +138,13 @@ pub enum Index {
     P,
 }
 
-/// The number of device steps in `steps`, each repeat counted out.
+/// A tile scan's overlap if not given.
+fn overlap() -> f64 {
+    0.1
+}
+
+/// The number of device steps in `steps`, each repeat counted out. A tile scan counts once
+/// [`resolve`]d.
 pub fn count(steps: &[Step]) -> u64 {
     steps
         .iter()
@@ -122,7 +153,7 @@ pub fn count(steps: &[Step]) -> u64 {
                 u64::from(*count).saturating_mul(self::count(steps))
             }
             Step::Policy { steps, .. } => self::count(steps),
-            Step::Index { .. } => 0,
+            Step::Index { .. } | Step::TileScan { .. } => 0,
             _ => 1,
         })
         .fold(0, u64::saturating_add)

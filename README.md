@@ -120,7 +120,10 @@ Done so far:
 - Milestone 6 (workflows), under way:
   - P6.1, [`siq-workflow`](crates/siq-workflow/README.md)'s engine: one executor for every
     acquisition plan, its dataset with the plan's provenance, progress, pause, cancel and error
-    policies (`--example run_plan_sim`).
+    policies (`--example run_plan_sim`);
+  - P6.2, tile scans: a grid along the camera's axes with the overlap asked, clipped to a
+    rectangle or polygon, ordered and estimated, run by the engine with its layout
+    (`siq-workflow --example tilescan_sim`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

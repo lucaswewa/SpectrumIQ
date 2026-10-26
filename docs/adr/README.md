@@ -61,3 +61,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0050](0050-the-shading-correction.md) | The shading correction, and the BaSiC simplification | Accepted | P5.3 |
 | [0051](0051-calibration-ux-and-gating.md) | The calibration UX, and the gating rules | Accepted | P5.4 |
 | [0052](0052-the-workflow-engine.md) | The workflow engine | Accepted | P6.1 |
+| [0053](0053-the-scan-planning-model.md) | The scan planning model | Accepted | P6.2 |

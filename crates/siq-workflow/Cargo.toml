@@ -25,6 +25,7 @@ tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
 tracing.workspace = true
 
 [dev-dependencies]
+proptest.workspace = true
 siq-grbl = { path = "../siq-grbl" }
 siq-serial = { path = "../siq-serial" }
 siq-sim = { path = "../siq-sim" }

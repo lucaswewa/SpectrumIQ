@@ -200,8 +200,8 @@ A phase is Done once it is merged.
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P6.1 | Workflow engine | 850 | P2.4, P4.1, P5.2 | Review |
-| P6.2 | Tile scan planner and step | 750 | P6.1 | — |
+| P6.1 | Workflow engine | 850 | P2.4, P4.1, P5.2 | Done |
+| P6.2 | Tile scan planner and step | 750 | P6.1 | Review |
 | P6.3 | Autofocus and focus maps | 800 | P6.1 | — |
 | P6.4 | Z-stacks, multi-position, time-lapse | 700 | P6.2, P6.3 | — |
 | P6.5 | `workflow` Thing, saved positions, scripting | 600 | P6.4 | — |
