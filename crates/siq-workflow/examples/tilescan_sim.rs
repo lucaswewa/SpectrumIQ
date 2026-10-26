@@ -201,6 +201,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         channels,
         settle_ms: 50.0,
         focus: TileFocus::None,
+        z_stack: None,
     };
     let plan = Plan {
         name: "tilescan-sim".to_owned(),

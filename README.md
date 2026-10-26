@@ -126,7 +126,10 @@ Done so far:
     (`siq-workflow --example tilescan_sim`);
   - P6.3, autofocus and focus maps: a coarse and a fine sweep, with their confidence, and a plane
     or thin-plate surface through the focus found at places, which a tile scan follows
-    (`siq-workflow --example autofocus_sim`).
+    (`siq-workflow --example autofocus_sim`);
+  - P6.4, sequences: z-stacks, multiple positions and time-lapses on a schedule, nesting in any
+    order, every frame numbered by its place, plane and time point
+    (`siq-workflow --example timelapse_sim`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

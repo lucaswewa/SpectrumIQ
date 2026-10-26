@@ -36,6 +36,21 @@ pub enum Region {
 }
 
 impl Region {
+    /// The region moved by `dx`, `dy` µm.
+    pub fn shifted(&self, dx: f64, dy: f64) -> Self {
+        match self {
+            Self::Rect { x0, y0, x1, y1 } => Self::Rect {
+                x0: x0 + dx,
+                y0: y0 + dy,
+                x1: x1 + dx,
+                y1: y1 + dy,
+            },
+            Self::Polygon { points } => Self::Polygon {
+                points: points.iter().map(|[x, y]| [x + dx, y + dy]).collect(),
+            },
+        }
+    }
+
     /// Its vertices.
     fn vertices(&self) -> Vec<[f64; 2]> {
         match self {

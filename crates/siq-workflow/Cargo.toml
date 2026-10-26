@@ -22,7 +22,7 @@ siq-register = { path = "../siq-register" }
 siq-storage = { path = "../siq-storage" }
 siq-types = { path = "../siq-types" }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "test-util", "time"] }
 tracing.workspace = true
 
 [dev-dependencies]
@@ -32,7 +32,7 @@ siq-serial = { path = "../siq-serial" }
 siq-sim = { path = "../siq-sim" }
 siq-synth = { path = "../siq-synth" }
 tempfile.workspace = true
-tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "test-util", "time"] }
 
 [lints]
 workspace = true

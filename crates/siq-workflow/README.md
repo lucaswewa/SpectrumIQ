@@ -9,8 +9,8 @@ instrument.
     `wait`; `autofocus`, `focus_map`, which makes the focus surface in force, and
     `focus_on_surface`; `repeat`, which numbers the frames' `t`, `z` or `p` within it; `index`,
     which sets one for the steps after it; `policy`, steps with an error policy of their own; and
-    `tile_scan`, made into its moves, focusing and snaps when the run starts. It is serde, with its
-    JSON Schema.
+    `tile_scan`, made into its moves, focusing and snaps when the run starts; and the sequences,
+    `z_stack`, `multi_position` and `time_lapse`. It is serde, with its JSON Schema.
   - **`run`** makes the plan's dataset, with the plan, the instrument and the calibration in force
     in its manifest, and records each snap there under the key of the indices and the channel.
     It reports progress and events, waits while paused, and stops when cancelled: a move under
@@ -26,6 +26,17 @@ instrument.
   - **In a plan,** a `tile_scan` needs the calibration in force. Its grid goes in the dataset's
     `layout.json`, each tile's column, row and planned position. Each tile is focused as the
     focus is, at a fixed focus, on the surface in force, or by autofocus.
+- **Sequences** (ADR-0055), steps that hold steps, in any order:
+  - **`z_stack`:** planes about where the focus is, `z` numbered from the bottom, each approached
+    from below when it goes up; then the focus back to the middle. A tile scan may take one at
+    each tile.
+  - **`multi_position`:** at each position, the stage there, its own focus, an optional autofocus,
+    then the steps, whose places are about the position.
+  - **`time_lapse`:** points `interval_s` apart from the first, on tokio's clock. A late point runs
+    within its own interval or is skipped (`skip`), or slides the schedule (`shift`).
+  - **`p`** numbers every position and tile of a plan in order, so scans don't collide.
+    `layout.json` holds the grids with their first `p`, the positions, the focus maps, and each
+    time-lapse's points, due and begun, and those skipped.
 - **`autofocus`** (ADR-0054): focus found where the stage is, and focus surfaces.
   - **Two sweeps of the focus drive,** a frame at each step, scored by Tenengrad over the frame's
     middle three quarters: a coarse one over the range, binned 2 × 2 at a quarter of the exposure,
@@ -72,18 +83,22 @@ instrument.
 - **Layer:** L4 Engines.
 - **Depends on:** `siq-acquire`, `siq-buffer`, `siq-calib`, `siq-config`, `siq-devices`,
   `siq-imgproc`, `siq-register`, `siq-storage`, `siq-types`; `schemars`, `serde`, `serde_json`,
-  `thiserror`, `tokio`, `tracing`.
+  `thiserror`, `tokio`, `tracing`. Tokio's `test-util`, for the paused clock, in the tests.
 - **Used by:** `siq-server` (the `calibration` and `imaging` Things; the `workflow` Thing in
   P6.5).
 - **Phase:** P5.2; P5.3 the shading's captures; P6.1 the engine and the channel routine; P6.2
-  the tile scans; P6.3 autofocus and focus maps.
+  the tile scans; P6.3 autofocus and focus maps; P6.4 the sequences.
 
 ## API
 
 | Item | What |
 |---|---|
 | `engine::Plan { name, steps, on_error }` | A plan; `engine::count(&steps)`, its device steps |
-| `engine::Step` | `MoveTo { x, y, z? }`, `Focus { z }`, `Channel { id }`, `Snap`, `Wait { ms }`, `Autofocus { range_um }`, `FocusMap { places, surface, range_um }`, `FocusOnSurface { x, y }`, `Repeat { count, index?, steps }`, `Index { index, value }`, `Policy { on_error, steps }`, `TileScan { region, overlap, order, channels, settle_ms, focus }` |
+| `engine::Step` | `MoveTo { x, y, z? }`, `Focus { z }`, `Channel { id }`, `Snap`, `Wait { ms }`, `Autofocus { range_um }`, `FocusMap { places, surface, range_um }`, `FocusOnSurface { x, y }`, `Repeat { count, index?, steps }`, `Index { index, value }`, `Policy { on_error, steps }`, `TileScan { region, overlap, order, channels, settle_ms, focus, z_stack? }`, `ZStack { planes, steps }`, `MultiPosition { positions, autofocus?, steps }`, `TimeLapse { interval_s, count?, duration_s?, overrun, steps }` |
+| `engine::ZPlanes { range_um, step_um, direction }` | `planes()`: each plane's `z` and offset from the middle, in the order taken; `ZDirection::{Up, Down}`; `MAX_PLANES`, 1000 |
+| `engine::Position { name, x, y, z?, focus? }` | A multi-position's position |
+| `engine::Overrun` | `Skip` (the default) or `Shift` |
+| `engine::Layout` | `layout.json`: `scans` (`ScanLayout { first_p, grid }`), `positions` (`Placed { p, position }`), `focus_maps`, `time_lapses` (`TimeLapseRecord { interval_s, overrun, points, skipped }`, each `TimePoint { t, due_s, began_s }`) |
 | `engine::TileFocus` | A tile scan's focus: `None` (as it is), `Fixed { z }`, `Surface` (the focus map's), `Autofocus { range_um }` |
 | `engine::FocusMap` | A map as made, in `layout.json`: `found` (`[x, y, z]`), `missed` (`[x, y]`), `fitted` |
 | `autofocus::autofocus(&devices, &plan)` | `Focused { z, curve, rise }`: the focus, `None` with nothing to focus on; each frame's `[z, sharpness]`; the coarse sweep's rise, of its peak |
@@ -91,7 +106,7 @@ instrument.
 | `autofocus::fit_surface(&points, kind)` | `FittedSurface { surface, residuals, outliers }` through `[x, y, z]` points, three or more; `SurfaceKind::{Plane, ThinPlate}` |
 | `autofocus::FocusSurface` | `Plane { coefficients }` or `ThinPlate { centre, scale, places, weights, plane }`; `z(x, y)` |
 | `autofocus::depth_of_field(na, n, λ, pixel)` | Berek's, in µm: 7.37 for 10×/0.30 in green at 0.376 µm a pixel |
-| `engine::resolve(&devices, &steps, &mut grids)` | The steps with each tile scan made into its own, and their grids; `engine::LAYOUT`, `layout.json` |
+| `engine::resolve(&devices, &steps, &mut layout)` | The steps with each tile scan and multi-position made into their own, and their grids and positions in the `Layout`; `engine::LAYOUT`, `layout.json` |
 | `scan::plan(&region, &l, field, overlap, order)` | `Grid { tiles, steps, overlap }`, each `Tile { column, row, x, y }`; `ScanError` for a region, overlap or `L` that can't make one, or over `MAX_TILES` |
 | `scan::Region`, `scan::Order` | `Rect { x0, y0, x1, y1 }` or `Polygon { points }`; `Snake`, `Raster`, `Nearest` |
 | `scan::estimate(&grid, start, settle_s, &exposures_s, frame_bytes, &timing)` | `Estimate { tiles, frames, seconds, bytes }`, and `fits(free, keep)`; `Timing`'s defaults are the simulator's |
@@ -120,6 +135,7 @@ still leaves a third of the frame to register on.
 | Example | What it shows | Run |
 |---|---|---|
 | `autofocus_sim` | Autofocus at five places on a gentle relief, from up to 22 µm out (one, at 256 × 192, in smoke mode): each sweep's curve, the focus against the truth, and a thin-plate surface through them with each place's residual | `cargo run --release -p siq-workflow --example autofocus_sim` |
+| `timelapse_sim` | A time-lapse of three points every 4 s, at two positions, a five-plane z-stack at each (two points of three planes in smoke mode): each frame as it comes, then each point's schedule | `cargo run --release -p siq-workflow --example timelapse_sim [-- --out <data root>]` |
 | `tilescan_sim` | A 5 × 5 tile scan in brightfield and DAPI on the simulated instrument (3 × 3 in one channel, the `fast` profile, in smoke mode): its estimate, then its run | `cargo run --release -p siq-workflow --example tilescan_sim [-- --out <data root>]` |
 | `run_plan_sim` | A plan on the simulated instrument: twice, at three places, a frame in brightfield and in DAPI, through the GRBL driver and the simulated lights and filter wheel; each step as it is done, then the dataset's frames and where they were taken | `cargo run --release -p siq-workflow --example run_plan_sim [-- --out <data root>]` |
 
@@ -141,7 +157,10 @@ and peripherals:
 - a capture under way finishing before a cancelled run stops, and the camera ready after;
 - the error policies: tried again, skipped, the run's end, and a group's own;
 - the manifest's plan, instrument and calibration; a plan refused before any dataset, and a key
-  taken twice.
+  taken twice;
+- on tokio's paused clock, a time-lapse's schedule through a pause, a cancel while it waits, and
+  late points skipped or shifting the schedule;
+- a multi-position's positions numbered, each at its focus, and a move about it.
 
 And `scan`:
 
@@ -163,6 +182,13 @@ against the truth where the stage truly is:
 - a plane exact, and a place 20 µm off it set aside; a thin-plate spline through its places and
   within 1 µm of a curved surface between them;
 - a 5 × 5 scan with a 9-point focus map, every tile within a quarter of the depth of field.
+
+And the sequences, on the same rig:
+
+- a z-stack up and down: planes in order, numbered from the bottom, every move unidirectional;
+- a time-lapse of two positions, each scanned in 2 × 1 tiles with three-plane stacks: every key
+  once, the steps as counted, the tiles about each position;
+- as a property, a stack's planes a step apart about the middle.
 
 The routines run through `siq-server`'s tests, on the simulated instrument:
 
@@ -191,3 +217,6 @@ The routines run through `siq-server`'s tests, on the simulated instrument:
   simulator.
 - **A cancel waits for an autofocus under way,** up to its 24 frames: stopped halfway, it would
   leave the camera binned.
+- **A stack taken down moves twice a plane** on a drive that arrives from below.
+- **A time-lapse's points are on tokio's clock,** which is the system's in a run: a suspended
+  computer's sleep shows as lateness.

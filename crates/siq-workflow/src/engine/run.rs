@@ -18,16 +18,75 @@ use siq_storage::{
 use siq_types::{DatasetId, Micrometers, Timestamp};
 
 use super::{
-    ErrorPolicy, Index, Plan, Progress, RunControl, RunEvent, Step, Then, TileFocus, count,
+    ErrorPolicy, Index, Overrun, Plan, Position, Progress, RunControl, RunEvent, Step, Then,
+    TileFocus, count,
 };
 use crate::DeviceSet;
 use crate::autofocus::{self, AutofocusPlan, FittedSurface, FocusSurface};
 use crate::routines::channel;
 use crate::scan::{self, Grid};
 
-/// The file in a dataset's folder that holds its tile scans' grids, each tile's grid column and
-/// row and where the stage went for it, and its focus maps.
+/// The file in a dataset's folder that holds its [`Layout`].
 pub const LAYOUT: &str = "layout.json";
+
+/// Where a dataset's places were planned, and how its sequence ran: its tile scans' grids, its
+/// positions, its focus maps and its time-lapses' points.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct Layout {
+    /// The tile scans' grids.
+    pub scans: Vec<ScanLayout>,
+    /// The multi-positions' positions.
+    pub positions: Vec<Placed>,
+    /// The focus maps made.
+    pub focus_maps: Vec<FocusMap>,
+    /// The time-lapses, as they ran.
+    pub time_lapses: Vec<TimeLapseRecord>,
+}
+
+/// A tile scan's grid, its tiles numbered `p` from `first_p` in their order.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct ScanLayout {
+    /// The first tile's `p`.
+    pub first_p: u32,
+    /// The grid: each tile's column, row and planned position.
+    #[serde(flatten)]
+    pub grid: Grid,
+}
+
+/// A multi-position's position, where the stage went, and its `p`: none when the tiles of a
+/// scan there are numbered instead.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct Placed {
+    /// Its `p`.
+    pub p: Option<u32>,
+    /// The position, in stage µm.
+    #[serde(flatten)]
+    pub position: Position,
+}
+
+/// A time-lapse as it ran: the points it ran, and those it skipped.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct TimeLapseRecord {
+    /// The time between points, in s.
+    pub interval_s: f64,
+    /// What a late point did.
+    pub overrun: Overrun,
+    /// The points run.
+    pub points: Vec<TimePoint>,
+    /// The `t` of each point skipped.
+    pub skipped: Vec<u32>,
+}
+
+/// A time point run: when it was due, and when it began, in s from its time-lapse's start.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct TimePoint {
+    /// Its `t`.
+    pub t: u32,
+    /// When it was due.
+    pub due_s: f64,
+    /// When it began.
+    pub began_s: f64,
+}
 
 /// Where a run's dataset goes, and what it records it was made with.
 #[derive(Debug, Clone)]
@@ -116,6 +175,8 @@ struct Runner<'a> {
     /// The focus surface in force, and every focus map made.
     surface: Option<FocusSurface>,
     maps: Vec<FocusMap>,
+    /// Every time-lapse run.
+    lapses: Vec<TimeLapseRecord>,
     /// `t`, `z` and `p`.
     indices: [u32; 3],
     channel: u16,
@@ -134,12 +195,16 @@ pub async fn run(
     control: &RunControl,
     observe: &(dyn Fn(RunEvent) + Send + Sync),
 ) -> Result<RunReport, RunError> {
-    let mut grids = Vec::new();
-    let steps = resolve(devices, &plan.steps, &mut grids)?;
+    let mut layout = Layout::default();
+    let steps = resolve(devices, &plan.steps, &mut layout)?;
     validate(devices, &plan.name, &steps)?;
-    let kind = match grids.is_empty() {
-        true => DatasetKind::Sequence,
-        false => DatasetKind::TileScan,
+    let stacks = contains(&steps, &|step| matches!(step, Step::ZStack { .. }));
+    let times = |step: &Step| matches!(step, Step::TimeLapse { .. } | Step::Repeat { .. });
+    let lapses = contains(&steps, &times);
+    let kind = match (layout.scans.is_empty(), layout.positions.is_empty()) {
+        (false, _) => DatasetKind::TileScan,
+        (true, true) if stacks && !lapses => DatasetKind::ZStack,
+        _ => DatasetKind::Sequence,
     };
     let mut new = NewDataset::new(kind, &plan.name);
     new.instrument = target.instrument.clone();
@@ -180,6 +245,7 @@ pub async fn run(
         focused: None,
         surface: None,
         maps: Vec::new(),
+        lapses: Vec::new(),
         indices: [0; 3],
         channel: 0,
         done: 0,
@@ -196,9 +262,10 @@ pub async fn run(
             }
         }
     }
-    if !grids.is_empty() || !runner.maps.is_empty() {
+    layout.focus_maps = runner.maps;
+    layout.time_lapses = runner.lapses;
+    if layout != Layout::default() {
         let path = dataset.path().join(LAYOUT);
-        let layout = serde_json::json!({ "scans": grids, "focus_maps": runner.maps });
         let text =
             serde_json::to_string_pretty(&layout).map_err(|e| RunError::Invalid(e.to_string()))?;
         std::fs::write(&path, text).map_err(|error| StorageError::Io {
@@ -224,13 +291,46 @@ pub async fn run(
     })
 }
 
+/// Whether `steps`, or the steps within them, have one that is `wanted`.
+fn contains(steps: &[Step], wanted: &dyn Fn(&Step) -> bool) -> bool {
+    steps.iter().any(|step| {
+        wanted(step)
+            || match step {
+                Step::Repeat { steps, .. }
+                | Step::Policy { steps, .. }
+                | Step::ZStack { steps, .. }
+                | Step::MultiPosition { steps, .. }
+                | Step::TimeLapse { steps, .. } => contains(steps, wanted),
+                _ => false,
+            }
+    })
+}
+
 /// `steps` with each tile scan made into its moves and snaps, by the stage–camera calibration in
-/// force and the camera's region, its grid added to `grids`.
+/// force and the camera's region, and each multi-position into its moves and steps at each
+/// position. `p` numbers every position and tile in order, and each grid and position goes in
+/// `layout`.
 pub fn resolve(
     devices: &DeviceSet,
     steps: &[Step],
-    grids: &mut Vec<Grid>,
+    layout: &mut Layout,
 ) -> Result<Vec<Step>, RunError> {
+    resolve_about(devices, steps, [0.0, 0.0], &mut 0, layout)
+}
+
+/// [`resolve`], the places of `steps` about `[ox, oy]`, and `p` from `next_p`.
+fn resolve_about(
+    devices: &DeviceSet,
+    steps: &[Step],
+    [ox, oy]: [f64; 2],
+    next_p: &mut u32,
+    layout: &mut Layout,
+) -> Result<Vec<Step>, RunError> {
+    // What a z-stack or a position takes, if not given: a frame.
+    let frame = |steps: &[Step]| match steps.is_empty() {
+        true => vec![Step::Snap],
+        false => steps.to_vec(),
+    };
     let mut out = Vec::with_capacity(steps.len());
     for step in steps {
         match step {
@@ -241,6 +341,7 @@ pub fn resolve(
                 channels,
                 settle_ms,
                 focus,
+                z_stack,
             } => {
                 let calibration = devices.acquisition.context().calibration;
                 let record = calibration.and_then(|id| devices.calibrations.get(id));
@@ -249,19 +350,22 @@ pub fn resolve(
                 let record = record.ok_or_else(|| RunError::Invalid(why.to_owned()))?;
                 let roi = devices.camera.settings().roi;
                 let field = [f64::from(roi.width), f64::from(roi.height)];
-                let grid = scan::plan(region, &record.affine(), field, *overlap, *order)
+                let region = region.shifted(ox, oy);
+                let grid = scan::plan(&region, &record.affine(), field, *overlap, *order)
                     .map_err(|error| RunError::Invalid(error.to_string()))?;
+                let first_p = *next_p;
                 if let TileFocus::Fixed { z } = *focus {
                     out.push(Step::Focus { z });
                 }
                 if let [id] = channels[..] {
                     out.push(Step::Channel { id });
                 }
-                for (p, tile) in (0..).zip(&grid.tiles) {
+                for tile in &grid.tiles {
                     out.push(Step::Index {
                         index: Index::P,
-                        value: p,
+                        value: *next_p,
                     });
+                    *next_p += 1;
                     let (x, y) = (tile.x, tile.y);
                     out.push(Step::MoveTo { x, y, z: None });
                     if *settle_ms > 0.0 {
@@ -272,18 +376,76 @@ pub fn resolve(
                         TileFocus::Autofocus { range_um } => out.push(Step::Autofocus { range_um }),
                         TileFocus::None | TileFocus::Fixed { .. } => {}
                     }
-                    match channels.len() {
-                        0 | 1 => out.push(Step::Snap),
-                        _ => {
-                            let each = channels
-                                .iter()
-                                .map(|&id| [Step::Channel { id }, Step::Snap]);
-                            out.extend(each.flatten());
-                        }
+                    let snaps = match channels.len() {
+                        0 | 1 => vec![Step::Snap],
+                        _ => channels
+                            .iter()
+                            .flat_map(|&id| [Step::Channel { id }, Step::Snap])
+                            .collect(),
+                    };
+                    match z_stack {
+                        Some(planes) => out.push(Step::ZStack {
+                            planes: *planes,
+                            steps: snaps,
+                        }),
+                        None => out.extend(snaps),
                     }
                 }
-                grids.push(grid);
+                layout.scans.push(ScanLayout { first_p, grid });
             }
+            Step::MultiPosition {
+                positions,
+                autofocus,
+                steps,
+            } => {
+                for position in positions {
+                    let (x, y) = (position.x + ox, position.y + oy);
+                    let before = *next_p;
+                    let inner = resolve_about(devices, &frame(steps), [x, y], next_p, layout)?;
+                    // Numbered itself unless the tiles of a scan there are.
+                    let p = (*next_p == before).then(|| {
+                        *next_p += 1;
+                        before
+                    });
+                    if let Some(value) = p {
+                        out.push(Step::Index {
+                            index: Index::P,
+                            value,
+                        });
+                    }
+                    out.push(Step::MoveTo {
+                        x,
+                        y,
+                        z: position.z,
+                    });
+                    out.extend(position.focus.map(|z| Step::Focus { z }));
+                    out.extend(autofocus.map(|range_um| Step::Autofocus { range_um }));
+                    out.extend(inner);
+                    let position = Position {
+                        x,
+                        y,
+                        ..position.clone()
+                    };
+                    layout.positions.push(Placed { p, position });
+                }
+            }
+            Step::ZStack { planes, steps } => out.push(Step::ZStack {
+                planes: *planes,
+                steps: resolve_about(devices, &frame(steps), [ox, oy], next_p, layout)?,
+            }),
+            Step::TimeLapse {
+                interval_s,
+                count,
+                duration_s,
+                overrun,
+                steps,
+            } => out.push(Step::TimeLapse {
+                interval_s: *interval_s,
+                count: *count,
+                duration_s: *duration_s,
+                overrun: *overrun,
+                steps: resolve_about(devices, steps, [ox, oy], next_p, layout)?,
+            }),
             Step::Repeat {
                 count,
                 index,
@@ -291,11 +453,29 @@ pub fn resolve(
             } => out.push(Step::Repeat {
                 count: *count,
                 index: *index,
-                steps: resolve(devices, steps, grids)?,
+                steps: resolve_about(devices, steps, [ox, oy], next_p, layout)?,
             }),
             Step::Policy { on_error, steps } => out.push(Step::Policy {
                 on_error: *on_error,
-                steps: resolve(devices, steps, grids)?,
+                steps: resolve_about(devices, steps, [ox, oy], next_p, layout)?,
+            }),
+            Step::MoveTo { x, y, z } => out.push(Step::MoveTo {
+                x: x + ox,
+                y: y + oy,
+                z: *z,
+            }),
+            Step::FocusMap {
+                places,
+                surface,
+                range_um,
+            } => out.push(Step::FocusMap {
+                places: places.iter().map(|[x, y]| [x + ox, y + oy]).collect(),
+                surface: *surface,
+                range_um: *range_um,
+            }),
+            Step::FocusOnSurface { x, y } => out.push(Step::FocusOnSurface {
+                x: x + ox,
+                y: y + oy,
             }),
             step => out.push(step.clone()),
         }
@@ -304,7 +484,8 @@ pub fn resolve(
 }
 
 /// Refuses a plan that can't run: an unknown channel, no steps, a wait or an autofocus of no
-/// length, a focus map of fewer than three places, or a focus on the surface before any map.
+/// length, a focus map of fewer than three places, a focus on the surface before any map, a
+/// z-stack of no planes or too many, or a time-lapse of no points.
 fn validate(devices: &DeviceSet, name: &str, steps: &[Step]) -> Result<(), RunError> {
     fn check(devices: &DeviceSet, steps: &[Step], mapped: &mut bool) -> Result<(), String> {
         let range = |range_um: f64| match range_um.is_finite() && range_um > 0.0 {
@@ -332,6 +513,36 @@ fn validate(devices: &DeviceSet, name: &str, steps: &[Step]) -> Result<(), RunEr
                 Step::FocusOnSurface { .. } if !*mapped => {
                     return Err("a focus on the surface before any focus map".to_owned());
                 }
+                Step::ZStack { planes, steps } => {
+                    let n = planes.range_um / planes.step_um;
+                    let fits = planes.step_um > 0.0 && n.is_finite() && n >= 0.0;
+                    if !fits || n + 1.0 > f64::from(super::MAX_PLANES) {
+                        return Err(format!(
+                            "a z-stack {} µm across in steps of {} µm: from 1 to {} planes",
+                            planes.range_um,
+                            planes.step_um,
+                            super::MAX_PLANES
+                        ));
+                    }
+                    check(devices, steps, mapped)?;
+                }
+                Step::TimeLapse {
+                    interval_s,
+                    count,
+                    duration_s,
+                    steps,
+                    ..
+                } => {
+                    let duration = duration_s.is_none_or(|d| d.is_finite() && d > 0.0);
+                    let points = Step::points(*count, *duration_s, *interval_s);
+                    if !(interval_s.is_finite() && *interval_s > 0.0 && duration && points > 0) {
+                        return Err(format!(
+                            "a time-lapse every {interval_s} s: it needs an interval, and a \
+                             count or a duration"
+                        ));
+                    }
+                    check(devices, steps, mapped)?;
+                }
                 Step::Repeat { steps, .. } | Step::Policy { steps, .. } => {
                     check(devices, steps, mapped)?;
                 }
@@ -340,10 +551,11 @@ fn validate(devices: &DeviceSet, name: &str, steps: &[Step]) -> Result<(), RunEr
         }
         Ok(())
     }
+    check(devices, steps, &mut false).map_err(RunError::Invalid)?;
     if name.trim().is_empty() || count(steps) == 0 {
         return Err(RunError::Invalid("it needs a name, and a step".to_owned()));
     }
-    check(devices, steps, &mut false).map_err(RunError::Invalid)
+    Ok(())
 }
 
 impl Runner<'_> {
@@ -369,6 +581,30 @@ impl Runner<'_> {
                     }
                     Step::Policy { on_error, steps } => self.steps(steps, *on_error).await?,
                     Step::Index { index, value } => self.indices[*index as usize] = *value,
+                    Step::ZStack { planes, steps } => {
+                        // About where the focus is; its z counts within it.
+                        let middle = self.devices.focus.status().borrow().position.0;
+                        let before = self.indices;
+                        for (z, offset) in planes.planes() {
+                            self.indices[Index::Z as usize] = z;
+                            self.step(&Step::Focus { z: middle + offset }, policy)
+                                .await?;
+                            self.steps(steps, policy).await?;
+                        }
+                        self.indices = before;
+                        self.step(&Step::Focus { z: middle }, policy).await?;
+                    }
+                    Step::TimeLapse {
+                        interval_s,
+                        count,
+                        duration_s,
+                        overrun,
+                        steps,
+                    } => {
+                        let points = Step::points(*count, *duration_s, *interval_s);
+                        self.time_lapse(*interval_s, points, *overrun, steps, policy)
+                            .await?;
+                    }
                     Step::FocusMap {
                         places,
                         surface,
@@ -449,7 +685,10 @@ impl Runner<'_> {
             | Step::Policy { .. }
             | Step::Index { .. }
             | Step::TileScan { .. }
-            | Step::FocusMap { .. } => String::new(),
+            | Step::FocusMap { .. }
+            | Step::ZStack { .. }
+            | Step::MultiPosition { .. }
+            | Step::TimeLapse { .. } => String::new(),
         }
     }
 
@@ -547,7 +786,10 @@ impl Runner<'_> {
             | Step::Policy { .. }
             | Step::Index { .. }
             | Step::TileScan { .. }
-            | Step::FocusMap { .. } => Ok(()),
+            | Step::FocusMap { .. }
+            | Step::ZStack { .. }
+            | Step::MultiPosition { .. }
+            | Step::TimeLapse { .. } => Ok(()),
         }
     }
 
@@ -586,6 +828,69 @@ impl Runner<'_> {
             missed,
             fitted,
         });
+        Ok(())
+    }
+
+    /// Runs `steps` at `points` time points `interval_s` apart, numbering them `t`, each when it
+    /// is due; a late one as `overrun` says.
+    async fn time_lapse(
+        &mut self,
+        interval_s: f64,
+        points: u32,
+        overrun: Overrun,
+        steps: &[Step],
+        policy: ErrorPolicy,
+    ) -> Result<(), Stop> {
+        let start = tokio::time::Instant::now();
+        let since = move || start.elapsed().as_secs_f64();
+        let mut record = TimeLapseRecord {
+            interval_s,
+            overrun,
+            points: Vec::new(),
+            skipped: Vec::new(),
+        };
+        let (before, mut shift) = (self.indices, 0.0);
+        let mut ran = Ok(());
+        for t in 0..points {
+            let due_s = shift + f64::from(t) * interval_s;
+            ran = self.until(start + Duration::from_secs_f64(due_s)).await;
+            if ran.is_err() {
+                break;
+            }
+            let late = since() - due_s;
+            match overrun {
+                Overrun::Skip if late >= interval_s => {
+                    record.skipped.push(t);
+                    self.total = self.total.saturating_sub(count(steps));
+                    continue;
+                }
+                Overrun::Shift if late > 0.0 => shift += late,
+                _ => {}
+            }
+            self.indices[Index::T as usize] = t;
+            let began_s = since();
+            record.points.push(TimePoint { t, due_s, began_s });
+            ran = self.steps(steps, policy).await;
+            if ran.is_err() {
+                break;
+            }
+        }
+        self.indices = before;
+        self.lapses.push(record);
+        ran
+    }
+
+    /// Waits until `deadline`, then while the run is paused; a cancel stops it.
+    async fn until(&self, deadline: tokio::time::Instant) -> Result<(), Stop> {
+        self.unless_cancelled(tokio::time::sleep_until(deadline))
+            .await?;
+        if self.control.command() == super::Command::Pause {
+            (self.observe)(RunEvent::Paused);
+            if !self.control.unpaused().await {
+                return Err(Stop::Cancelled);
+            }
+            (self.observe)(RunEvent::Resumed);
+        }
         Ok(())
     }
 

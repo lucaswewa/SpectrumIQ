@@ -194,6 +194,7 @@ async fn a_3_by_3_scan_on_the_simulator_gives_its_dataset_in_about_the_time_esti
         channels: vec![ChannelId(1)],
         settle_ms: 20.0,
         focus: TileFocus::None,
+        z_stack: None,
     };
     let plan_ = Plan {
         name: "tile-scan".to_owned(),

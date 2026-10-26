@@ -5,6 +5,9 @@
 //!   frames' `t`, `z` or `p`. A group of steps may have an error policy of its own. A tile scan
 //!   (ADR-0053) is made into its moves, focusing and snaps when the run starts, by the calibration
 //!   in force. It is serde, with a JSON Schema.
+//! - **Sequences** (ADR-0055) compose: z-stacks about the focus, multiple positions, and
+//!   time-lapses on a schedule, each around any steps. `p` numbers every position and tile of a
+//!   plan in order, `z` every stack's planes from the bottom, and `t` a time-lapse's points.
 //! - **[`run`]** runs it on a [`DeviceSet`](crate::DeviceSet):
 //!   - it makes the plan's dataset, with the plan, the instrument and the calibration in force in
 //!     its manifest, and records each snap there, keyed by the indices and the channel;
@@ -23,7 +26,10 @@ use tokio::sync::watch;
 use crate::autofocus::SurfaceKind;
 use crate::scan::{Order, Region};
 
-pub use run::{DatasetTarget, FocusMap, LAYOUT, Outcome, RunError, RunReport, resolve, run};
+pub use run::{
+    DatasetTarget, FocusMap, LAYOUT, Layout, Outcome, Placed, RunError, RunReport, ScanLayout,
+    TimeLapseRecord, TimePoint, resolve, run,
+};
 
 /// What to acquire: a dataset's name, and the steps that fill it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -118,6 +124,49 @@ pub enum Step {
         /// How each tile is focused: as the focus is, if not given.
         #[serde(default)]
         focus: TileFocus,
+        /// A z-stack at each tile, about its focus, in place of one frame.
+        #[serde(default)]
+        z_stack: Option<ZPlanes>,
+    },
+    /// Runs `steps` at focus planes about where the focus is, numbering them `z` from the bottom;
+    /// then the focus goes back to the middle.
+    ZStack {
+        /// The planes.
+        planes: ZPlanes,
+        /// What to take at each: a frame if none.
+        #[serde(default)]
+        steps: Vec<Step>,
+    },
+    /// Runs `steps` at each of `positions`, numbering them `p`: the stage moved there, the focus to
+    /// the position's own if it has one, then an autofocus if asked. The places of its steps,
+    /// moves, regions and focus maps, are about each position.
+    MultiPosition {
+        /// The positions, in order.
+        positions: Vec<Position>,
+        /// An autofocus at each, over this range in µm, if given.
+        #[serde(default)]
+        autofocus: Option<f64>,
+        /// What to take at each: a frame if none.
+        #[serde(default)]
+        steps: Vec<Step>,
+    },
+    /// Runs `steps` at time points `interval_s` apart from the first, numbering them `t`: `count`
+    /// of them, or as many as begin within `duration_s`, whichever is fewer. A point due while the
+    /// last still runs is late, and `overrun` decides what it does.
+    TimeLapse {
+        /// The time between points' starts, in s.
+        interval_s: f64,
+        /// How many points.
+        #[serde(default)]
+        count: Option<u32>,
+        /// How long, in s.
+        #[serde(default)]
+        duration_s: Option<f64>,
+        /// What a late point does: skipped once its interval has passed, if not given.
+        #[serde(default)]
+        overrun: Overrun,
+        /// What to do at each point.
+        steps: Vec<Step>,
     },
     /// Autofocuses where the stage is (ADR-0054), over `range_um` about where the focus is. With
     /// nothing to focus on, the step fails.
@@ -172,6 +221,92 @@ fn overlap() -> f64 {
     0.1
 }
 
+/// The most planes a z-stack takes.
+pub const MAX_PLANES: u32 = 1000;
+
+/// A z-stack's planes: `range_um` across, a whole number of `step_um` steps, centred on the
+/// focus, taken going `direction`.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct ZPlanes {
+    /// From the lowest plane to the highest, in µm, at most: a whole number of steps.
+    pub range_um: f64,
+    /// Between planes, in µm.
+    pub step_um: f64,
+    /// The way the planes are taken: up if not given.
+    #[serde(default)]
+    pub direction: ZDirection,
+}
+
+impl ZPlanes {
+    /// Each plane's `z` index and offset from the middle, in µm, in the order taken.
+    pub fn planes(&self) -> Vec<(u32, f64)> {
+        let steps = self.range_um / self.step_um + 1e-9;
+        let n = match self.step_um > 0.0 && steps.is_finite() && steps >= 0.0 {
+            true => (steps.floor() + 1.0).min(f64::from(MAX_PLANES)) as u32,
+            false => 0,
+        };
+        let offset = |k: u32| (f64::from(k) - f64::from(n - 1) / 2.0) * self.step_um;
+        let up = (0..n).map(|k| (k, offset(k)));
+        match self.direction {
+            ZDirection::Up => up.collect(),
+            ZDirection::Down => up.rev().collect(),
+        }
+    }
+}
+
+/// The way a z-stack's planes are taken.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ZDirection {
+    /// From the lowest: each plane approached from below, as the focus drive arrives.
+    #[default]
+    Up,
+    /// From the highest: each plane overshot and approached from below.
+    Down,
+}
+
+/// A position of a multi-position.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct Position {
+    /// Its name.
+    #[serde(default)]
+    pub name: String,
+    /// Where, in stage µm.
+    pub x: f64,
+    /// Where, in stage µm.
+    pub y: f64,
+    /// The coarse z, in µm: where it is if not given.
+    #[serde(default)]
+    pub z: Option<f64>,
+    /// The focus, in µm: where it is if not given.
+    #[serde(default)]
+    pub focus: Option<f64>,
+}
+
+/// What a time-lapse's late point does.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Overrun {
+    /// It runs late within its own interval, and is skipped once that has passed: the schedule
+    /// stays as it was.
+    #[default]
+    Skip,
+    /// It runs at once, and the points after it keep the interval from it: the schedule slides.
+    Shift,
+}
+
+impl Step {
+    /// A time-lapse's points: `count`, or as many as begin within `duration_s`, whichever is fewer.
+    fn points(count: Option<u32>, duration_s: Option<f64>, interval_s: f64) -> u32 {
+        let within = duration_s.map(|d| (d / interval_s - 1e-9).ceil().clamp(1.0, 1e9) as u32);
+        match (count, within) {
+            (Some(n), Some(m)) => n.min(m),
+            (Some(n), None) | (None, Some(n)) => n,
+            (None, None) => 0,
+        }
+    }
+}
+
 /// An autofocus's range if not given.
 fn range() -> f64 {
     50.0
@@ -209,7 +344,19 @@ pub fn count(steps: &[Step]) -> u64 {
             }
             Step::Policy { steps, .. } => self::count(steps),
             Step::FocusMap { places, .. } => 2 * places.len() as u64,
-            Step::Index { .. } | Step::TileScan { .. } => 0,
+            // Each plane's focus and steps, a frame if none, then the focus back to the middle.
+            Step::ZStack { planes, steps } => (planes.planes().len() as u64)
+                .saturating_mul(1 + self::count(steps).max(u64::from(steps.is_empty())))
+                .saturating_add(1),
+            Step::TimeLapse {
+                interval_s,
+                count,
+                duration_s,
+                steps,
+                ..
+            } => u64::from(Step::points(*count, *duration_s, *interval_s))
+                .saturating_mul(self::count(steps)),
+            Step::Index { .. } | Step::TileScan { .. } | Step::MultiPosition { .. } => 0,
             _ => 1,
         })
         .fold(0, u64::saturating_add)

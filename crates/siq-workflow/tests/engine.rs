@@ -1,6 +1,7 @@
 //! The workflow engine (ADR-0052) on the simulated camera, with mock motion and peripherals: steps
 //! in order, frames keyed by their indices, pause and resume, cancelling mid-move and
-//! mid-capture, the error policies, and the manifest. REQ-WF-005, REQ-DATA-001.
+//! mid-capture, the error policies, and the manifest; time-lapses kept to their schedule, and
+//! positions numbered. REQ-WF-003, REQ-WF-004, REQ-WF-005, REQ-DATA-001.
 
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -502,4 +503,207 @@ async fn the_manifest_records_the_plan_the_instrument_and_the_calibration() {
     assert!(matches!(refused, Err(RunError::Invalid(_))));
     let datasets = std::fs::read_dir(rig.target.data_root.join("datasets")).unwrap();
     assert_eq!(datasets.count(), 2);
+}
+
+/// The run's first time-lapse, as it ran: each point's `t`, when it was due and when it began,
+/// to the hundredth of a second.
+fn lapse(report: &RunReport) -> (Vec<(u32, f64, f64)>, Vec<u32>) {
+    let text = std::fs::read_to_string(report.path.join(LAYOUT)).unwrap();
+    let layout: Layout = serde_json::from_str(&text).unwrap();
+    let record = &layout.time_lapses[0];
+    let round = |s: f64| (s * 100.0).round() / 100.0;
+    let points = record.points.iter();
+    let points = points.map(|p| (p.t, round(p.due_s), round(p.began_s)));
+    (points.collect(), record.skipped.clone())
+}
+
+fn time_lapse(interval_s: f64, count: u32, overrun: Overrun, work_ms: f64) -> Vec<Step> {
+    vec![Step::TimeLapse {
+        interval_s,
+        count: Some(count),
+        duration_s: None,
+        overrun,
+        steps: vec![Step::Wait { ms: work_ms }],
+    }]
+}
+
+// REQ-WF-004
+#[tokio::test(start_paused = true)]
+async fn a_time_lapse_keeps_its_schedule_through_a_pause_skipping_the_points_it_missed() {
+    let rig = rig(Duration::ZERO);
+    let control = RunControl::new();
+    // Paused from 12 s to 34 s, while the third point, due at 20 s, waits.
+    let pausing = {
+        let control = control.clone();
+        async move {
+            tokio::time::sleep(Duration::from_secs(12)).await;
+            control.pause();
+            tokio::time::sleep(Duration::from_secs(22)).await;
+            control.resume();
+        }
+    };
+    let steps = time_lapse(10.0, 5, Overrun::Skip, 1000.0);
+    assert_eq!(count(&steps), 5);
+    let events = Events::default();
+    let observe = |event| events.0.lock().unwrap().push(event);
+    let plan = plan(steps);
+    let ran = run(&rig.devices, &rig.target, &plan, &control, &observe);
+    let (report, ()) = tokio::join!(ran, pausing);
+    let report = report.unwrap();
+    assert_eq!((report.outcome, report.steps), (Outcome::Finished, [4, 4]));
+    // The third point's interval passed while paused; the fourth ran late, within its own.
+    let points = vec![
+        (0, 0.0, 0.0),
+        (1, 10.0, 10.0),
+        (3, 30.0, 34.0),
+        (4, 40.0, 40.0),
+    ];
+    assert_eq!(lapse(&report), (points, vec![2]));
+    let all = events.all();
+    let paused = all.iter().position(|e| *e == RunEvent::Paused).unwrap();
+    assert_eq!(all[paused + 1], RunEvent::Resumed);
+
+    // Cancelled while it waits for its next point, it stops then.
+    let control = RunControl::new();
+    let cancelling = {
+        let control = control.clone();
+        async move {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            control.cancel();
+        }
+    };
+    let began = tokio::time::Instant::now();
+    let ran = run(&rig.devices, &rig.target, &plan, &control, &|_| {});
+    let (report, ()) = tokio::join!(ran, cancelling);
+    let report = report.unwrap();
+    assert_eq!((report.outcome, report.steps), (Outcome::Cancelled, [1, 5]));
+    assert!(
+        began.elapsed() < Duration::from_secs(6),
+        "{:?}",
+        began.elapsed()
+    );
+    assert_eq!(lapse(&report), (vec![(0, 0.0, 0.0)], vec![]));
+}
+
+// REQ-WF-004
+#[tokio::test(start_paused = true)]
+async fn a_late_point_is_skipped_once_its_interval_has_passed_or_shifts_the_schedule() {
+    let rig = rig(Duration::ZERO);
+    // Each point takes 2.5 s, every 1 s.
+    let skipped = (vec![(0, 0.0, 0.0), (2, 2.0, 2.5)], vec![1, 3]);
+    let shifted = (
+        vec![(0, 0.0, 0.0), (1, 1.0, 2.5), (2, 3.5, 5.0), (3, 6.0, 7.5)],
+        vec![],
+    );
+    for (overrun, expected) in [(Overrun::Skip, skipped), (Overrun::Shift, shifted)] {
+        let steps = plan(time_lapse(1.0, 4, overrun, 2500.0));
+        let report = run(
+            &rig.devices,
+            &rig.target,
+            &steps,
+            &RunControl::new(),
+            &|_| {},
+        )
+        .await
+        .unwrap();
+        assert_eq!(report.outcome, Outcome::Finished, "{overrun:?}");
+        let ran = expected.0.len() as u64;
+        assert_eq!(report.steps, [ran, ran], "{overrun:?}");
+        assert_eq!(lapse(&report), expected, "{overrun:?}");
+    }
+    // A time-lapse needs an interval, and a count or a duration.
+    let none = plan(vec![Step::TimeLapse {
+        interval_s: 1.0,
+        count: None,
+        duration_s: None,
+        overrun: Overrun::Skip,
+        steps: vec![Step::Wait { ms: 1.0 }],
+    }]);
+    let refused = run(
+        &rig.devices,
+        &rig.target,
+        &none,
+        &RunControl::new(),
+        &|_| {},
+    )
+    .await;
+    assert!(
+        matches!(refused, Err(RunError::Invalid(why)) if why.contains("a count or a duration"))
+    );
+    // As many points as begin within the duration.
+    let within = Step::TimeLapse {
+        interval_s: 10.0,
+        count: Some(9),
+        duration_s: Some(35.0),
+        overrun: Overrun::Skip,
+        steps: vec![Step::Wait { ms: 1.0 }],
+    };
+    assert_eq!(count(&[within]), 4);
+}
+
+// REQ-WF-003
+#[tokio::test]
+async fn a_multi_position_numbers_its_positions_and_takes_their_focus() {
+    let rig = rig(Duration::ZERO);
+    let position = |name: &str, x: f64, y: f64, focus: Option<f64>| Position {
+        name: name.to_owned(),
+        x,
+        y,
+        z: None,
+        focus,
+    };
+    let positions = vec![
+        position("a", -1000.0, -2000.0, Some(4000.0)),
+        position("b", -3000.0, -1000.0, None),
+        position("c", -500.0, -500.0, Some(6000.0)),
+    ];
+    // A frame at each, then a move about it.
+    let move_by = Step::MoveTo {
+        x: 100.0,
+        y: 0.0,
+        z: None,
+    };
+    let steps = vec![Step::MultiPosition {
+        positions,
+        autofocus: None,
+        steps: vec![Step::Snap, move_by],
+    }];
+    let taken = Mutex::new(Vec::new());
+    let observe = |event| {
+        if let RunEvent::Frame { p, .. } = event {
+            let at = rig.devices.stage.status().borrow().position;
+            let focus = rig.devices.focus.status().borrow().position.0;
+            taken.lock().unwrap().push((p, at.x.0, at.y.0, focus));
+        }
+    };
+    let control = RunControl::new();
+    let report = run(&rig.devices, &rig.target, &plan(steps), &control, &observe)
+        .await
+        .unwrap();
+    assert_eq!(
+        (report.outcome, report.steps),
+        (Outcome::Finished, [11, 11])
+    );
+    assert_eq!(keys(&report), ["t0 c0 z0 p0", "t0 c0 z0 p1", "t0 c0 z0 p2"]);
+    // Each frame where its position is, at its focus or the last one.
+    let expected = vec![
+        (0, -1000.0, -2000.0, 4000.0),
+        (1, -3000.0, -1000.0, 4000.0),
+        (2, -500.0, -500.0, 6000.0),
+    ];
+    assert_eq!(taken.into_inner().unwrap(), expected);
+    let at = rig.stage.status().borrow().position;
+    assert_eq!(
+        (at.x.0, at.y.0),
+        (-400.0, -500.0),
+        "the move about the last position"
+    );
+    let text = std::fs::read_to_string(report.path.join(LAYOUT)).unwrap();
+    let layout: Layout = serde_json::from_str(&text).unwrap();
+    let placed: Vec<_> = layout
+        .positions
+        .iter()
+        .map(|placed| (placed.p, placed.position.name.as_str()))
+        .collect();
+    assert_eq!(placed, [(Some(0), "a"), (Some(1), "b"), (Some(2), "c")]);
 }

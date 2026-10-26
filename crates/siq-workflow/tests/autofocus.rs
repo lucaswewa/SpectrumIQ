@@ -285,6 +285,7 @@ async fn a_5_by_5_scan_with_a_9_point_focus_map_is_in_focus_at_every_tile() {
                 channels: Vec::new(),
                 settle_ms: 0.0,
                 focus: TileFocus::Surface,
+                z_stack: None,
             },
         ],
         on_error: ErrorPolicy::default(),
