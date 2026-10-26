@@ -3,10 +3,12 @@
 //! - [`engine`] runs acquisition plans (ADR-0052): their dataset, their steps, their progress,
 //!   pausing, cancelling and error policies.
 //! - [`scan`] plans tile scans over a region, and estimates them (ADR-0053).
+//! - [`autofocus`] finds focus, and fits focus surfaces to it (ADR-0054).
 //! - [`routines`] move the instrument and measure it: the stage–camera calibration (ADR-0049),
 //!   the shading's captures (ADR-0050), and a channel put in place.
 //! - [`DeviceSet`] is the instrument as they see it.
 
+pub mod autofocus;
 mod devices;
 pub mod engine;
 pub mod routines;

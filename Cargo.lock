@@ -4512,6 +4512,7 @@ dependencies = [
  "siq-config",
  "siq-devices",
  "siq-grbl",
+ "siq-imgproc",
  "siq-register",
  "siq-serial",
  "siq-sim",

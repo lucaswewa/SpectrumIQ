@@ -34,7 +34,9 @@ What these give:
   - GRBL 1.1's lines, realtime bytes, planner and alarms;
   - trapezoidal moves within each axis's rate and acceleration;
   - soft limits and homing;
-  - the true stage moved in whole steps, with backlash, scale error and random error.
+  - the true stage moved in whole steps, with backlash, scale error and random error: each move
+    lands on its target, and each axis that moved draws an error of its own, while one that
+    didn't stays where it was (P6.3).
 - **`DialectEmulator`,** the device end of a serial link in any dialect:
   - its commands answered with their replies, and other lines with its errors;
   - moves at their speed, jogs to the edge of the travel, and homing;
@@ -42,6 +44,8 @@ What these give:
   - the true focus moved.
 - **The peripheral simulators,** behind their `siq-devices` traits: each change takes a realistic
   time on the clock, then sets the true state.
+- **`SimFocus`,** a focus drive that arrives at once and moves the true focus, for tests and
+  examples that autofocus, where the dialect emulator would only add its timing (P6.3).
 
 The design is in
 [ADR-0026](../../docs/adr/0026-simulated-camera-fidelity-and-the-noiseless-cache.md) and its P1.7
@@ -70,7 +74,8 @@ in [ADR-0012](../../docs/adr/0012-simulation-strategy.md)'s P1.10b amendment.
   - the drivers' tests, in `siq-grbl` and `siq-ascii`;
   - later `siq-datagen` and the tests of M5, M8 and M11–M13.
 - **Phases:** P1.6 (`optics`), P1.7 (`state`, `camera`), P1.8 (`grbl`), P1.10a (`dialect`),
-  P1.10b (`peripherals`); P5.2 the camera's mount.
+  P1.10b (`peripherals`); P5.2 the camera's mount; P6.3 `SimFocus`, and the stage's error per
+  axis.
 
 ## API
 
@@ -122,6 +127,7 @@ in [ADR-0012](../../docs/adr/0012-simulation-strategy.md)'s P1.10b amendment.
 | `SimChanger::filter_wheel(filters, state, clock)` | A `FilterWheel` that moves the true filter. Nothing is in the path while it moves | 60 ms a position, the shorter way round |
 | `SimChanger::objective_turret(positions, state, clock)` | An `ObjectiveTurret` of positions named `position 0` and on, which moves the true objective | 400 ms a position, the shorter way round |
 | `SimModalityUnit::new(modes, patterns, state, clock)` | A `ModalityUnit`, starting in its first mode, which sets the true modality | 300 ms a mode, 20 ms a pattern |
+| `SimFocus::new(travel, state, clock)` | A `FocusDrive` at 0 over `travel`, which moves the true focus | none |
 
 ```rust
 let setup = SimCameraSetup::from_config(&sim_camera, &config.objectives, &config.sim);
@@ -173,7 +179,8 @@ None.
 - four golden transcripts in `tests/transcripts/`: the protocol, motion and dwells, alarms and
   homing, and hold, resume and jogs;
 - a diagonal move's timing;
-- the true stage's backlash, scale error and random error.
+- the true stage's backlash, scale error and random error; an axis that didn't move keeping its
+  place, after a move out and back too.
 
 **`dialect`,** through a `DuplexTransport` on a `ManualClock`, in the example dialect:
 

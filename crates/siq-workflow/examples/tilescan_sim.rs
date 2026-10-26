@@ -33,7 +33,7 @@ use siq_synth::WorldInfo;
 use siq_types::{Affine2, ChannelId, Clock, Micrometers, ObjectiveId, SystemClock};
 use siq_workflow::DeviceSet;
 use siq_workflow::engine::{
-    DatasetTarget, ErrorPolicy, LAYOUT, Plan, RunControl, RunEvent, Step, run,
+    DatasetTarget, ErrorPolicy, LAYOUT, Plan, RunControl, RunEvent, Step, TileFocus, run,
 };
 use siq_workflow::scan::{Order, Region, Timing, estimate, plan};
 
@@ -200,7 +200,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         order: Order::Snake,
         channels,
         settle_ms: 50.0,
-        focus: None,
+        focus: TileFocus::None,
     };
     let plan = Plan {
         name: "tilescan-sim".to_owned(),

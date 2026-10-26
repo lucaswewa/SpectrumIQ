@@ -17,13 +17,16 @@ use siq_storage::{
 };
 use siq_types::{DatasetId, Micrometers, Timestamp};
 
-use super::{ErrorPolicy, Index, Plan, Progress, RunControl, RunEvent, Step, Then, count};
+use super::{
+    ErrorPolicy, Index, Plan, Progress, RunControl, RunEvent, Step, Then, TileFocus, count,
+};
 use crate::DeviceSet;
+use crate::autofocus::{self, AutofocusPlan, FittedSurface, FocusSurface};
 use crate::routines::channel;
 use crate::scan::{self, Grid};
 
-/// The file in a dataset's folder that holds its tile scans' grids: each tile's grid column and
-/// row, and where the stage went for it.
+/// The file in a dataset's folder that holds its tile scans' grids, each tile's grid column and
+/// row and where the stage went for it, and its focus maps.
 pub const LAYOUT: &str = "layout.json";
 
 /// Where a run's dataset goes, and what it records it was made with.
@@ -79,6 +82,18 @@ pub enum RunError {
     Storage(#[from] StorageError),
 }
 
+/// A focus map as made: where focus was found, `[x, y, z]`, where there was nothing to focus on,
+/// and the surface fitted.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct FocusMap {
+    /// The places focused, and the focus there.
+    pub found: Vec<[f64; 3]>,
+    /// The places with nothing to focus on.
+    pub missed: Vec<[f64; 2]>,
+    /// The surface, and its residuals.
+    pub fitted: FittedSurface,
+}
+
 /// Why the steps stopped.
 enum Stop {
     Cancelled,
@@ -96,6 +111,11 @@ struct Runner<'a> {
     keys: Arc<Mutex<VecDeque<FrameKey>>>,
     /// Every key taken: a frame has one of its own.
     taken: HashSet<FrameKey>,
+    /// The focus the last autofocus found.
+    focused: Option<f64>,
+    /// The focus surface in force, and every focus map made.
+    surface: Option<FocusSurface>,
+    maps: Vec<FocusMap>,
     /// `t`, `z` and `p`.
     indices: [u32; 3],
     channel: u16,
@@ -129,16 +149,6 @@ pub async fn run(
     new.calibration = snapshot.map_err(|error| RunError::Invalid(error.to_string()))?;
     new.plan = Some(serde_json::to_value(plan).map_err(|e| RunError::Invalid(e.to_string()))?);
     let dataset = Dataset::create(&target.data_root, new)?;
-    if !grids.is_empty() {
-        let path = dataset.path().join(LAYOUT);
-        let layout = serde_json::json!({ "scans": grids });
-        let text =
-            serde_json::to_string_pretty(&layout).map_err(|e| RunError::Invalid(e.to_string()))?;
-        std::fs::write(&path, text).map_err(|error| StorageError::Io {
-            path,
-            source: error,
-        })?;
-    }
 
     let keys = Arc::new(Mutex::new(VecDeque::new()));
     let frames = devices
@@ -167,6 +177,9 @@ pub async fn run(
         observe,
         keys,
         taken: HashSet::new(),
+        focused: None,
+        surface: None,
+        maps: Vec::new(),
         indices: [0; 3],
         channel: 0,
         done: 0,
@@ -182,6 +195,16 @@ pub async fn run(
                 tracing::warn!(%error, "the {what} didn't stop");
             }
         }
+    }
+    if !grids.is_empty() || !runner.maps.is_empty() {
+        let path = dataset.path().join(LAYOUT);
+        let layout = serde_json::json!({ "scans": grids, "focus_maps": runner.maps });
+        let text =
+            serde_json::to_string_pretty(&layout).map_err(|e| RunError::Invalid(e.to_string()))?;
+        std::fs::write(&path, text).map_err(|error| StorageError::Io {
+            path,
+            source: error,
+        })?;
     }
     let written = tokio::task::spawn_blocking(move || writer.finish()).await;
     let written = written.map_err(|error| RunError::Invalid(error.to_string()))?;
@@ -228,7 +251,9 @@ pub fn resolve(
                 let field = [f64::from(roi.width), f64::from(roi.height)];
                 let grid = scan::plan(region, &record.affine(), field, *overlap, *order)
                     .map_err(|error| RunError::Invalid(error.to_string()))?;
-                out.extend(focus.map(|z| Step::Focus { z }));
+                if let TileFocus::Fixed { z } = *focus {
+                    out.push(Step::Focus { z });
+                }
                 if let [id] = channels[..] {
                     out.push(Step::Channel { id });
                 }
@@ -241,6 +266,11 @@ pub fn resolve(
                     out.push(Step::MoveTo { x, y, z: None });
                     if *settle_ms > 0.0 {
                         out.push(Step::Wait { ms: *settle_ms });
+                    }
+                    match *focus {
+                        TileFocus::Surface => out.push(Step::FocusOnSurface { x, y }),
+                        TileFocus::Autofocus { range_um } => out.push(Step::Autofocus { range_um }),
+                        TileFocus::None | TileFocus::Fixed { .. } => {}
                     }
                     match channels.len() {
                         0 | 1 => out.push(Step::Snap),
@@ -273,9 +303,14 @@ pub fn resolve(
     Ok(out)
 }
 
-/// Refuses a plan that can't run: an unknown channel, no steps, or a wait of no length.
+/// Refuses a plan that can't run: an unknown channel, no steps, a wait or an autofocus of no
+/// length, a focus map of fewer than three places, or a focus on the surface before any map.
 fn validate(devices: &DeviceSet, name: &str, steps: &[Step]) -> Result<(), RunError> {
-    fn check(devices: &DeviceSet, steps: &[Step]) -> Result<(), String> {
+    fn check(devices: &DeviceSet, steps: &[Step], mapped: &mut bool) -> Result<(), String> {
+        let range = |range_um: f64| match range_um.is_finite() && range_um > 0.0 {
+            true => Ok(()),
+            false => Err(format!("an autofocus over {range_um} µm")),
+        };
         for step in steps {
             match step {
                 Step::Channel { id } if !devices.channels.iter().any(|c| c.id == *id) => {
@@ -284,7 +319,22 @@ fn validate(devices: &DeviceSet, name: &str, steps: &[Step]) -> Result<(), RunEr
                 Step::Wait { ms } if !ms.is_finite() || *ms < 0.0 => {
                     return Err(format!("a wait of {ms} ms"));
                 }
-                Step::Repeat { steps, .. } | Step::Policy { steps, .. } => check(devices, steps)?,
+                Step::Autofocus { range_um } => range(*range_um)?,
+                Step::FocusMap {
+                    places, range_um, ..
+                } => {
+                    if places.len() < 3 {
+                        return Err(format!("a focus map of {} places", places.len()));
+                    }
+                    range(*range_um)?;
+                    *mapped = true;
+                }
+                Step::FocusOnSurface { .. } if !*mapped => {
+                    return Err("a focus on the surface before any focus map".to_owned());
+                }
+                Step::Repeat { steps, .. } | Step::Policy { steps, .. } => {
+                    check(devices, steps, mapped)?;
+                }
                 _ => {}
             }
         }
@@ -293,7 +343,7 @@ fn validate(devices: &DeviceSet, name: &str, steps: &[Step]) -> Result<(), RunEr
     if name.trim().is_empty() || count(steps) == 0 {
         return Err(RunError::Invalid("it needs a name, and a step".to_owned()));
     }
-    check(devices, steps).map_err(RunError::Invalid)
+    check(devices, steps, &mut false).map_err(RunError::Invalid)
 }
 
 impl Runner<'_> {
@@ -319,6 +369,11 @@ impl Runner<'_> {
                     }
                     Step::Policy { on_error, steps } => self.steps(steps, *on_error).await?,
                     Step::Index { index, value } => self.indices[*index as usize] = *value,
+                    Step::FocusMap {
+                        places,
+                        surface,
+                        range_um,
+                    } => self.focus_map(places, *surface, *range_um, policy).await?,
                     step => self.step(step, policy).await?,
                 }
             }
@@ -388,10 +443,13 @@ impl Runner<'_> {
             Step::Channel { id } => format!("channel {id}"),
             Step::Snap => format!("snap t{t} c{} z{z} p{p}", self.channel),
             Step::Wait { ms } => format!("wait {ms} ms"),
+            Step::Autofocus { range_um } => format!("autofocus over {range_um} µm"),
+            Step::FocusOnSurface { x, y } => format!("focus on the surface at ({x}, {y}) µm"),
             Step::Repeat { .. }
             | Step::Policy { .. }
             | Step::Index { .. }
-            | Step::TileScan { .. } => String::new(),
+            | Step::TileScan { .. }
+            | Step::FocusMap { .. } => String::new(),
         }
     }
 
@@ -459,11 +517,76 @@ impl Runner<'_> {
                 tokio::time::sleep(Duration::from_secs_f64(ms / 1000.0)).await;
                 Ok(())
             }
+            Step::Autofocus { range_um } => {
+                let plan = AutofocusPlan {
+                    range_um: *range_um,
+                    ..AutofocusPlan::default()
+                };
+                let found = autofocus::autofocus(devices, &plan).await;
+                let found = found.map_err(|error| Stop::Failed(error.to_string()))?;
+                self.focused = found.z;
+                match found.z {
+                    Some(_) => Ok(()),
+                    None => Err(Stop::Failed(format!(
+                        "nothing to focus on: the sharpness rose by {:.0} %",
+                        found.rise * 100.0
+                    ))),
+                }
+            }
+            Step::FocusOnSurface { x, y } => {
+                let surface = self.surface.as_ref();
+                let why = || Stop::Failed("no focus map has been made".to_owned());
+                let z = surface.ok_or_else(why)?.z(*x, *y);
+                let moved = devices.focus.move_to(Micrometers(z), opts);
+                self.unless_cancelled(moved)
+                    .await?
+                    .map(drop)
+                    .map_err(failed)
+            }
             Step::Repeat { .. }
             | Step::Policy { .. }
             | Step::Index { .. }
-            | Step::TileScan { .. } => Ok(()),
+            | Step::TileScan { .. }
+            | Step::FocusMap { .. } => Ok(()),
         }
+    }
+
+    /// Autofocuses at each of `places`, a place with nothing to focus on left out, and fits the
+    /// surface in force to the rest.
+    async fn focus_map(
+        &mut self,
+        places: &[[f64; 2]],
+        kind: autofocus::SurfaceKind,
+        range_um: f64,
+        policy: ErrorPolicy,
+    ) -> Result<(), Stop> {
+        let (mut found, mut missed) = (Vec::new(), Vec::new());
+        let lenient = ErrorPolicy {
+            skip: true,
+            ..policy
+        };
+        for &[x, y] in places {
+            self.step(&Step::MoveTo { x, y, z: None }, policy).await?;
+            self.focused = None;
+            self.step(&Step::Autofocus { range_um }, lenient).await?;
+            match self.focused {
+                Some(z) => found.push([x, y, z]),
+                None => missed.push([x, y]),
+            }
+        }
+        let fitted = autofocus::fit_surface(&found, kind).map_err(|error| {
+            Stop::Failed(format!(
+                "the focus map found focus at {} places: {error}",
+                found.len()
+            ))
+        })?;
+        self.surface = Some(fitted.surface.clone());
+        self.maps.push(FocusMap {
+            found,
+            missed,
+            fitted,
+        });
+        Ok(())
     }
 
     /// `operation`'s result, unless the run is cancelled first.

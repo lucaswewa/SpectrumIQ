@@ -1,9 +1,10 @@
 //! The workflow engine (ADR-0052): one executor for every acquisition plan.
 //!
 //! - **A [`Plan`]** is its dataset's name and steps: moves of the stage and the focus, channels,
-//!   snaps and waits, and repeats of steps that number the frames' `t`, `z` or `p`. A group of
-//!   steps may have an error policy of its own. A tile scan (ADR-0053) is made into its moves and
-//!   snaps when the run starts, by the calibration in force. It is serde, with a JSON Schema.
+//!   snaps and waits, autofocus and focus maps (ADR-0054), and repeats of steps that number the
+//!   frames' `t`, `z` or `p`. A group of steps may have an error policy of its own. A tile scan
+//!   (ADR-0053) is made into its moves, focusing and snaps when the run starts, by the calibration
+//!   in force. It is serde, with a JSON Schema.
 //! - **[`run`]** runs it on a [`DeviceSet`](crate::DeviceSet):
 //!   - it makes the plan's dataset, with the plan, the instrument and the calibration in force in
 //!     its manifest, and records each snap there, keyed by the indices and the channel;
@@ -19,9 +20,10 @@ use serde::{Deserialize, Serialize};
 use siq_types::ChannelId;
 use tokio::sync::watch;
 
+use crate::autofocus::SurfaceKind;
 use crate::scan::{Order, Region};
 
-pub use run::{DatasetTarget, LAYOUT, Outcome, RunError, RunReport, resolve, run};
+pub use run::{DatasetTarget, FocusMap, LAYOUT, Outcome, RunError, RunReport, resolve, run};
 
 /// What to acquire: a dataset's name, and the steps that fill it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -96,8 +98,8 @@ pub enum Step {
         value: u32,
     },
     /// Covers `region` with tiles (ADR-0053), numbering them `p`: at each, the stage moved and
-    /// settled, then a frame in each channel. One channel is put in place once, before the first
-    /// tile; several, at each.
+    /// settled, the tile focused, then a frame in each channel. One channel is put in place once,
+    /// before the first tile; several, at each.
     TileScan {
         /// The region, in stage µm.
         region: Region,
@@ -113,9 +115,36 @@ pub enum Step {
         /// How long the stage settles after each move, in ms.
         #[serde(default)]
         settle_ms: f64,
-        /// The focus for every tile, in µm: where it is if not given.
+        /// How each tile is focused: as the focus is, if not given.
         #[serde(default)]
-        focus: Option<f64>,
+        focus: TileFocus,
+    },
+    /// Autofocuses where the stage is (ADR-0054), over `range_um` about where the focus is. With
+    /// nothing to focus on, the step fails.
+    Autofocus {
+        /// The range searched, in µm: 50 if not given.
+        #[serde(default = "range")]
+        range_um: f64,
+    },
+    /// Autofocuses at each of `places`, and fits a surface to the focus found there: the surface
+    /// in force for the steps after it. A place with nothing to focus on is left out; three must
+    /// remain.
+    FocusMap {
+        /// The places, `[x, y]` in stage µm.
+        places: Vec<[f64; 2]>,
+        /// The surface: a thin-plate spline if not given.
+        #[serde(default)]
+        surface: SurfaceKind,
+        /// Each autofocus's range, in µm: 50 if not given.
+        #[serde(default = "range")]
+        range_um: f64,
+    },
+    /// Moves the focus to the surface in force at `x`, `y`.
+    FocusOnSurface {
+        /// Where, in µm.
+        x: f64,
+        /// Where, in µm.
+        y: f64,
     },
     /// Runs `steps` with an error policy of their own.
     Policy {
@@ -143,6 +172,32 @@ fn overlap() -> f64 {
     0.1
 }
 
+/// An autofocus's range if not given.
+fn range() -> f64 {
+    50.0
+}
+
+/// How each tile of a scan is focused.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "mode", rename_all = "snake_case")]
+pub enum TileFocus {
+    /// As the focus is.
+    #[default]
+    None,
+    /// At `z` µm, for every tile.
+    Fixed {
+        /// Where, in µm.
+        z: f64,
+    },
+    /// On the surface in force: a focus map's, made before.
+    Surface,
+    /// Autofocused at each tile.
+    Autofocus {
+        /// The range searched, in µm.
+        range_um: f64,
+    },
+}
+
 /// The number of device steps in `steps`, each repeat counted out. A tile scan counts once
 /// [`resolve`]d.
 pub fn count(steps: &[Step]) -> u64 {
@@ -153,6 +208,7 @@ pub fn count(steps: &[Step]) -> u64 {
                 u64::from(*count).saturating_mul(self::count(steps))
             }
             Step::Policy { steps, .. } => self::count(steps),
+            Step::FocusMap { places, .. } => 2 * places.len() as u64,
             Step::Index { .. } | Step::TileScan { .. } => 0,
             _ => 1,
         })

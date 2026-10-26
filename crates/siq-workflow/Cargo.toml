@@ -17,6 +17,7 @@ siq-buffer = { path = "../siq-buffer" }
 siq-calib = { path = "../siq-calib" }
 siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }
+siq-imgproc = { path = "../siq-imgproc" }
 siq-register = { path = "../siq-register" }
 siq-storage = { path = "../siq-storage" }
 siq-types = { path = "../siq-types" }

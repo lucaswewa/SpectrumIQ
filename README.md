@@ -123,7 +123,10 @@ Done so far:
     policies (`--example run_plan_sim`);
   - P6.2, tile scans: a grid along the camera's axes with the overlap asked, clipped to a
     rectangle or polygon, ordered and estimated, run by the engine with its layout
-    (`siq-workflow --example tilescan_sim`).
+    (`siq-workflow --example tilescan_sim`);
+  - P6.3, autofocus and focus maps: a coarse and a fine sweep, with their confidence, and a plane
+    or thin-plate surface through the focus found at places, which a tile scan follows
+    (`siq-workflow --example autofocus_sim`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

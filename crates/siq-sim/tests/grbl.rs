@@ -209,4 +209,30 @@ async fn the_true_stage_carries_backlash_scale_error_and_random_error() {
         (0.25..1.0).contains(&spread),
         "{spread} µm RMS for a σ of 0.5 µm: {ends:?}"
     );
+    // An axis that doesn't move keeps its place: the moves in x leave y and z as they were.
+    let (y, z) = (link.state.pose().y.0, link.state.pose().z_coarse.0);
+    link.send("G0 X-3").await;
+    link.expect("ok", "move").await;
+    link.at(21.0).await;
+    assert_eq!(
+        (link.state.pose().y.0, link.state.pose().z_coarse.0),
+        (y, z)
+    );
+    // Nor does one that went out and came back, as an overshoot does: it lands on its target, not
+    // a rounding error from it. These were a focus map's first moves, which did.
+    let mut link = connect(noisy);
+    unlock(&mut link).await;
+    for (time, to) in [
+        (1.0, "X-20.223125 Y-15.18 Z-0.05"),
+        (2.0, "X-20.173125 Y-15.13 Z0"),
+    ] {
+        link.send(&format!("G0 {to}")).await;
+        link.expect("ok", "move").await;
+        link.at(time).await;
+    }
+    let z = link.state.pose().z_coarse.0;
+    link.send("G0 X-20").await;
+    link.expect("ok", "move").await;
+    link.at(3.0).await;
+    assert_eq!(link.state.pose().z_coarse.0, z);
 }

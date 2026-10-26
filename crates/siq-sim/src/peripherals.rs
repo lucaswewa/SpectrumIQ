@@ -1,5 +1,6 @@
 //! The peripheral simulators (REQ-SIM-003, REQ-DEV-001): illumination, the filter wheel, the
-//! objective turret and the modality unit, behind their `siq-devices` traits.
+//! objective turret and the modality unit, behind their `siq-devices` traits; and a focus drive
+//! for tests and examples, where the focus dialect's emulator would only add its timing.
 //!
 //! Each change takes a realistic time on the clock, then sets the true state that the camera
 //! sees:
@@ -10,6 +11,7 @@
 //! | [`SimChanger::filter_wheel`] | 60 ms per position, the shorter way round |
 //! | [`SimChanger::objective_turret`] | 400 ms per position, the shorter way round |
 //! | [`SimModalityUnit`] | 300 ms to change mode, 20 ms to change pattern |
+//! | [`SimFocus`] | none: a move ends as it starts |
 //!
 //! While a changer moves, no position is in the light path. Changes to one device wait their
 //! turn.
@@ -17,12 +19,13 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use siq_devices::mock::MockFocusDrive;
 use siq_devices::{
     BoxFuture, Changer, ChangerStatus, Device, DeviceError, DeviceInfo, DeviceResult, FilterWheel,
-    Illumination, IlluminationStatus, Modality, ModalityStatus, ModalityUnit, ObjectiveTurret,
-    PatternSet, watch,
+    FocusDrive, FocusStatus, Illumination, IlluminationStatus, Modality, ModalityStatus,
+    ModalityUnit, MoveOpts, ObjectiveTurret, PatternSet, Travel, watch,
 };
-use siq_types::{Clock, ModalityMode, Timestamp};
+use siq_types::{Clock, Micrometers, MicrometersPerSecond, ModalityMode, Timestamp};
 use tokio::sync::Mutex;
 
 use crate::state::TrueState;
@@ -243,6 +246,71 @@ impl Changer for SimChanger {
 impl FilterWheel for SimChanger {}
 
 impl ObjectiveTurret for SimChanger {}
+
+/// A focus drive that arrives at once, and moves `state`'s focus.
+pub struct SimFocus {
+    inner: MockFocusDrive,
+    state: Arc<TrueState>,
+}
+
+impl SimFocus {
+    /// A drive over `travel`, at 0, moving `state`'s focus.
+    pub fn new(travel: Travel, state: Arc<TrueState>, clock: Arc<dyn Clock>) -> Self {
+        Self {
+            inner: MockFocusDrive::new(travel, clock),
+            state,
+        }
+    }
+}
+
+impl Device for SimFocus {
+    fn info(&self) -> &DeviceInfo {
+        self.inner.info()
+    }
+}
+
+impl FocusDrive for SimFocus {
+    fn move_to(
+        &self,
+        target: Micrometers,
+        opts: MoveOpts,
+    ) -> BoxFuture<'_, DeviceResult<FocusStatus>> {
+        Box::pin(async move {
+            let status = self.inner.move_to(target, opts).await?;
+            self.state.set_focus(target);
+            Ok(status)
+        })
+    }
+
+    fn move_by(
+        &self,
+        delta: Micrometers,
+        opts: MoveOpts,
+    ) -> BoxFuture<'_, DeviceResult<FocusStatus>> {
+        let at = self.inner.status().borrow().position;
+        self.move_to(Micrometers(at.0 + delta.0), opts)
+    }
+
+    fn jog(&self, velocity: MicrometersPerSecond) -> BoxFuture<'_, DeviceResult<()>> {
+        self.inner.jog(velocity)
+    }
+
+    fn stop(&self) -> BoxFuture<'_, DeviceResult<()>> {
+        self.inner.stop()
+    }
+
+    fn home(&self) -> BoxFuture<'_, DeviceResult<FocusStatus>> {
+        self.inner.home()
+    }
+
+    fn status(&self) -> watch::Receiver<FocusStatus> {
+        self.inner.status()
+    }
+
+    fn limits(&self) -> Travel {
+        self.inner.limits()
+    }
+}
 
 /// A simulated modality unit.
 pub struct SimModalityUnit {

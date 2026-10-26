@@ -2,30 +2,14 @@
 //! 3 × 3 scan on the simulated instrument, through the GRBL driver against its emulator, giving
 //! the dataset expected and taking about the time estimated. REQ-WF-001, REQ-STG-005, REQ-STI-003.
 
-use std::path::Path;
-use std::sync::Arc;
+mod common;
+
 use std::time::Instant;
 
 use proptest::prelude::*;
-use siq_acquire::{Acquisition, AcquisitionContext};
-use siq_buffer::{Backend, PoolConfig};
-use siq_calib::{CalibrationRecord, CalibrationRegistry, Fit};
-use siq_config::model::{CameraConfig, SimStageConfig};
-use siq_devices::mock::MockFocusDrive;
-use siq_devices::{Stage, Travel};
-use siq_grbl::{GrblOptions, GrblStage};
-use siq_serial::{Framing, duplex};
-use siq_sim::camera::{SimCamera, SimCameraSetup};
-use siq_sim::grbl::{GrblEmulator, GrblErrors, GrblSettings};
-use siq_sim::peripherals::{SimChanger, SimIllumination};
-use siq_sim::state::TrueState;
-use siq_storage::{Dataset, DatasetKind, DatasetReader, Snapshot};
-use siq_synth::WorldInfo;
-use siq_types::{Affine2, AffineParams, ChannelId, Clock, Micrometers, ObjectiveId, SystemClock};
-use siq_workflow::DeviceSet;
-use siq_workflow::engine::{
-    DatasetTarget, ErrorPolicy, LAYOUT, Outcome, Plan, RunControl, Step, run,
-};
+use siq_storage::{Dataset, DatasetKind, DatasetReader};
+use siq_types::{Affine2, AffineParams, ChannelId, ObjectiveId};
+use siq_workflow::engine::{ErrorPolicy, LAYOUT, Outcome, Plan, RunControl, Step, TileFocus, run};
 use siq_workflow::scan::{Grid, Order, Region, Timing, estimate, plan};
 
 const FIELD: [f64; 2] = [256.0, 192.0];
@@ -185,107 +169,11 @@ fn the_orders_visit_every_tile_once_as_named() {
     assert_eq!(nearest, every);
 }
 
-/// The simulated instrument at 256 × 192, the stage through the GRBL driver against its emulator,
-/// calibrated with the simulator's own mount.
-async fn instrument() -> (DeviceSet, DatasetTarget, [tempfile::TempDir; 2]) {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config/sim.toml");
-    let mut config = siq_config::load(&path).unwrap();
-    let CameraConfig::Sim(camera) = &mut config.camera else {
-        panic!("a simulated camera")
-    };
-    (camera.width, camera.height) = (256, 192);
-    let clock: Arc<dyn Clock> = Arc::new(SystemClock::new());
-    let peripherals = &config.peripherals;
-    let sources = peripherals.illumination.as_ref().unwrap().sources.clone();
-    let filters = peripherals.filter_wheel.as_ref().unwrap().filters.clone();
-    let state = Arc::new(TrueState::new(sources.len()));
-    let world = WorldInfo::from_config(&config.sim.world, config.sim.seed)
-        .build()
-        .unwrap();
-    let setup = SimCameraSetup::from_config(camera, &config.objectives, &config.sim);
-    let l = setup
-        .mount
-        .compose(&Affine2::scale(10.0 / 3.76, 10.0 / 3.76));
-    let camera = Arc::new(SimCamera::new(
-        setup,
-        world.into(),
-        state.clone(),
-        clock.clone(),
-    ));
-    let errors = GrblErrors::from(&config.sim.errors);
-    let emulator = GrblEmulator::new(
-        GrblSettings::default(),
-        errors,
-        1,
-        state.clone(),
-        clock.clone(),
-    );
-    let (host, device) = duplex(Framing::default(), "grbl");
-    tokio::spawn(emulator.run(device));
-    let options = GrblOptions::from(&SimStageConfig::default());
-    let stage: Arc<dyn Stage> = Arc::new(
-        GrblStage::connect(host, options, clock.clone())
-            .await
-            .unwrap(),
-    );
-    let pool = PoolConfig {
-        name: "camera.pool".into(),
-        slots: 8,
-        slot_bytes: 256 * 192 * 2,
-        backend: Backend::Heap,
-    };
-    let acquisition = Acquisition::new(camera.clone(), &pool, clock.clone()).unwrap();
-    acquisition.follow_stage(stage.status());
-    let folders = [tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap()];
-    let calibrations = Arc::new(CalibrationRegistry::open(folders[0].path()).unwrap());
-    let fit = Fit {
-        affine: l,
-        residuals: Vec::new(),
-    };
-    let record = CalibrationRecord::new(ObjectiveId(1), &fit, None, "the simulator's mount");
-    calibrations.save(&record, &[]).unwrap();
-    acquisition.set_context(AcquisitionContext {
-        objective: Some(ObjectiveId(1)),
-        calibration: Some(record.id),
-        ..acquisition.context()
-    });
-    let focus_travel = Travel {
-        min: Micrometers(0.0),
-        max: Micrometers(10_000.0),
-    };
-    let devices = DeviceSet {
-        acquisition,
-        camera,
-        stage,
-        focus: Arc::new(MockFocusDrive::new(focus_travel, clock.clone())),
-        illumination: Some(Arc::new(SimIllumination::new(
-            sources,
-            state.clone(),
-            clock.clone(),
-        ))),
-        filter_wheel: Some(Arc::new(SimChanger::filter_wheel(
-            filters,
-            state.clone(),
-            clock.clone(),
-        ))),
-        turret: None,
-        modality: None,
-        channels: config.channels.clone(),
-        calibrations,
-        clock,
-    };
-    let target = DatasetTarget {
-        data_root: folders[1].path().to_owned(),
-        min_free: 0,
-        catalog: None,
-        instrument: Some(Snapshot::of(&config).unwrap()),
-    };
-    (devices, target, folders)
-}
-
 #[tokio::test]
 async fn a_3_by_3_scan_on_the_simulator_gives_its_dataset_in_about_the_time_estimated() {
-    let (devices, target, _folders) = instrument().await;
+    let common::Rig {
+        devices, target, ..
+    } = common::instrument((256, 192), None).await;
     // 2.6 steps of 0.9 of a frame each way: three tiles across, three down.
     let (centre, l) = (
         [-20_000.0, -15_000.0],
@@ -305,7 +193,7 @@ async fn a_3_by_3_scan_on_the_simulator_gives_its_dataset_in_about_the_time_esti
         order: Order::Snake,
         channels: vec![ChannelId(1)],
         settle_ms: 20.0,
-        focus: None,
+        focus: TileFocus::None,
     };
     let plan_ = Plan {
         name: "tile-scan".to_owned(),

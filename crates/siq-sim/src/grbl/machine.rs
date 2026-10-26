@@ -322,14 +322,20 @@ impl Machine {
                 return;
             }
             self.running = None;
-            let (target, _) = running.at(running.end());
+            // A move lands on its target, in whole steps, not on the profile's rounding of it.
+            let target = match running.block {
+                Block::Move { target, .. } => target,
+                _ => running.at(running.end()).0,
+            };
             self.free = running.end();
             if target != self.position {
+                // Each axis that moved lands with an error of its own; one that didn't stays put.
                 self.moves += 1;
                 let sigma = self.errors.position_noise.0 / 1000.0;
-                self.noise = std::array::from_fn(|axis| {
-                    sigma * f64::from(gaussian(hash(self.noise_key, self.moves, axis as u64)))
-                });
+                for axis in (0..3).filter(|&axis| target[axis] != self.position[axis]) {
+                    let error = gaussian(hash(self.noise_key, self.moves, axis as u64));
+                    self.noise[axis] = sigma * f64::from(error);
+                }
             }
             self.position = target;
             match running.block {

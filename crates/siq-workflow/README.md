@@ -1,13 +1,16 @@
 # siq-workflow
 
 Workflows: what the instrument does by itself, move by move and frame by frame, on the device
-traits: the engine that runs acquisition plans, and the routines that measure the instrument.
+traits: the engine that runs acquisition plans, autofocus, and the routines that measure the
+instrument.
 
 - **`engine`** (ADR-0052): one executor for every acquisition plan.
   - **A `Plan`** is its dataset's name and steps: `move_to`, `focus`, `channel`, `snap` and
-    `wait`; `repeat`, which numbers the frames' `t`, `z` or `p` within it; `index`, which sets one
-    for the steps after it; `policy`, steps with an error policy of their own; and `tile_scan`,
-    made into its moves and snaps when the run starts. It is serde, with its JSON Schema.
+    `wait`; `autofocus`, `focus_map`, which makes the focus surface in force, and
+    `focus_on_surface`; `repeat`, which numbers the frames' `t`, `z` or `p` within it; `index`,
+    which sets one for the steps after it; `policy`, steps with an error policy of their own; and
+    `tile_scan`, made into its moves, focusing and snaps when the run starts. It is serde, with its
+    JSON Schema.
   - **`run`** makes the plan's dataset, with the plan, the instrument and the calibration in force
     in its manifest, and records each snap there under the key of the indices and the channel.
     It reports progress and events, waits while paused, and stops when cancelled: a move under
@@ -21,7 +24,20 @@ traits: the engine that runs acquisition plans, and the routines that measure th
   - **The estimate:** the moves at the stage's speed and acceleration, settling, channel
     switches, exposures and readouts, and the bytes, against the disk.
   - **In a plan,** a `tile_scan` needs the calibration in force. Its grid goes in the dataset's
-    `layout.json`, each tile's column, row and planned position.
+    `layout.json`, each tile's column, row and planned position. Each tile is focused as the
+    focus is, at a fixed focus, on the surface in force, or by autofocus.
+- **`autofocus`** (ADR-0054): focus found where the stage is, and focus surfaces.
+  - **Two sweeps of the focus drive,** a frame at each step, scored by Tenengrad over the frame's
+    middle three quarters: a coarse one over the range, binned 2 × 2 at a quarter of the exposure,
+    then a fine one at the camera's own resolution about the coarse one's estimate. Each estimate
+    is the vertex of a Gaussian fitted to the frames above half the sweep's peak.
+  - **Nothing to focus on:** a coarse sweep whose sharpness rises by less than a fifth of its peak
+    finds no focus, and the drive goes back where it was. As a step, it fails.
+  - **The camera** is back at its own settings after, whatever happened.
+  - **A focus map** autofocuses at each of its places, leaves out those with nothing to focus on,
+    and fits a surface to the rest: a plane by least squares, places far off it set aside, or a
+    thin-plate spline through them. Its residuals are each place's error, the spline's with the
+    place left out. The maps go in `layout.json`.
 - **`DeviceSet`:** the instrument as the workflows see it, shared handles to each device, the
   acquisition, the channels and the calibrations.
 
@@ -55,19 +71,26 @@ traits: the engine that runs acquisition plans, and the routines that measure th
 
 - **Layer:** L4 Engines.
 - **Depends on:** `siq-acquire`, `siq-buffer`, `siq-calib`, `siq-config`, `siq-devices`,
-  `siq-register`, `siq-storage`, `siq-types`; `schemars`, `serde`, `serde_json`, `thiserror`,
-  `tokio`, `tracing`.
+  `siq-imgproc`, `siq-register`, `siq-storage`, `siq-types`; `schemars`, `serde`, `serde_json`,
+  `thiserror`, `tokio`, `tracing`.
 - **Used by:** `siq-server` (the `calibration` and `imaging` Things; the `workflow` Thing in
   P6.5).
 - **Phase:** P5.2; P5.3 the shading's captures; P6.1 the engine and the channel routine; P6.2
-  the tile scans.
+  the tile scans; P6.3 autofocus and focus maps.
 
 ## API
 
 | Item | What |
 |---|---|
 | `engine::Plan { name, steps, on_error }` | A plan; `engine::count(&steps)`, its device steps |
-| `engine::Step` | `MoveTo { x, y, z? }`, `Focus { z }`, `Channel { id }`, `Snap`, `Wait { ms }`, `Repeat { count, index?, steps }`, `Index { index, value }`, `Policy { on_error, steps }`, `TileScan { region, overlap, order, channels, settle_ms, focus? }` |
+| `engine::Step` | `MoveTo { x, y, z? }`, `Focus { z }`, `Channel { id }`, `Snap`, `Wait { ms }`, `Autofocus { range_um }`, `FocusMap { places, surface, range_um }`, `FocusOnSurface { x, y }`, `Repeat { count, index?, steps }`, `Index { index, value }`, `Policy { on_error, steps }`, `TileScan { region, overlap, order, channels, settle_ms, focus }` |
+| `engine::TileFocus` | A tile scan's focus: `None` (as it is), `Fixed { z }`, `Surface` (the focus map's), `Autofocus { range_um }` |
+| `engine::FocusMap` | A map as made, in `layout.json`: `found` (`[x, y, z]`), `missed` (`[x, y]`), `fitted` |
+| `autofocus::autofocus(&devices, &plan)` | `Focused { z, curve, rise }`: the focus, `None` with nothing to focus on; each frame's `[z, sharpness]`; the coarse sweep's rise, of its peak |
+| `autofocus::AutofocusPlan` | `range_um`, `coarse`, `fine`, `min_rise`, `binning`; by default 50 µm, 11 and 13 frames, a fifth, 2 × 2 |
+| `autofocus::fit_surface(&points, kind)` | `FittedSurface { surface, residuals, outliers }` through `[x, y, z]` points, three or more; `SurfaceKind::{Plane, ThinPlate}` |
+| `autofocus::FocusSurface` | `Plane { coefficients }` or `ThinPlate { centre, scale, places, weights, plane }`; `z(x, y)` |
+| `autofocus::depth_of_field(na, n, λ, pixel)` | Berek's, in µm: 7.37 for 10×/0.30 in green at 0.376 µm a pixel |
 | `engine::resolve(&devices, &steps, &mut grids)` | The steps with each tile scan made into its own, and their grids; `engine::LAYOUT`, `layout.json` |
 | `scan::plan(&region, &l, field, overlap, order)` | `Grid { tiles, steps, overlap }`, each `Tile { column, row, x, y }`; `ScanError` for a region, overlap or `L` that can't make one, or over `MAX_TILES` |
 | `scan::Region`, `scan::Order` | `Rect { x0, y0, x1, y1 }` or `Polygon { points }`; `Snake`, `Raster`, `Nearest` |
@@ -96,6 +119,7 @@ still leaves a third of the frame to register on.
 
 | Example | What it shows | Run |
 |---|---|---|
+| `autofocus_sim` | Autofocus at five places on a gentle relief, from up to 22 µm out (one, at 256 × 192, in smoke mode): each sweep's curve, the focus against the truth, and a thin-plate surface through them with each place's residual | `cargo run --release -p siq-workflow --example autofocus_sim` |
 | `tilescan_sim` | A 5 × 5 tile scan in brightfield and DAPI on the simulated instrument (3 × 3 in one channel, the `fast` profile, in smoke mode): its estimate, then its run | `cargo run --release -p siq-workflow --example tilescan_sim [-- --out <data root>]` |
 | `run_plan_sim` | A plan on the simulated instrument: twice, at three places, a frame in brightfield and in DAPI, through the GRBL driver and the simulated lights and filter wheel; each step as it is done, then the dataset's frames and where they were taken | `cargo run --release -p siq-workflow --example run_plan_sim [-- --out <data root>]` |
 
@@ -127,6 +151,19 @@ And `scan`:
 - a 3 × 3 scan on the simulator, through the GRBL driver against its emulator: its dataset, its
   layout, each frame within 1 µm of its tile, and its time within 20 % of the estimate.
 
+And `autofocus`, on the simulated instrument (`tests/common`, which the scan tests share: the
+camera at 256 × 192 in brightfield, the GRBL emulator, the simulator's instant focus drive),
+against the truth where the stage truly is:
+
+- on grains over a tilted, curved surface, focus within a quarter of the depth of field from up
+  to 20 µm out, at five places, the camera as it was;
+- on a bare field, nothing to focus on, the focus back where it was, and the step failing; plans
+  refused for an autofocus of no range, a map of two places, or a focus on the surface before any
+  map;
+- a plane exact, and a place 20 µm off it set aside; a thin-plate spline through its places and
+  within 1 µm of a curved surface between them;
+- a 5 × 5 scan with a 9-point focus map, every tile within a quarter of the depth of field.
+
 The routines run through `siq-server`'s tests, on the simulated instrument:
 
 - `calibration`: the camera turned 0.4°, with 0.2 % more pixels per µm and a shear of 0.001, the
@@ -147,3 +184,10 @@ The routines run through `siq-server`'s tests, on the simulated instrument:
   frame registers would save a fraction of the time. The engine, too, waits for each step.
 - **A plan's keys must be unique:** a plan that snaps twice at one place without numbering the
   snaps stops at the second.
+- **Autofocus finds the focus that sharpens the frame most:** where the sample's relief across
+  the frame is more than the depth of field, that may not be the focus at its centre.
+- **One sweep of the range:** a focus outside the range is found at its edge, not followed.
+- **24 frames an autofocus,** each after the drive arrives: about 5 s at 512 × 384 on the
+  simulator.
+- **A cancel waits for an autofocus under way,** up to its 24 frames: stopped halfway, it would
+  leave the camera binned.
