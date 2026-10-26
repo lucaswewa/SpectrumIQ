@@ -42,9 +42,10 @@ const motionKey: InjectionKey<Motion> = Symbol('motion')
  * The page's motion, for the calling component and those inside it (`useMotion`). While it is
  * mounted, the arrow keys and PgUp/PgDn jog the stage, and Esc is STOP wherever the keyboard is,
  * dialogs included. Losing the window's focus, hiding the page or leaving it releases every key,
- * since their key-ups would be missed.
+ * since their key-ups would be missed. Without `keys`, the arrow keys and PgUp/PgDn are left to
+ * the page: for a d-pad in a dialog over it.
  */
-export function useJog(): Motion {
+export function useJog({ keys = true }: { keys?: boolean } = {}): Motion {
   const stage = useStageStore()
   const focus = useFocusStore()
   const preferences = useNavigationPreferences()
@@ -74,7 +75,7 @@ export function useJog(): Motion {
   provide(motionKey, motion)
 
   useShortcut(
-    ...KEYS.map(([keys, direction, description]) => ({
+    ...KEYS.filter(() => keys).map(([keys, direction, description]) => ({
       keys,
       description: `${description}; hold to keep moving`,
       group: 'Stage',

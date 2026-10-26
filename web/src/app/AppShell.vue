@@ -2,6 +2,7 @@
 import { onScopeDispose } from 'vue'
 import { RouterView } from 'vue-router'
 
+import CalibrationWizard from '@/calibration/CalibrationWizard.vue'
 import { bindToaster } from '@/stores/thing'
 import { useToast } from '@/ui/overlays'
 
@@ -28,6 +29,7 @@ onScopeDispose(() => bindToaster(undefined))
       <RouterView />
     </div>
     <ShortcutHelp />
+    <CalibrationWizard />
   </div>
 </template>
 

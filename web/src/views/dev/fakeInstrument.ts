@@ -1,9 +1,10 @@
 // A fake instrument for the development pages: a `fetch` that answers as a SpectrumIQ server
-// does, with a camera and a display Thing, MJPEG streams drawn in the browser, and the stage,
-// focus and peripherals of `fakeMotion.ts`, which the drawing follows. For development only
-// (`/#/dev/live`, `/#/dev/control`).
+// does, with a camera and a display Thing, MJPEG streams drawn in the browser, the stage, focus
+// and peripherals of `fakeMotion.ts`, which the drawing follows, and the calibrations of
+// `fakeCalibration.ts`. For development only (`/#/dev/live`, `/#/dev/control`,
+// `/#/dev/calibration`).
 import type { Pinia } from 'pinia'
-import { createApp, defineComponent, h } from 'vue'
+import { createApp, defineComponent, h, type Component } from 'vue'
 
 import { WotClient } from '@/api/wot/client'
 import type { ThingDescription } from '@/api/wot/td'
@@ -12,6 +13,7 @@ import LivePage from '@/live/LivePage.vue'
 import { useConnectionStore } from '@/stores/connection'
 import OverlayProvider from '@/ui/OverlayProvider.vue'
 
+import { calibrate, status } from './fakeCalibration'
 import { act, BEST_FOCUS, follow, motionValues } from './fakeMotion'
 
 const BASE = `${location.origin}/`
@@ -64,6 +66,9 @@ const THINGS = {
   filter_wheel: moving('filter_wheel', ['select']),
   objective: moving('objective', ['select']),
   modality: moving('modality', ['set_modality']),
+  calibration: describe('calibration', ['status'], {
+    actions: ['stage_camera', 'capture_dark', 'capture_flat'],
+  }),
 }
 
 /** The fake's state: what reads answer, and what writes change. */
@@ -173,6 +178,14 @@ export const fakeFetch: typeof fetch = async (input, init = {}) => {
       lost_device: 0,
     })
   }
+  if (path === 'calibration/status') return json(status())
+  if (method === 'POST' && path.startsWith('calibration/')) {
+    const output = await calibrate(path.split('/')[1]!)
+    return json(
+      { id: '1', status: 'completed', href: `${BASE}api/v1/action_invocations/1`, output },
+      201,
+    )
+  }
   if (path === 'display/histogram') return json(histogram())
   if (path === 'display/focus_measure') return json(histogram().focus)
   if (path in motionValues) {
@@ -204,15 +217,15 @@ export const fakeFetch: typeof fetch = async (input, init = {}) => {
 }
 
 /**
- * Mounts the Live page against the fake, in an app of its own so that the fake connection stays
- * there, with what the app shell gives a page: shortcuts, confirmations and toasts. Returns the
- * function that unmounts it.
+ * Mounts `page` (the Live page by default) against the fake, in an app of its own so that the
+ * fake connection stays there, with what the app shell gives a page: shortcuts, confirmations and
+ * toasts. Returns the function that unmounts it.
  */
-export function mountDemo(host: HTMLElement, pinia: Pinia) {
+export function mountDemo(host: HTMLElement, pinia: Pinia, page: Component = LivePage) {
   const demo = createApp(
     defineComponent(() => {
       provideShortcuts()
-      return () => h(OverlayProvider, null, { default: () => h(LivePage) })
+      return () => h(OverlayProvider, null, { default: () => h(page) })
     }),
   )
   demo.use(pinia)

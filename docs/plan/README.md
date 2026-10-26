@@ -193,8 +193,8 @@ A phase is Done once it is merged.
 |---|---|---|---|---|
 | P5.1 | Phase correlation | 800 | P1.5 | Done |
 | P5.2 | Stage–camera calibration | 800 | P5.1, P2.4 | Done |
-| P5.3 | Shading correction | 850 | P5.2, P4.3 | Review |
-| P5.4 | Calibration UI | 800 | P5.2, P5.3, P3.4 | — |
+| P5.3 | Shading correction | 850 | P5.2, P4.3 | Done |
+| P5.4 | Calibration UI | 800 | P5.2, P5.3, P3.4 | Review |
 
 ### M6 — Workflows ([brief](milestones/M06-workflows.md))
 

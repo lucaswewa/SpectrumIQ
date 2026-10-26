@@ -7,6 +7,7 @@ import {
 } from 'vue-router'
 
 import PlannedPage from '@/app/PlannedPage.vue'
+import CalibrationPage from '@/calibration/CalibrationPage.vue'
 import { DESTINATIONS } from '@/app/navigation'
 import DatasetsPage from '@/datasets/DatasetsPage.vue'
 import LivePage from '@/live/LivePage.vue'
@@ -16,6 +17,7 @@ import ViewerPage from '@/viewer2d/ViewerPage.vue'
 /** The pages that are built; every other destination shows what will come (`PlannedPage`). */
 const PAGES: Record<string, Component> = {
   about: AboutPage,
+  calibration: CalibrationPage,
   datasets: DatasetsPage,
   live: LivePage,
   viewer: ViewerPage,
@@ -61,6 +63,11 @@ const devRoutes: RouteRecordRaw[] = import.meta.env.DEV
         path: '/dev/viewer2d',
         name: 'dev-viewer2d',
         component: () => import('@/views/dev/Viewer2DDemoView.vue'),
+      },
+      {
+        path: '/dev/calibration',
+        name: 'dev-calibration',
+        component: () => import('@/views/dev/CalibrationDemoView.vue'),
       },
     ]
   : []

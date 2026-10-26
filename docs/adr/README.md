@@ -59,3 +59,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0048](0048-the-registration-method.md) | The registration method | Accepted | P5.1 |
 | [0049](0049-the-stage-camera-calibration.md) | The stage–camera calibration: its model, storage and versioning | Accepted | P5.2 |
 | [0050](0050-the-shading-correction.md) | The shading correction, and the BaSiC simplification | Accepted | P5.3 |
+| [0051](0051-calibration-ux-and-gating.md) | The calibration UX, and the gating rules | Accepted | P5.4 |
