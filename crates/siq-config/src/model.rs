@@ -58,6 +58,8 @@ pub struct ServerConfig {
     pub data_root: PathBuf,
     /// Scratch space for raw frames, on a fast NVMe drive.
     pub scratch: PathBuf,
+    /// The settings the service keeps: the calibrations, versioned (ADR-0049).
+    pub settings: PathBuf,
     /// The disk space to keep free where datasets are recorded, in GB: recording won't start
     /// below it, and stops before a frame would go below it (ADR-0041).
     pub min_free_gb: f64,
@@ -70,6 +72,7 @@ impl Default for ServerConfig {
             port: 5000,
             data_root: "data".into(),
             scratch: "scratch".into(),
+            settings: "settings".into(),
             min_free_gb: 20.0,
         }
     }
@@ -466,6 +469,21 @@ pub struct SimConfig {
     pub world: WorldConfig,
     /// The errors injected into the simulated stage.
     pub errors: SimErrors,
+    /// How the simulated camera sits on the microscope: what the stage–camera calibration finds.
+    pub mount: SimMount,
+}
+
+/// How the simulated camera sits: the image turned, scaled and sheared against the stage, as a
+/// real mount and real optics leave it. The stage–camera calibration measures it (P5.2).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct SimMount {
+    /// The camera's rotation, in degrees.
+    pub rotation: f64,
+    /// The magnification's relative error: 0.001 is 0.1 % more pixels per µm.
+    pub scale_error: f64,
+    /// How far the image's second axis leans along its first.
+    pub shear: f64,
 }
 
 /// How much the simulated camera renders.

@@ -1,5 +1,5 @@
 //! What the service's test binaries share: the simulated instrument of `config/sim.toml` on a
-//! small sensor, an in-process client, and waiting for an invocation.
+//! small sensor, with no calibrations, an in-process client, and waiting for an invocation.
 
 #![allow(dead_code, reason = "each binary uses some of it")]
 
@@ -21,6 +21,8 @@ pub fn config() -> InstrumentConfig {
     };
     (camera.width, camera.height) = (256, 192);
     config.memory.pool_slots = 6;
+    // Not the repository's: a calibration made there by hand would be stamped on the frames.
+    config.server.settings = Path::new(env!("CARGO_TARGET_TMPDIR")).join("no-settings");
     config
 }
 
@@ -36,6 +38,15 @@ pub async fn client() -> TestClient {
 
 /// Waits for an invocation to end, and gives back its last state.
 pub async fn finished(client: &TestClient, invocation: TestResponse) -> Value {
+    finished_within(client, invocation, Duration::from_secs(10)).await
+}
+
+/// Waits up to `limit` for an invocation to end, and gives back its last state.
+pub async fn finished_within(
+    client: &TestClient,
+    invocation: TestResponse,
+    limit: Duration,
+) -> Value {
     assert_eq!(
         invocation.status,
         StatusCode::CREATED,
@@ -46,7 +57,8 @@ pub async fn finished(client: &TestClient, invocation: TestResponse) -> Value {
         .as_str()
         .unwrap()
         .replace("http://testserver", "");
-    for _ in 0..1000 {
+    let deadline = tokio::time::Instant::now() + limit;
+    while tokio::time::Instant::now() < deadline {
         let state = client.get(&href).await.json();
         if !matches!(state["status"].as_str(), Some("pending" | "running")) {
             return state;

@@ -135,7 +135,11 @@ fn resolve_paths(config: &mut InstrumentConfig, base: &Path) {
         WorldConfig::Image { path, .. } => Some(path),
         _ => None,
     };
-    let paths = [&mut config.server.data_root, &mut config.server.scratch];
+    let paths = [
+        &mut config.server.data_root,
+        &mut config.server.scratch,
+        &mut config.server.settings,
+    ];
     let optional = [config.log.directory.as_mut(), optional, dialect, world];
     paths
         .into_iter()

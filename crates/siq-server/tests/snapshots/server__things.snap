@@ -3,6 +3,16 @@ source: crates/siq-server/tests/server.rs
 expression: descriptions
 ---
 {
+  "calibration": {
+    "title": "Calibration",
+    "properties": [
+      "status"
+    ],
+    "actions": [
+      "stage_camera"
+    ],
+    "events": []
+  },
   "camera": {
     "title": "Camera",
     "properties": [

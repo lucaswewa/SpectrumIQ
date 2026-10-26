@@ -177,6 +177,9 @@ impl Datasets {
         }
         let mut new = NewDataset::new(DatasetKind::Snap, name.as_deref().unwrap_or("snap"));
         new.instrument = Some(Snapshot::of(config)?);
+        let calibration = instrument.acquisition.context().calibration;
+        let record = calibration.and_then(|id| instrument.calibrations.get(id));
+        new.calibration = record.map(|record| Snapshot::of(&record)).transpose()?;
         let dataset = Dataset::create(instrument.catalog.data_root(), new)?;
 
         // The frames, recorded as they come: frame `c` is channel `c`.
@@ -341,9 +344,10 @@ fn image_of(
 }
 
 /// The image a snap's frames make: a channel per frame, named and coloured as its channel, in its
-/// frame's auto-contrast window. The pixel size is the sensor's, binned, through the objective's
-/// magnification, and the first pixel's centre is put where the stage was, at the frame's centre:
-/// both until the stage–camera calibration (M5).
+/// frame's auto-contrast window. The pixel size is the calibration's, binned, or without one the
+/// sensor's through the objective's magnification. The first pixel's centre is put where the
+/// stage was, at the frame's centre: the image's axes taken as the stage's, as NGFF 0.5 has no
+/// rotation.
 fn image_info(
     instrument: &Instrument,
     channels: &[Option<ChannelConfig>],
@@ -357,8 +361,12 @@ fn image_info(
         .iter()
         .find(|objective| Some(objective.id) == meta.objective);
     let magnification = objective.map_or(1.0, |objective| objective.magnification);
-    let sensor = instrument.camera.capabilities().pixel_size.0;
-    let pixel = sensor * f64::from(meta.binning.horizontal.get()) / magnification;
+    let nominal = instrument.camera.capabilities().pixel_size.0 / magnification;
+    let calibrated = meta
+        .calibration
+        .and_then(|id| instrument.calibrations.get(id))
+        .map(|record| record.px_size_um);
+    let pixel = calibrated.unwrap_or(nominal) * f64::from(meta.binning.horizontal.get());
     let origin = meta.pose.map_or([0.0; 3], |pose| {
         [
             pose.focus.0,

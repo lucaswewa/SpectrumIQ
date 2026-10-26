@@ -3,7 +3,8 @@
 //! SpectrumIQ's own routes in front.
 //!
 //! - **Things,** under `/api/v1/`: `camera`, `display`, `stage`, `focus`, the fitted peripherals
-//!   (`illumination`, `filter_wheel`, `objective`, `modality`), `imaging`, `jobs` and `datasets`.
+//!   (`illumination`, `filter_wheel`, `objective`, `modality`), `imaging`, `jobs`, `datasets`
+//!   and `calibration`.
 //!   The global lock is on: hardware actions and writes take it, and `stage.halt`, `focus.halt`,
 //!   `jobs.cancel` and the `datasets` actions other than `snap_to_dataset` don't.
 //! - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`; and under
@@ -40,6 +41,7 @@ use tokio::net::TcpListener;
 use tower::ServiceExt;
 use tracing::{info, warn};
 
+pub mod calibration;
 mod data;
 pub mod datasets;
 pub mod devices;
@@ -51,11 +53,13 @@ pub mod webapp;
 
 pub use teta_wot::server::shutdown_signal;
 
+use calibration::Calibration;
 use datasets::Datasets;
 use devices::Peripherals;
 use imaging::Imaging;
 use jobs::Jobs;
 use peripherals::{FilterWheel, Illumination, ModalityUnit, Objective};
+use siq_calib::CalibrationRegistry;
 use siq_jobs::{Scheduler, SchedulerConfig};
 use siq_pyramid::tiles::TileService;
 use siq_storage::Catalog;
@@ -91,6 +95,8 @@ pub struct Instrument {
     pub catalog: Arc<Catalog>,
     /// The deep-zoom tiles, within `[memory] tile_cache_mb` (ADR-0045).
     pub tiles: Arc<TileService>,
+    /// The calibrations of `[server] settings`, versioned (ADR-0049).
+    pub calibrations: Arc<CalibrationRegistry>,
     slot_bytes: usize,
     started: Instant,
 }
@@ -197,6 +203,7 @@ fn things(camera: Camera, fitted: impl Fn(&str) -> bool) -> ThingServerBuilder {
         .thing("imaging", Imaging::default())
         .thing("jobs", Jobs::default())
         .thing("datasets", Datasets::default())
+        .thing("calibration", Calibration::default())
 }
 
 /// The service: the Things' server, and the instrument behind it.
@@ -247,6 +254,7 @@ impl Service {
         let jobs = Arc::new(Scheduler::new(schedule, Some(&registry)).map_err(anyhow::Error::msg)?);
         let catalog = Arc::new(Catalog::scan(&config.server.data_root)?);
         let tiles = Arc::new(TileService::new(budgets.tile_cache_mb as usize * 1_000_000));
+        let calibrations = Arc::new(CalibrationRegistry::open(&config.server.settings)?);
         let instrument = Arc::new(Instrument {
             config,
             camera: devices.camera,
@@ -261,6 +269,7 @@ impl Service {
             jobs,
             catalog,
             tiles,
+            calibrations,
             slot_bytes: full,
             started: Instant::now(),
         });
@@ -273,6 +282,7 @@ impl Service {
                 _ => fitted.modality.is_some(),
             }
         };
+        calibration::stamp(&instrument);
         let server = things(camera, fitted).service(instrument.clone()).build()?;
         let webapp = webapp::WebApp::Embedded;
         Ok(Self {

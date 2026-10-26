@@ -236,6 +236,8 @@ impl Objective {
             objective: objective.as_ref().map(|objective| objective.id),
             ..acquisition.context()
         });
+        // The new objective's calibration in force, if it has one.
+        crate::calibration::stamp(instrument);
         Ok(objective)
     }
 }

@@ -7,6 +7,7 @@ bind = "127.0.0.1"         # this computer only; "0.0.0.0" for the LAN
 port = 5000
 data_root = "../data"
 scratch = "../scratch"
+settings = "../settings"   # the calibrations
 
 [memory]                    # the 32 GB / 8 GB workstation (ADR-0005)
 pool_slots = 12             # 12 × 200 MB, locked
@@ -103,6 +104,11 @@ profile = "full"            # "fast" renders a quarter of the pixels
 
 [sim.world]
 kind = "cells"              # cells, grains, height_field, beads, or image (with path, pixel_size)
+
+[sim.mount]                 # how the camera sits: what the calibration finds
+rotation = 0.4              # degrees
+scale_error = 0.002         # 0.2 % more pixels per µm
+shear = 0.001
 
 [sim.errors]                # injected into the simulated stage
 backlash = 2.0              # µm

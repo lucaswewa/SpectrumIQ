@@ -191,8 +191,8 @@ A phase is Done once it is merged.
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P5.1 | Phase correlation | 800 | P1.5 | Review |
-| P5.2 | Stage–camera calibration | 800 | P5.1, P2.4 | — |
+| P5.1 | Phase correlation | 800 | P1.5 | Done |
+| P5.2 | Stage–camera calibration | 800 | P5.1, P2.4 | Review |
 | P5.3 | Shading correction | 850 | P5.2, P4.3 | — |
 | P5.4 | Calibration UI | 800 | P5.2, P5.3, P3.4 | — |
 

@@ -1,0 +1,22 @@
+[package]
+name = "siq-workflow"
+description = "Workflows: the routines that move the instrument and measure it, such as the stage-camera calibration; the plans' engine follows in M6."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+siq-acquire = { path = "../siq-acquire" }
+siq-calib = { path = "../siq-calib" }
+siq-devices = { path = "../siq-devices" }
+siq-register = { path = "../siq-register" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt"] }
+tracing.workspace = true
+
+[lints]
+workspace = true

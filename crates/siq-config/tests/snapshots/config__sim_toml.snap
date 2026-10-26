@@ -8,6 +8,7 @@ expression: config
     "port": 5000,
     "data_root": "config\\../data",
     "scratch": "config\\../scratch",
+    "settings": "config\\../settings",
     "min_free_gb": 20.0
   },
   "memory": {
@@ -155,6 +156,11 @@ expression: config
       "scale_error": 0.0005,
       "position_noise": 0.5,
       "reply_latency": 5.0
+    },
+    "mount": {
+      "rotation": 0.4,
+      "scale_error": 0.002,
+      "shear": 0.001
     }
   }
 }

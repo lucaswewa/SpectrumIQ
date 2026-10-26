@@ -18,6 +18,7 @@ serde_json.workspace = true
 siq-acquire = { path = "../siq-acquire" }
 siq-ascii = { path = "../siq-ascii" }
 siq-buffer = { path = "../siq-buffer" }
+siq-calib = { path = "../siq-calib" }
 siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }
 siq-grbl = { path = "../siq-grbl" }
@@ -25,12 +26,14 @@ siq-imgproc = { path = "../siq-imgproc" }
 siq-jobs = { path = "../siq-jobs" }
 siq-preview = { path = "../siq-preview" }
 siq-pyramid = { path = "../siq-pyramid" }
+siq-register = { path = "../siq-register" }
 siq-serial = { path = "../siq-serial" }
 siq-sim = { path = "../siq-sim" }
 siq-storage = { path = "../siq-storage" }
 siq-synth = { path = "../siq-synth" }
 siq-telemetry = { path = "../siq-telemetry" }
 siq-types = { path = "../siq-types" }
+siq-workflow = { path = "../siq-workflow" }
 teta-wot.workspace = true
 tokio = { workspace = true, features = ["fs", "macros", "net", "rt", "signal", "sync", "time"] }
 tower.workspace = true

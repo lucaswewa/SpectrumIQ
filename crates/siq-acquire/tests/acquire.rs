@@ -17,7 +17,7 @@ use siq_sim::optics::{OpticsModel, SensorModel};
 use siq_sim::state::TrueState;
 use siq_synth::{Cells, CellsParams};
 use siq_types::{
-    CalibrationId, ChannelId, Clock, FrameMeta, Hertz, ManualClock, Micrometers, Millis,
+    Affine2, CalibrationId, ChannelId, Clock, FrameMeta, Hertz, ManualClock, Micrometers, Millis,
     ObjectiveId, PixelFormat, PoseQuality, Roi, Timestamp,
 };
 
@@ -52,6 +52,7 @@ fn setup() -> SimCameraSetup {
         optics: OpticsModel::default(),
         sensor_model: SensorModel::default(),
         trigger_latency: Millis(0.1),
+        mount: Affine2::IDENTITY,
     }
 }
 

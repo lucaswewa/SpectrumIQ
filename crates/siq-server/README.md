@@ -6,13 +6,15 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
 - **Devices,** simulated or real, chosen per device (ADR-0034): the camera, the GRBL stage, the
   ASCII focus drive, and the fitted peripherals (simulated until P10.5).
 - **Engines:** the acquisition (`siq-acquire`), the previews (`siq-preview`) and the jobs
-  (`siq-jobs`), shared by the Things as the `Instrument` service.
+  (`siq-jobs`), shared by the Things as the `Instrument` service, with the calibrations
+  (`siq-calib`'s registry, in the settings folder).
 - **Things,** under `/api/v1/` (ADR-0033):
   - `camera`, `display`, `stage` and `focus`;
   - the fitted peripherals: `illumination`, `filter_wheel`, `objective` and `modality`;
   - `imaging`, the channels (ADR-0035);
   - `jobs`, the background jobs (ADR-0043);
-  - `datasets`, the datasets, a snap made into one, and their exports (ADR-0041, amended).
+  - `datasets`, the datasets, a snap made into one, and their exports (ADR-0041, amended);
+  - `calibration`, the stage–camera calibration of the objective in use (ADR-0049).
 
   The global lock is on. The `halt` actions, `jobs.cancel` and the `datasets` actions other than
   `snap_to_dataset` bypass it.
@@ -33,14 +35,16 @@ This is the only crate that depends on teta-wot.
 - **Layer:** L5 Service.
 - **Depends on:**
   - teta-wot v0.1.0 (git), and `tower` for `oneshot`;
-  - `siq-acquire`, `siq-preview`, `siq-jobs`, `siq-pyramid`, `siq-storage`;
+  - `siq-acquire`, `siq-preview`, `siq-jobs`, `siq-workflow`, `siq-pyramid`, `siq-storage`,
+    `siq-calib`, `siq-register`;
   - `siq-devices`, `siq-grbl`, `siq-ascii`, `siq-serial`, `siq-sim`;
   - `siq-config`, `siq-telemetry`, `siq-buffer`, `siq-imgproc`, `siq-synth`, `siq-types`;
   - `tokio`, `serde`, `schemars`, `chrono`, `anyhow`, `tracing`.
 - **Used by:** `apps/spectrumiq-server`, the service binary.
 - **Phase:** P2.3; P2.4 added the peripherals, the channels, and the metrics and memory routes;
   P3.1 the web app; P4.3 the `jobs` Thing; P4.5 the data routes, with the catalog and the tile
-  cache; P4.7 the `datasets` Thing, a dataset's manifest and thumbnail; P4.8 an image's metadata.
+  cache; P4.7 the `datasets` Thing, a dataset's manifest and thumbnail; P4.8 an image's metadata;
+  P5.2 the `calibration` Thing, and the frames' objective and calibration.
 
 ## API
 
@@ -70,9 +74,14 @@ This is the only crate that depends on teta-wot.
 | `modality` | `modality`, `moving` (observable); `modes`, `patterns` | `set_modality(mode, pattern?)` | `changed` |
 | `imaging` | `channel` (observable); `channels` | `select_channel(id)`: every light off, the filter, the exposure and colour, the light, then the frames' channel | `channel_changed` |
 | `jobs` | `queue`, `running` (observable): each job's id, kind, priority, state, progress, estimate and times | `cancel(id)` | — |
+| `calibration` | `status`: each objective, with its calibration in force or `null` | `stage_camera`: the objective in use calibrated against the stage, kept as a new version, and stamped on its frames from then on; a snap's dataset keeps a copy, and its pixel size | — |
 | `datasets` | — | `summary(offset, limit)`: a page of the datasets, newest first; `snap_to_dataset(channels?, name?)`: a frame per channel, recorded raw, written as the image `snap` by a job, and its pyramid submitted; `export_ome_tiff(dataset, image)` and `export_dzi(dataset, image, c, z, t, format)`, as background jobs; `delete(dataset)`, refused while a job works on it | `created` |
 
 The peripherals' Things are served only if their `[peripherals]` section is present.
+
+**The objective in use** is the frames' context's, set by `objective.select`; else the turret's
+position; else the only one configured. Every frame carries it and its calibration in force, if
+any: at start, on `objective.select`, and after a calibration.
 
 ### The system routes
 
@@ -121,8 +130,15 @@ curl http://127.0.0.1:5000/api/siq/system/memory
 
 ## Examples
 
-`apps/spectrumiq-server` runs the service. Two scripts drive it over HTTP, with the standard
-library only:
+| Example | What it shows | Run |
+|---|---|---|
+| `calibrate_sim` | The simulated instrument's stage–camera calibration through the `calibration` Thing, on a 4096 × 3072 sensor binned 2 × 2: the scale, rotation and shear found against those injected, the residuals, the backlash, and where it was kept | `cargo run --release -p siq-server --example calibrate_sim [-- --settings <folder>]` |
+
+Every example also runs in smoke mode (`SIQ_SMOKE=1`) in `cargo xtask ci`, on 1024 × 768: the
+smaller field calibrates less precisely.
+
+`apps/spectrumiq-server` runs the service. Scripts drive it over HTTP, with the standard library
+only:
 
 - `examples/python/live_and_move.py` moves the stage, and saves a frame before and after;
 - `examples/python/channels.py` cycles through the channels, and saves a snap of each;
@@ -141,8 +157,8 @@ None.
 
 ## Testing
 
-`cargo test -p siq-server` runs its binaries, with `config/sim.toml` on a 256 × 192 sensor,
-through teta-wot's in-process `TestClient`.
+`cargo test -p siq-server` runs its binaries, with `config/sim.toml` on a 256 × 192 sensor and
+no calibrations, through teta-wot's in-process `TestClient`.
 
 `server`:
 
@@ -169,6 +185,14 @@ through teta-wot's in-process `TestClient`.
 - its tiles, manifest (both jobs recorded) and thumbnail served;
 - the summary, both exports as jobs, and an export of an image it hasn't refused;
 - deleting it: refused while a job works on it, then done.
+
+`calibration`, end to end over HTTP on a 4096 × 3072 sensor binned 2 × 2, in about 25 s:
+
+- the camera's mount (0.4°, 0.2 % scale, a shear of 0.001) and the stage's scale error recovered
+  within 0.1 % in scale and 0.05° in rotation, against the stage's noise and whole steps;
+- the residuals under 1 µm RMS, and the backlash within 1 µm of the 2 injected;
+- the calibration kept, in force, in `status`, on the next frame with its objective, and copied
+  into a snap's dataset.
 
 `webapp`, from a build in a temporary folder:
 

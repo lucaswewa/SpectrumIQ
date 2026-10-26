@@ -20,8 +20,8 @@ use siq_sim::state::TrueState;
 use siq_synth::{Cells, CellsParams};
 use siq_telemetry::{MetricValue, Registry};
 use siq_types::{
-    Binning, FrameMeta, Hertz, ManualClock, Micrometers, Millis, OwnedImage, PixelFormat, RectPx,
-    Roi, Timestamp,
+    Affine2, Binning, FrameMeta, Hertz, ManualClock, Micrometers, Millis, OwnedImage, PixelFormat,
+    RectPx, Roi, Timestamp,
 };
 
 fn meta(roi: Roi, binning: Binning) -> FrameMeta {
@@ -277,6 +277,7 @@ fn camera(clock: Arc<ManualClock>) -> SimCamera {
         optics: OpticsModel::default(),
         sensor_model: SensorModel::default(),
         trigger_latency: Millis(0.1),
+        mount: Affine2::IDENTITY,
     };
     SimCamera::new(
         setup,

@@ -33,4 +33,5 @@ rustc-ice-*.txt
 # What config/sim.toml writes when the service runs from the repository
 /data/
 /scratch/
+/settings/
 /logs/

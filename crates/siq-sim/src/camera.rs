@@ -26,8 +26,8 @@ use siq_devices::{
 };
 use siq_synth::World;
 use siq_types::{
-    Affine2, Binning, Clock, DeviceMicros, FrameMeta, Hertz, Micrometers, Millis, PixelFormat,
-    Timestamp,
+    Affine2, AffineParams, Binning, Clock, DeviceMicros, FrameMeta, Hertz, Micrometers, Millis,
+    PixelFormat, Timestamp,
 };
 
 use crate::optics::{OpticsModel, Renderer, SensorModel, Shot};
@@ -65,6 +65,9 @@ pub struct SimCameraSetup {
     pub sensor_model: SensorModel,
     /// From `trigger()` to the start of the exposure.
     pub trigger_latency: Millis,
+    /// How the camera sits: the image's turn, scale and shear against the stage, a linear
+    /// transform of the sensor's pixels. The identity for a perfect mount.
+    pub mount: Affine2,
 }
 
 impl SimCameraSetup {
@@ -107,6 +110,13 @@ impl SimCameraSetup {
                 ..SensorModel::default()
             },
             trigger_latency: Millis(0.1),
+            mount: Affine2::from_params(&AffineParams {
+                scale_x: 1.0 + sim.mount.scale_error,
+                scale_y: 1.0 + sim.mount.scale_error,
+                rotation: sim.mount.rotation.to_radians(),
+                shear: sim.mount.shear,
+                translation: [0.0; 2],
+            }),
         }
     }
 
@@ -470,7 +480,7 @@ fn shot(shared: &Shared, renderer: &mut Renderer, settings: CameraSettings) -> S
     let scale = lens.magnification / setup.pixel_size.0;
     Shot {
         pose: state.pose(),
-        calibration: Affine2::scale(scale, scale),
+        calibration: setup.mount.compose(&Affine2::scale(scale, scale)),
         sensor: setup.sensor,
         settings,
     }

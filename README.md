@@ -105,6 +105,10 @@ Done so far:
 - Milestone 5 (registration and calibration), under way:
   - P5.1, [`siq-register`](crates/siq-register/README.md): sub-pixel translation between two
     images by phase correlation, with its confidence (`--example register_pair`).
+  - P5.2, [`siq-calib`](crates/siq-calib/README.md) and
+    [`siq-workflow`](crates/siq-workflow/README.md)'s first routine: the stage–camera calibration
+    of each objective, measured, fitted, versioned in the settings folder and stamped on every
+    frame, through the `calibration` Thing (`siq-server --example calibrate_sim`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

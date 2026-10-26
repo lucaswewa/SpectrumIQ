@@ -4183,6 +4183,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "siq-calib"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "schemars 1.2.2",
+ "serde",
+ "serde_json",
+ "siq-types",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tracing",
+]
+
+[[package]]
 name = "siq-config"
 version = "0.1.0"
 dependencies = [
@@ -4362,6 +4376,7 @@ dependencies = [
  "siq-acquire",
  "siq-ascii",
  "siq-buffer",
+ "siq-calib",
  "siq-config",
  "siq-devices",
  "siq-grbl",
@@ -4369,12 +4384,14 @@ dependencies = [
  "siq-jobs",
  "siq-preview",
  "siq-pyramid",
+ "siq-register",
  "siq-serial",
  "siq-sim",
  "siq-storage",
  "siq-synth",
  "siq-telemetry",
  "siq-types",
+ "siq-workflow",
  "tempfile",
  "teta-wot",
  "tokio",
@@ -4471,6 +4488,20 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.21",
  "uuid",
+]
+
+[[package]]
+name = "siq-workflow"
+version = "0.1.0"
+dependencies = [
+ "siq-acquire",
+ "siq-calib",
+ "siq-devices",
+ "siq-register",
+ "siq-types",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

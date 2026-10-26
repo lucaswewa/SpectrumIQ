@@ -4292,6 +4292,169 @@
           }
         }
       }
+    },
+    "/api/v1/calibration/stage_camera": {
+      "get": {
+        "summary": "All invocations of stage_camera.",
+        "description": "List all the invocations of stage_camera that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_calibration_stage_camera_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of stage_camera.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Calibrates the objective in use against the stage: a star of 16 moves about where the stage",
+        "description": "## Calibrates the objective in use against the stage: a star of 16 moves about where the stage\n\nCalibrates the objective in use against the stage: a star of 16 moves about where the stage\nis, out to a third of the field, a frame at each registered against the first; the affine\nfitted, checked, and the backlash measured. Kept as a new version, it is in force for the\nobjective's frames from then on. Something must be in the field to register.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_calibration_stage_camera_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/calibration_stage_camera_input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calibration_stage_camera_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calibration_stage_camera_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/calibration/status": {
+      "get": {
+        "summary": "Each configured objective, with the stage–camera calibration in force for it, if any.",
+        "description": "## Each configured objective, with the stage–camera calibration in force for it, if any.\n\nEach configured objective, with the stage–camera calibration in force for it, if any.",
+        "operationId": "get_property_api_v1_calibration_status_get",
+        "responses": {
+          "200": {
+            "description": "Value of status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calibration_status_value"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each new value as JSON in a `data:` line. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/calibration/properties": {
+      "get": {
+        "summary": "Read All Properties",
+        "description": "Every property of `calibration` (`readallproperties`), or their changes (`observeallproperties`).",
+        "operationId": "read_all_properties_api_v1_calibration_properties_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Each property's value, by name."
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each observable property's new values, as events named after it. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/calibration/actions": {
+      "get": {
+        "summary": "Query All Actions",
+        "description": "The invocations of each action of `calibration`, newest first (`queryallactions`).",
+        "operationId": "query_all_actions_api_v1_calibration_actions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/InvocationSummary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/calibration/": {
+      "get": {
+        "summary": "Thing Description",
+        "description": "The W3C Thing Description of `calibration`: its properties, actions and events, and how to use them.",
+        "operationId": "things_calibration_api_v1_calibration__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThingDescription"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9976,6 +10139,357 @@
           "input",
           "log"
         ]
+      },
+      "calibration_stage_camera_input": {
+        "description": "Represent the input of an action that never takes parameters.\n\nThis may be either an empty dictionary or ``None``.",
+        "oneOf": [
+          {
+            "description": "A model representing an object that must have no keys.",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "calibration_stage_camera_output": {
+        "description": "A calibration as it is kept: the affine of one objective, and how well it was measured.",
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "Its id, which frames taken under it carry.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "objective": {
+            "description": "The objective it is for.",
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535
+          },
+          "created": {
+            "description": "When it was made.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "affine": {
+            "description": "`L`, stage µm to sensor pixels: rows `[a, b]` and `[c, d]`.",
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "maxItems": 2,
+            "minItems": 2
+          },
+          "px_size_um": {
+            "description": "The mean pixel size on the sample, in µm.",
+            "type": "number"
+          },
+          "rotation_deg": {
+            "description": "The camera's rotation against the stage, in degrees.",
+            "type": "number"
+          },
+          "scale": {
+            "description": "The pixels per µm along the image's two axes.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 2,
+            "minItems": 2
+          },
+          "shear": {
+            "description": "How far the image's second axis leans along its first.",
+            "type": "number"
+          },
+          "residual_rms_um": {
+            "description": "The moves' residuals' RMS on the stage, in µm.",
+            "type": "number"
+          },
+          "residual_max_um": {
+            "description": "The largest residual, in µm.",
+            "type": "number"
+          },
+          "backlash_um": {
+            "description": "The stage's backlash on `x` and `y`, in µm, if it was measured.",
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "moves": {
+            "description": "The moves it was fitted from.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "method": {
+            "description": "How it was measured, such as `stage_camera`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "objective",
+          "created",
+          "affine",
+          "px_size_um",
+          "rotation_deg",
+          "scale",
+          "shear",
+          "residual_rms_um",
+          "residual_max_um",
+          "moves",
+          "method"
+        ]
+      },
+      "calibration_stage_camera_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/calibration_stage_camera_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/calibration_stage_camera_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "calibration_status_value": {
+        "type": "array",
+        "items": {
+          "description": "An objective, and its calibration in force.",
+          "type": "object",
+          "properties": {
+            "objective": {
+              "description": "The objective.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "name": {
+              "description": "Its name.",
+              "type": "string"
+            },
+            "calibration": {
+              "description": "Its stage–camera calibration in force: `null` until it is calibrated.",
+              "oneOf": [
+                {
+                  "description": "A calibration as it is kept: the affine of one objective, and how well it was measured.",
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "description": "Its id, which frames taken under it carry.",
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "objective": {
+                      "description": "The objective it is for.",
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 65535
+                    },
+                    "created": {
+                      "description": "When it was made.",
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "affine": {
+                      "description": "`L`, stage µm to sensor pixels: rows `[a, b]` and `[c, d]`.",
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        },
+                        "maxItems": 2,
+                        "minItems": 2
+                      },
+                      "maxItems": 2,
+                      "minItems": 2
+                    },
+                    "px_size_um": {
+                      "description": "The mean pixel size on the sample, in µm.",
+                      "type": "number"
+                    },
+                    "rotation_deg": {
+                      "description": "The camera's rotation against the stage, in degrees.",
+                      "type": "number"
+                    },
+                    "scale": {
+                      "description": "The pixels per µm along the image's two axes.",
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "maxItems": 2,
+                      "minItems": 2
+                    },
+                    "shear": {
+                      "description": "How far the image's second axis leans along its first.",
+                      "type": "number"
+                    },
+                    "residual_rms_um": {
+                      "description": "The moves' residuals' RMS on the stage, in µm.",
+                      "type": "number"
+                    },
+                    "residual_max_um": {
+                      "description": "The largest residual, in µm.",
+                      "type": "number"
+                    },
+                    "backlash_um": {
+                      "description": "The stage's backlash on `x` and `y`, in µm, if it was measured.",
+                      "oneOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          },
+                          "maxItems": 2,
+                          "minItems": 2
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "moves": {
+                      "description": "The moves it was fitted from.",
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "method": {
+                      "description": "How it was measured, such as `stage_camera`.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "objective",
+                    "created",
+                    "affine",
+                    "px_size_um",
+                    "rotation_deg",
+                    "scale",
+                    "shear",
+                    "residual_rms_um",
+                    "residual_max_um",
+                    "moves",
+                    "method"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "objective",
+            "name"
+          ]
+        }
       }
     }
   }

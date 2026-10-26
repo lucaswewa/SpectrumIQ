@@ -27,12 +27,14 @@ What these give:
   - frame rates from the capability model;
   - free-run and software trigger;
   - lost frames when no slot is free;
-  - exact timing on a `ManualClock`.
+  - exact timing on a `ManualClock`;
+  - the camera's mount, `[sim.mount]`: the image turned, scaled and sheared against the stage, as
+    the stage–camera calibration finds it (P5.2).
 - **`GrblEmulator`,** the device end of a serial link:
   - GRBL 1.1's lines, realtime bytes, planner and alarms;
   - trapezoidal moves within each axis's rate and acceleration;
   - soft limits and homing;
-  - the true stage moved with backlash, scale error and random error.
+  - the true stage moved in whole steps, with backlash, scale error and random error.
 - **`DialectEmulator`,** the device end of a serial link in any dialect:
   - its commands answered with their replies, and other lines with its errors;
   - moves at their speed, jogs to the edge of the travel, and homing;
@@ -68,7 +70,7 @@ in [ADR-0012](../../docs/adr/0012-simulation-strategy.md)'s P1.10b amendment.
   - the drivers' tests, in `siq-grbl` and `siq-ascii`;
   - later `siq-datagen` and the tests of M5, M8 and M11–M13.
 - **Phases:** P1.6 (`optics`), P1.7 (`state`, `camera`), P1.8 (`grbl`), P1.10a (`dialect`),
-  P1.10b (`peripherals`).
+  P1.10b (`peripherals`); P5.2 the camera's mount.
 
 ## API
 
@@ -95,7 +97,7 @@ in [ADR-0012](../../docs/adr/0012-simulation-strategy.md)'s P1.10b amendment.
 
 | Item | What |
 |---|---|
-| `SimCameraSetup` | Sensor, format, full-frame rate, pixel pitch, `Lens`es by turret position, optics and sensor models, trigger latency. `from_config(&camera, &objectives, &sim)` applies the `fast` profile. `capabilities()` |
+| `SimCameraSetup` | Sensor, format, full-frame rate, pixel pitch, `Lens`es by turret position, the `mount` (an `Affine2`), optics and sensor models, trigger latency. `from_config(&camera, &objectives, &sim)` applies the `fast` profile. `capabilities()` |
 | `SimCamera::new(setup, world, state, clock)` | A `siq_devices::Camera` |
 
 ### `siq_sim::grbl`

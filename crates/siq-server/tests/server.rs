@@ -34,6 +34,7 @@ async fn the_things_are_listed_and_described() {
     let mut names: Vec<_> = things.as_object().unwrap().keys().cloned().collect();
     names.sort();
     let expected = [
+        "calibration",
         "camera",
         "datasets",
         "display",

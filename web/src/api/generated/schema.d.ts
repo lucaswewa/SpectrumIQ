@@ -2990,6 +2990,121 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/calibration/stage_camera": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of stage_camera.
+         * @description List all the invocations of stage_camera that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_calibration_stage_camera_get"];
+        put?: never;
+        /**
+         * Calibrates the objective in use against the stage: a star of 16 moves about where the stage
+         * @description ## Calibrates the objective in use against the stage: a star of 16 moves about where the stage
+         *
+         *     Calibrates the objective in use against the stage: a star of 16 moves about where the stage
+         *     is, out to a third of the field, a frame at each registered against the first; the affine
+         *     fitted, checked, and the backlash measured. Kept as a new version, it is in force for the
+         *     objective's frames from then on. Something must be in the field to register.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_calibration_stage_camera_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calibration/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Each configured objective, with the stage–camera calibration in force for it, if any.
+         * @description ## Each configured objective, with the stage–camera calibration in force for it, if any.
+         *
+         *     Each configured objective, with the stage–camera calibration in force for it, if any.
+         */
+        get: operations["get_property_api_v1_calibration_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calibration/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read All Properties
+         * @description Every property of `calibration` (`readallproperties`), or their changes (`observeallproperties`).
+         */
+        get: operations["read_all_properties_api_v1_calibration_properties_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calibration/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Query All Actions
+         * @description The invocations of each action of `calibration`, newest first (`queryallactions`).
+         */
+        get: operations["query_all_actions_api_v1_calibration_actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/calibration/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Thing Description
+         * @description The W3C Thing Description of `calibration`: its properties, actions and events, and how to use them.
+         */
+        get: operations["things_calibration_api_v1_calibration__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4295,6 +4410,104 @@ export interface components {
             log: components["schemas"]["LogRecordModel"][];
             error?: components["schemas"]["ProblemDetails"] | null;
         };
+        /**
+         * @description Represent the input of an action that never takes parameters.
+         *
+         *     This may be either an empty dictionary or ``None``.
+         */
+        calibration_stage_camera_input: Record<string, never> | null;
+        /** @description A calibration as it is kept: the affine of one objective, and how well it was measured. */
+        calibration_stage_camera_output: {
+            /**
+             * Format: uuid
+             * @description Its id, which frames taken under it carry.
+             */
+            id: string;
+            /** @description The objective it is for. */
+            objective: number;
+            /**
+             * Format: date-time
+             * @description When it was made.
+             */
+            created: string;
+            /** @description `L`, stage µm to sensor pixels: rows `[a, b]` and `[c, d]`. */
+            affine: number[][];
+            /** @description The mean pixel size on the sample, in µm. */
+            px_size_um: number;
+            /** @description The camera's rotation against the stage, in degrees. */
+            rotation_deg: number;
+            /** @description The pixels per µm along the image's two axes. */
+            scale: number[];
+            /** @description How far the image's second axis leans along its first. */
+            shear: number;
+            /** @description The moves' residuals' RMS on the stage, in µm. */
+            residual_rms_um: number;
+            /** @description The largest residual, in µm. */
+            residual_max_um: number;
+            /** @description The stage's backlash on `x` and `y`, in µm, if it was measured. */
+            backlash_um?: number[] | null;
+            /** @description The moves it was fitted from. */
+            moves: number;
+            /** @description How it was measured, such as `stage_camera`. */
+            method: string;
+        };
+        calibration_stage_camera_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["calibration_stage_camera_input"];
+            output?: components["schemas"]["calibration_stage_camera_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        calibration_status_value: {
+            /** @description The objective. */
+            objective: number;
+            /** @description Its name. */
+            name: string;
+            /** @description Its stage–camera calibration in force: `null` until it is calibrated. */
+            calibration?: {
+                /**
+                 * Format: uuid
+                 * @description Its id, which frames taken under it carry.
+                 */
+                id: string;
+                /** @description The objective it is for. */
+                objective: number;
+                /**
+                 * Format: date-time
+                 * @description When it was made.
+                 */
+                created: string;
+                /** @description `L`, stage µm to sensor pixels: rows `[a, b]` and `[c, d]`. */
+                affine: number[][];
+                /** @description The mean pixel size on the sample, in µm. */
+                px_size_um: number;
+                /** @description The camera's rotation against the stage, in degrees. */
+                rotation_deg: number;
+                /** @description The pixels per µm along the image's two axes. */
+                scale: number[];
+                /** @description How far the image's second axis leans along its first. */
+                shear: number;
+                /** @description The moves' residuals' RMS on the stage, in µm. */
+                residual_rms_um: number;
+                /** @description The largest residual, in µm. */
+                residual_max_um: number;
+                /** @description The stage's backlash on `x` and `y`, in µm, if it was measured. */
+                backlash_um?: number[] | null;
+                /** @description The moves it was fitted from. */
+                moves: number;
+                /** @description How it was measured, such as `stage_camera`. */
+                method: string;
+            } | null;
+        }[];
     };
     responses: never;
     parameters: never;
@@ -8261,6 +8474,152 @@ export interface operations {
         };
     };
     things_datasets_api_v1_datasets__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThingDescription"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_calibration_stage_camera_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of stage_camera. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_calibration_stage_camera_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["calibration_stage_camera_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["calibration_stage_camera_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["calibration_stage_camera_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_calibration_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["calibration_status_value"];
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    read_all_properties_api_v1_calibration_properties_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    query_all_actions_api_v1_calibration_actions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: components["schemas"]["InvocationSummary"][];
+                    };
+                };
+            };
+        };
+    };
+    things_calibration_api_v1_calibration__get: {
         parameters: {
             query?: never;
             header?: never;
