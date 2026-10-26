@@ -117,6 +117,10 @@ Done so far:
     are read and, on request, to the previews (`siq-jobs --example estimate_flat`);
   - P5.4, the Calibration page and its wizard, from `microscope`: each objective's and channel's
     calibrations, the first-run prompt, and the gating rules (`/#/dev/calibration`).
+- Milestone 6 (workflows), under way:
+  - P6.1, [`siq-workflow`](crates/siq-workflow/README.md)'s engine: one executor for every
+    acquisition plan, its dataset with the plan's provenance, progress, pause, cancel and error
+    policies (`--example run_plan_sim`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

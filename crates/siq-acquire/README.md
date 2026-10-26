@@ -43,7 +43,7 @@ The design is in
 
 | Item | What |
 |---|---|
-| `Acquisition::new(camera, &PoolConfig, clock)` | An engine for any `Camera`, with its own pool, whose slots must fit the largest frame. Its timing is on `clock`, the camera's and drivers' clock |
+| `Acquisition::new(camera, &PoolConfig, clock)` | An engine for any `Camera`, with its own pool, whose slots must fit the largest frame. Its timing is on `clock`, the camera's and drivers' clock. Its clones share it (P6.1) |
 | `Acquisition::with_pool(camera, pool, clock)` | The same, with a pool made by the caller: one with metrics, for example (since P2.4) |
 | `pool_stats()` → `PoolStats` | The pool's slots, by state, and its high-water mark |
 | `follow_stage(watch)`, `follow_focus(watch)` | Feeds the drivers' status into the pose timeline |

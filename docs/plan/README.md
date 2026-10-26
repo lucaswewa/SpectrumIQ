@@ -194,13 +194,13 @@ A phase is Done once it is merged.
 | P5.1 | Phase correlation | 800 | P1.5 | Done |
 | P5.2 | Stage–camera calibration | 800 | P5.1, P2.4 | Done |
 | P5.3 | Shading correction | 850 | P5.2, P4.3 | Done |
-| P5.4 | Calibration UI | 800 | P5.2, P5.3, P3.4 | Review |
+| P5.4 | Calibration UI | 800 | P5.2, P5.3, P3.4 | Done |
 
 ### M6 — Workflows ([brief](milestones/M06-workflows.md))
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P6.1 | Workflow engine | 850 | P2.4, P4.1, P5.2 | — |
+| P6.1 | Workflow engine | 850 | P2.4, P4.1, P5.2 | Review |
 | P6.2 | Tile scan planner and step | 750 | P6.1 | — |
 | P6.3 | Autofocus and focus maps | 800 | P6.1 | — |
 | P6.4 | Z-stacks, multi-position, time-lapse | 700 | P6.2, P6.3 | — |

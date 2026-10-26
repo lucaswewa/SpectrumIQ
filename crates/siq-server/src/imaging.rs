@@ -1,11 +1,7 @@
 //! The `imaging` Thing (ADR-0035): the configured channels, and applying one to the devices.
 
-use std::time::Duration;
-
 use anyhow::Context;
-use siq_acquire::AcquisitionContext;
 use siq_config::model::ChannelConfig;
-use siq_devices::CameraSettings;
 use siq_imgproc::Colormap;
 use siq_preview::DisplaySettings;
 use siq_types::ChannelId;
@@ -58,35 +54,10 @@ impl Imaging {
     }
 }
 
-/// Puts `channel` in place, in order, each step waiting for its device (ADR-0035).
+/// Puts `channel` in place, in order, each step waiting for its device (ADR-0035), as the
+/// workflows do; then the display colour, and the previews' dark and flat, are the channel's.
 pub(crate) async fn apply(instrument: &Instrument, channel: &ChannelConfig) -> anyhow::Result<()> {
-    let (acquisition, peripherals) = (&instrument.acquisition, &instrument.peripherals);
-    // From now until the channel is in place, frames have no channel.
-    let unlabelled = AcquisitionContext {
-        channel: None,
-        ..acquisition.context()
-    };
-    acquisition.set_context(unlabelled);
-
-    // 1. Every light off, so that no frame mixes the old light and the new filter.
-    if let Some(lights) = &peripherals.illumination {
-        let levels = lights.status().borrow().levels.clone();
-        for (source, _) in levels.iter().enumerate().filter(|(_, level)| **level > 0.0) {
-            lights.set_level(source, 0.0).await?;
-        }
-    }
-    // 2. The filter.
-    if let (Some(filter), Some(wheel)) = (&channel.filter, &peripherals.filter_wheel) {
-        let position = wheel.positions().iter().position(|name| name == filter);
-        let position = position.with_context(|| format!("the filter wheel has no `{filter}`"))?;
-        wheel.select(position as u8).await?;
-    }
-    // 3. The exposure, from the next frame; 4. the display colour.
-    let settings = CameraSettings {
-        exposure: channel.exposure,
-        ..instrument.camera.settings()
-    };
-    acquisition.configure(settings).await?;
+    siq_workflow::routines::channel::apply(&instrument.devices(), channel).await?;
     let colormap = match channel.colour.0 {
         [255, 255, 255] => Colormap::Grey,
         colour => Colormap::Colour(colour),
@@ -96,30 +67,12 @@ pub(crate) async fn apply(instrument: &Instrument, channel: &ChannelConfig) -> a
         colormap,
         ..display
     });
-    // 5. The channel's light, settled.
-    if let (Some(light), Some(lights)) = (&channel.illumination, &peripherals.illumination) {
-        let source = lights
-            .sources()
-            .iter()
-            .position(|name| *name == light.source);
-        let source = source.with_context(|| format!("there is no source `{}`", light.source))?;
-        lights.set_level(source, light.intensity).await?;
-    }
-    until_frames_begin_after(instrument).await;
-    let labelled = AcquisitionContext {
-        channel: Some(channel.id),
-        ..acquisition.context()
-    };
-    acquisition.set_context(labelled);
-    // The previews' dark and flat are the channel's.
     crate::calibration::stamp(instrument);
     Ok(())
 }
 
-/// Waits half an exposure, at most a second. Frames are stamped at mid-exposure (ADR-0031), so a
-/// frame stamped after this began its exposure after the wait did.
+/// Waits half an exposure, at most a second: frames stamped after it began their exposure after
+/// the wait did.
 pub(crate) async fn until_frames_begin_after(instrument: &Instrument) {
-    let exposure = instrument.camera.settings().exposure;
-    let half = exposure.to_duration().unwrap_or_default() / 2;
-    tokio::time::sleep(half.min(Duration::from_secs(1))).await;
+    siq_workflow::routines::channel::until_frames_begin_after(instrument.camera.as_ref()).await;
 }

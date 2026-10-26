@@ -30,6 +30,8 @@ pub enum DatasetKind {
     TileScan,
     /// A focus stack.
     ZStack,
+    /// What a plan of the workflow engine acquired, of any other shape.
+    Sequence,
     /// Made by `siq-datagen`, with its ground truth.
     Synthetic,
 }
@@ -42,6 +44,7 @@ impl DatasetKind {
             Self::Recording => "recording",
             Self::TileScan => "tile_scan",
             Self::ZStack => "z_stack",
+            Self::Sequence => "sequence",
             Self::Synthetic => "synthetic",
         }
     }

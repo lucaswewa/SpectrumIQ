@@ -100,11 +100,31 @@ pub struct Instrument {
     pub calibrations: Arc<CalibrationRegistry>,
     /// The darks and flats of `[server] settings`, versioned (ADR-0050).
     pub shading: Arc<ShadingRegistry>,
+    /// The clock the drivers, the acquisition and the workflows keep time on.
+    pub clock: Arc<dyn Clock>,
     slot_bytes: usize,
     started: Instant,
 }
 
 impl Instrument {
+    /// The instrument as the workflows see it.
+    pub fn devices(&self) -> siq_workflow::DeviceSet {
+        let peripherals = &self.peripherals;
+        siq_workflow::DeviceSet {
+            acquisition: self.acquisition.clone(),
+            camera: Arc::clone(&self.camera),
+            stage: Arc::clone(&self.stage),
+            focus: Arc::clone(&self.focus),
+            illumination: peripherals.illumination.clone(),
+            filter_wheel: peripherals.filter_wheel.clone(),
+            turret: peripherals.turret.clone(),
+            modality: peripherals.modality.clone(),
+            channels: self.config.channels.clone(),
+            calibrations: Arc::clone(&self.calibrations),
+            clock: Arc::clone(&self.clock),
+        }
+    }
+
     /// Stops live view, then any motion: the hardware is safe before the Things stop. The jobs
     /// are cancelled, and waited for.
     pub async fn shutdown(&self) {
@@ -246,7 +266,7 @@ impl Service {
             &config_previews,
             sink,
             stats.clone(),
-            clock,
+            clock.clone(),
             Some(&registry),
         )?;
         let budgets = &config.memory;
@@ -275,6 +295,7 @@ impl Service {
             tiles,
             calibrations,
             shading,
+            clock,
             slot_bytes: full,
             started: Instant::now(),
         });

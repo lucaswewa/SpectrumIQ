@@ -152,7 +152,8 @@ impl FrameSink for Sink {
     }
 }
 
-/// The acquisition engine.
+/// The acquisition engine. Its clones share it.
+#[derive(Clone)]
 pub struct Acquisition {
     inner: Arc<Inner>,
 }

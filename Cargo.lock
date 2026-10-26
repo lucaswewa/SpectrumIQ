@@ -4502,11 +4502,22 @@ dependencies = [
 name = "siq-workflow"
 version = "0.1.0"
 dependencies = [
+ "schemars 1.2.2",
+ "serde",
+ "serde_json",
  "siq-acquire",
+ "siq-buffer",
  "siq-calib",
+ "siq-config",
  "siq-devices",
+ "siq-grbl",
  "siq-register",
+ "siq-serial",
+ "siq-sim",
+ "siq-storage",
+ "siq-synth",
  "siq-types",
+ "tempfile",
  "thiserror 2.0.21",
  "tokio",
  "tracing",

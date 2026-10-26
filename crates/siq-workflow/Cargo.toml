@@ -1,6 +1,6 @@
 [package]
 name = "siq-workflow"
-description = "Workflows: the routines that move the instrument and measure it, such as the stage-camera calibration and the shading captures; the plans' engine follows in M6."
+description = "Workflows: the engine that runs acquisition plans, and the routines that move the instrument and measure it, such as the stage-camera calibration and the shading captures."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,14 +9,28 @@ repository.workspace = true
 publish.workspace = true
 
 [dependencies]
+schemars.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 siq-acquire = { path = "../siq-acquire" }
+siq-buffer = { path = "../siq-buffer" }
 siq-calib = { path = "../siq-calib" }
+siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }
 siq-register = { path = "../siq-register" }
+siq-storage = { path = "../siq-storage" }
 siq-types = { path = "../siq-types" }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
 tracing.workspace = true
+
+[dev-dependencies]
+siq-grbl = { path = "../siq-grbl" }
+siq-serial = { path = "../siq-serial" }
+siq-sim = { path = "../siq-sim" }
+siq-synth = { path = "../siq-synth" }
+tempfile.workspace = true
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
 
 [lints]
 workspace = true

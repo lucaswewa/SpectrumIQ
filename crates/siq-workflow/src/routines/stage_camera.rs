@@ -120,6 +120,9 @@ pub enum RoutineError {
     /// The frames couldn't be summed or fitted.
     #[error(transparent)]
     Calib(#[from] siq_calib::CalibError),
+    /// A channel couldn't be put in place.
+    #[error("the channel can't be put in place: {0}")]
+    Channel(String),
     /// The moves, reaching this far each way in µm, don't fit in the stage's travel.
     #[error(
         "the moves reach {:.0} × {:.0} µm each way, more than the stage's travel holds",
