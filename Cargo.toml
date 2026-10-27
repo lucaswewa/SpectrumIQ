@@ -20,6 +20,8 @@ publish = false
 teta-wot = { git = "https://github.com/lucaswewa/teta-wot", tag = "v0.1.0" }
 
 anyhow = "1.0"
+# Plain-data views of GPU buffers. Already in the lockfile.
+bytemuck = "1.25"
 # Compiles the Euresys shim with MSVC, with siq-euresys-sys's `sdk` feature. Already in the lockfile.
 cc = "1.5.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
@@ -28,6 +30,8 @@ criterion = "0.8.2"
 # Deflate, for OME-TIFF tiles. Already in the lockfile, through png and tiff, at the version pinned in
 # P1.4.
 flate2 = "1.1"
+# `executor::block_on`, for wgpu's futures on the GPU thread. Already in the lockfile.
+futures = "0.3.34"
 insta = { version = "1.48", features = ["json"] }
 # Reading streamed bodies in the server's tests: teta-wot's version.
 http-body-util = "0.1.5"
@@ -37,6 +41,8 @@ jpeg-encoder = "0.7.1"
 lru = "0.16"
 # Reading raw frames back, mapped. 0.9.12 is under two weeks old.
 memmap2 = "0.9.11"
+# WGSL validation in siq-gpu's tests: wgpu's own version.
+naga = { version = "30.0.1", features = ["wgsl-in"] }
 proptest = "1.11"
 png = "0.18.1"
 rayon = "1.12"
@@ -69,6 +75,8 @@ tower = { version = "0.5.3", features = ["util"] }
 tracing = "0.1.41"
 tracing-appender = "0.2.5"
 tracing-subscriber = { version = "0.3.20", default-features = false, features = ["std", "registry", "fmt", "ansi", "env-filter"] }
+# The GPU (ADR-0058): DX12 and Vulkan on Windows, and WGSL. Not GL, Metal or WebGPU.
+wgpu = { version = "30.0.1", default-features = false, features = ["std", "parking_lot", "dx12", "vulkan", "wgsl"] }
 uuid = { version = "1.18", features = ["v4", "v7", "serde"] }
 # OME-Zarr: Zarr v3 arrays on disk, zstd-compressed (ADR-0042). zstd-sys is C, allowed by ADR-0007.
 zarrs = { version = "0.23.14", default-features = false, features = ["filesystem", "zstd"] }

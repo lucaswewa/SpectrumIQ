@@ -206,13 +206,13 @@ A phase is Done once it is merged.
 | P6.4 | Z-stacks, multi-position, time-lapse | 700 | P6.2, P6.3 | Done |
 | P6.5 | `workflow` Thing, saved positions, scripting | 600 | P6.4 | Done |
 | P6.6 | Scan setup UI | 900 | P6.5, P5.4 | Done |
-| P6.7 | Run monitor and sequence UI | 700 | P6.6 | Review |
+| P6.7 | Run monitor and sequence UI | 700 | P6.6 | Done |
 
 ### M7 — Real-time live stitching ([brief](milestones/M07-live-stitching.md))
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P7.1 | GPU foundation | 800 | P0.3b | — |
+| P7.1 | GPU foundation | 800 | P0.3b | Review |
 | P7.2 | Live mosaic canvas | 900 | P7.1, P5.2, P5.3 | — |
 | P7.3 | Viewport rendering and `mosaic_live` Thing | 700 | P7.2, P2.3 | — |
 | P7.4 | Live mosaic UI | 700 | P7.3, P6.6 | — |

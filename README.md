@@ -138,6 +138,10 @@ Done so far:
   - P6.7, the run panel and sequences: a run followed wherever it started, with thumbnails, paused,
     cancelled once confirmed, a failed step retried or skipped when its policy asks, a toast as it
     ends; and time-lapses of the saved positions set up on the Scan page (`/#/dev/run`).
+- Milestone 7 (live stitching), under way:
+  - P7.1, [`siq-gpu`](crates/siq-gpu/README.md): wgpu on DX12 and Vulkan, the adapter's own
+    limits, one thread for the device, u16 uploads and readback, and the display LUT against its
+    CPU reference (`siq-gpu --example gpu_info`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 
