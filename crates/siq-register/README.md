@@ -23,17 +23,17 @@ pixel, and how sure that is, by phase correlation. The workhorse of the stage–
 
 - **Layer:** L1 Core.
 - **Depends on:** `siq-types`; `realfft` and `rustfft` (the FFTs), `thiserror`.
-- **Used by:** `siq-calib` and the calibration routine (P5.2), stitching (M8).
-- **Phase:** P5.1.
+- **Used by:** `siq-calib` and the calibration routine (P5.2), `siq-stitch` (M8).
+- **Phase:** P5.1; P8.1 added the search's reach.
 
 ## API
 
 | Item | What |
 |---|---|
 | `Registrar::new(Options)`, `default()` | A registrar, which keeps the FFT plans of each size it sees: `planned()` counts them |
-| `registrar.register(a, b)` | How far `b`'s content is from `a`'s: two `ImageView`s of one size, of `u16` or `f32`, at least 16 pixels a side → `Registration` or `RegisterError` (`Sizes`, `TooSmall`, `Flat`) |
+| `registrar.register(a, b)` | How far `b`'s content is from `a`'s: two `ImageView`s of one size, of `u16` or `f32`, at least 16 pixels a side → `Registration` or `RegisterError` (`Sizes`, `TooSmall`, `Flat`, `Unreached`: no peak within the reach) |
 | `Registration` | `shift` (`[dx, dy]`: `b` shows at `(x, y)` what `a` shows at `(x − dx, y − dy)`), `pce`, `margin`, `ncc` |
-| `Options` | `window` (the search's: `Hann` or `Tukey(share)`), `subpixel` (`Gaussian`, `Parabolic`, `Foroosh`), `smoothing` (the peak's width in pixels; 0 for Foroosh), `candidates` (8), `max_size` (512), `min_overlap` (0.02 of the area) |
+| `Options` | `window` (the search's: `Hann` or `Tukey(share)`), `subpixel` (`Gaussian`, `Parabolic`, `Foroosh`), `smoothing` (the peak's width in pixels; 0 for Foroosh), `candidates` (8), `max_size` (512), `min_overlap` (0.02 of the area), `reach` (the largest shift weighed each way, in pixels: any if `None`, the default) |
 
 **Reading the confidence**, from the tests and the example:
 
@@ -69,6 +69,7 @@ None.
   match (PCE over 1000);
 - each option's accuracy: Gaussian or parabola with the low-pass within 0.1 px, Foroosh without it
   within 0.5;
+- a shift of 60 pixels found within a reach of 70, and not within 30;
 - the inputs refused, `u16` frames, and the plans reused.
 
 ## Limitations

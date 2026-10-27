@@ -4632,6 +4632,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "siq-stitch"
+version = "0.1.0"
+dependencies = [
+ "rayon",
+ "schemars 1.2.2",
+ "serde",
+ "serde_json",
+ "siq-calib",
+ "siq-datagen",
+ "siq-register",
+ "siq-storage",
+ "siq-types",
+ "tempfile",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "siq-stitch-live"
 version = "0.1.0"
 dependencies = [

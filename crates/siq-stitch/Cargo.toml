@@ -1,0 +1,27 @@
+[package]
+name = "siq-stitch"
+description = "SpectrumIQ's post-acquisition stitching: the tiles' overlap graph and pairwise registration, global alignment, and out-of-core compositing into OME-Zarr."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+rayon.workspace = true
+schemars.workspace = true
+serde.workspace = true
+siq-calib = { path = "../siq-calib" }
+siq-register = { path = "../siq-register" }
+siq-storage = { path = "../siq-storage" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+siq-datagen = { path = "../../apps/siq-datagen" }
+tempfile.workspace = true
+
+[lints]
+workspace = true

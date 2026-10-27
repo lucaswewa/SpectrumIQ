@@ -79,11 +79,15 @@ pub struct Options {
     pub max_size: usize,
     /// The smallest overlap a hypothesis may have, as a share of the image's area.
     pub min_overlap: f64,
+    /// The largest shift weighed, `[x, y]` in pixels each way; any if `None`. A search window
+    /// from what is known beforehand, such as a stage's uncertainty (P8.1).
+    pub reach: Option<[f64; 2]>,
 }
 
 impl Default for Options {
     /// A Tukey taper over a fifth of the image, which keeps the edges where low overlaps are, and a
-    /// Gaussian peak of a pixel; four candidates, 512 pixels, and an overlap of at least 2 %.
+    /// Gaussian peak of a pixel; four candidates, 512 pixels, an overlap of at least 2 %, and any
+    /// shift.
     fn default() -> Self {
         Self {
             window: Window::Tukey(0.2),
@@ -92,6 +96,7 @@ impl Default for Options {
             candidates: 8,
             max_size: 512,
             min_overlap: 0.02,
+            reach: None,
         }
     }
 }
@@ -130,6 +135,9 @@ pub enum RegisterError {
     /// An image, or every overlap, is flat: there is nothing to register.
     #[error("an image is flat: there is nothing to register")]
     Flat,
+    /// No peak's shift is within the reach.
+    #[error("no match within the reach")]
+    Unreached,
 }
 
 /// Registers pairs of images, keeping the FFT plans of each size it has seen.
@@ -183,9 +191,10 @@ impl Registrar {
             .div_ceil(self.options.max_size.max(MIN_SIZE));
         // Every hypothesis, shrunk if the images are large.
         let first = if factor <= 1 {
-            self.correlate(&a, &b, false)?
+            self.correlate(&a, &b, false, self.options.reach)?
         } else {
-            let coarse = self.correlate(&a.shrunk(factor), &b.shrunk(factor), false)?;
+            let reach = self.options.reach.map(|r| r.map(|d| d / factor as f64));
+            let coarse = self.correlate(&a.shrunk(factor), &b.shrunk(factor), false, reach)?;
             Registration {
                 shift: coarse.shift.map(|d| d * factor as f64),
                 ..coarse
@@ -201,7 +210,7 @@ impl Registrar {
             else {
                 break;
             };
-            let fine = self.correlate(&window_a, &window_b, true)?;
+            let fine = self.correlate(&window_a, &window_b, true, None)?;
             found = Registration {
                 shift: [dx as f64 + fine.shift[0], dy as f64 + fine.shift[1]],
                 ..fine
@@ -226,8 +235,15 @@ impl Registrar {
     }
 
     /// Phase correlation of two planes of one size. `near` keeps only the hypothesis nearest zero
-    /// of the highest peak, as the fine stage, whose shift is small, needs.
-    fn correlate(&self, a: &Plane, b: &Plane, near: bool) -> Result<Registration, RegisterError> {
+    /// of the highest peak, as the fine stage, whose shift is small, needs; `reach`, the shifts
+    /// within it.
+    fn correlate(
+        &self,
+        a: &Plane,
+        b: &Plane,
+        near: bool,
+        reach: Option<[f64; 2]>,
+    ) -> Result<Registration, RegisterError> {
         let (width, height) = (a.width, a.height);
         let plans = self.plans(width, height);
         // The search keeps the edges, where low overlaps lie; a refinement's windows show the same
@@ -278,11 +294,17 @@ impl Registrar {
         // highest peak times its correlation wins, so a tiny overlap correlating by chance
         // doesn't.
         let mut best: Option<(f64, f64, usize, [i64; 2])> = None;
+        let mut unreached = false;
         let considered = if near { 1 } else { peaks.len() };
         for (k, &(height_k, x, y)) in peaks.iter().enumerate().take(considered) {
             let mut chosen: Option<(f64, [i64; 2])> = None;
             for dx in hypotheses(x, width, near) {
                 for dy in hypotheses(y, height, near) {
+                    let beyond = |d: i64, most: f64| d.unsigned_abs() as f64 > most;
+                    if reach.is_some_and(|[rx, ry]| beyond(dx, rx) || beyond(dy, ry)) {
+                        unreached = true;
+                        continue;
+                    }
                     let Some(ncc) = ncc(a, b, [dx, dy], self.options.min_overlap) else {
                         continue;
                     };
@@ -298,7 +320,12 @@ impl Registrar {
                 }
             }
         }
-        let (_, ncc, k, [dx, dy]) = best.ok_or(RegisterError::Flat)?;
+        let missing = if unreached {
+            RegisterError::Unreached
+        } else {
+            RegisterError::Flat
+        };
+        let (_, ncc, k, [dx, dy]) = best.ok_or(missing)?;
         let (peak, x, y) = peaks[k];
         let at = |i: i64, j: i64| {
             let (i, j) = (i.rem_euclid(width as i64), j.rem_euclid(height as i64));

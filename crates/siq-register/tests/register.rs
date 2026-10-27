@@ -1,6 +1,7 @@
 //! Phase correlation (ADR-0048) on `siq-synth` patches with known shifts: sub-pixel accuracy with
 //! noise, large shifts coarse to fine, low overlaps, low confidence on periodic and unrelated
-//! images, the inputs refused, and the plans kept. REQ-STI-002, REQ-CAL-001.
+//! images, the search confined to a reach, the inputs refused, and the plans kept. REQ-STI-002,
+//! REQ-CAL-001.
 
 use siq_register::*;
 use siq_synth::{Cells, CellsParams, Grains, GrainsParams, World, grid, sample};
@@ -222,4 +223,30 @@ fn bad_inputs_are_refused() {
     let (a, b) = (to_u16(&a), to_u16(&b));
     let found = registrar.register(a.view(), b.view()).unwrap();
     assert!(error(found.shift, [3.0, -4.0]) < 0.1, "{found:?}");
+}
+
+#[test]
+fn the_search_reaches_only_as_far_as_asked() {
+    // 60 pixels apart, found within a reach of 70; not within 30, where nothing of the match is.
+    let world = Grains::new(GrainsParams {
+        seed: 5,
+        ..GrainsParams::default()
+    });
+    let (a, b) = pair(&world, [60.0, 10.0], (256, 192));
+    let near = |reach: f64| {
+        Registrar::new(Options {
+            reach: Some([reach, reach]),
+            ..Options::default()
+        })
+    };
+    let found = near(70.0).register(a.view(), b.view()).unwrap();
+    assert!(error(found.shift, [60.0, 10.0]) < 0.1, "{found:?}");
+    match near(30.0).register(a.view(), b.view()) {
+        Err(RegisterError::Unreached) => {}
+        Ok(other) => {
+            assert!(other.shift.iter().all(|d| d.abs() <= 31.0), "{other:?}");
+            assert!(other.pce < found.pce / 10.0, "{other:?} against {found:?}");
+        }
+        Err(other) => panic!("{other}"),
+    }
 }

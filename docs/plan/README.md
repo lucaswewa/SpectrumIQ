@@ -215,13 +215,13 @@ A phase is Done once it is merged.
 | P7.1 | GPU foundation | 800 | P0.3b | Done |
 | P7.2 | Live mosaic canvas | 900 | P7.1, P5.2, P5.3 | Done |
 | P7.3 | Viewport rendering and `mosaic_live` Thing | 700 | P7.2, P2.3 | Done |
-| P7.4 | Live mosaic UI | 700 | P7.3, P6.6 | Review |
+| P7.4 | Live mosaic UI | 700 | P7.3, P6.6 | Done |
 
 ### M8 — Post-acquisition stitching ([brief](milestones/M08-post-stitching.md))
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P8.1 | Overlap graph and pairwise registration | 750 | P5.1, P5.3, P4.3 | — |
+| P8.1 | Overlap graph and pairwise registration | 750 | P5.1, P5.3, P4.3 | Review |
 | P8.2 | Global alignment | 700 | P8.1 | — |
 | P8.3 | Out-of-core compositing | 850 | P8.2, P4.2, P4.4 | — |
 | P8.4 | Stitch job, auto-stitch and QA UI | 800 | P8.3, P6.5, P4.8 | — |

@@ -69,3 +69,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0058](0058-wgpu-usage.md) | wgpu usage: backends, buffers and textures, limits, and threading | Accepted | P7.1 |
 | [0059](0059-live-canvas-design.md) | The live canvas: format, paging, blending, and painting policy (amended in P7.3: the viewport, its stream, and the Thing) | Accepted | P7.2 |
 | [0060](0060-mosaic-navigation-ux.md) | Mosaic navigation UX | Accepted | P7.4 |
+| [0061](0061-pairwise-registration-for-mosaics.md) | Pairwise registration for mosaics | Accepted | P8.1 |

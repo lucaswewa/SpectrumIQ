@@ -154,6 +154,10 @@ Done so far:
   - P7.4, the Mosaic page: the live mosaic panned and zoomed, the camera's field and a minimap
     over it, a double-click moving the stage there, Clear and Save; and the Scan page's stage map
     over the mosaic (`/#/mosaic`, `/#/dev/mosaic`).
+- Milestone 8 (post-acquisition stitching), under way:
+  - P8.1, [`siq-stitch`](crates/siq-stitch/README.md)'s pairs: a scan's tiles placed by their
+    poses, the sides of the grid registered by phase correlation within the stage's reach, each
+    offset with its confidence (`siq-stitch --example pairs_on_dataset`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 
