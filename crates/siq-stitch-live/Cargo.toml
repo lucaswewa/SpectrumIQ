@@ -1,0 +1,26 @@
+[package]
+name = "siq-stitch-live"
+description = "SpectrumIQ's live mosaic canvas: each frame painted on sparse GPU pages through its affine, feathered at its edges, within a VRAM budget."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+bytemuck.workspace = true
+schemars.workspace = true
+serde.workspace = true
+siq-gpu = { path = "../siq-gpu" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+
+[dev-dependencies]
+naga.workspace = true
+png.workspace = true
+siq-synth = { path = "../siq-synth" }
+tempfile.workspace = true
+
+[lints]
+workspace = true

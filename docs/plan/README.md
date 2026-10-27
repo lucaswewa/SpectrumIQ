@@ -212,8 +212,8 @@ A phase is Done once it is merged.
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P7.1 | GPU foundation | 800 | P0.3b | Review |
-| P7.2 | Live mosaic canvas | 900 | P7.1, P5.2, P5.3 | — |
+| P7.1 | GPU foundation | 800 | P0.3b | Done |
+| P7.2 | Live mosaic canvas | 900 | P7.1, P5.2, P5.3 | Review |
 | P7.3 | Viewport rendering and `mosaic_live` Thing | 700 | P7.2, P2.3 | — |
 | P7.4 | Live mosaic UI | 700 | P7.3, P6.6 | — |
 

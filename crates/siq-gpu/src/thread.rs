@@ -267,6 +267,16 @@ impl Gpu {
 
     /// The first `bytes` of `buffer`, copied through a readback buffer and waited for.
     pub fn read(&mut self, buffer: &wgpu::Buffer, bytes: u64) -> Result<Vec<u8>, GpuError> {
+        self.read_at(buffer, 0, bytes)
+    }
+
+    /// `bytes` of `buffer` from `offset`, a multiple of 4, as [`read`](Self::read) does.
+    pub fn read_at(
+        &mut self,
+        buffer: &wgpu::Buffer,
+        offset: u64,
+        bytes: u64,
+    ) -> Result<Vec<u8>, GpuError> {
         let copied = bytes.div_ceil(4) * 4;
         let class = copied.next_power_of_two().max(256);
         let kept = self.readback.entry(class).or_default().pop();
@@ -279,7 +289,7 @@ impl Gpu {
             })
         });
         let mut encoder = self.device.create_command_encoder(&Default::default());
-        encoder.copy_buffer_to_buffer(buffer, 0, &staging, 0, copied);
+        encoder.copy_buffer_to_buffer(buffer, offset, &staging, 0, copied);
         self.queue.submit([encoder.finish()]);
         let (send, receive) = mpsc::channel();
         staging.map_async(wgpu::MapMode::Read, 0..copied, move |mapped| {

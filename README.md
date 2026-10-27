@@ -141,7 +141,10 @@ Done so far:
 - Milestone 7 (live stitching), under way:
   - P7.1, [`siq-gpu`](crates/siq-gpu/README.md): wgpu on DX12 and Vulkan, the adapter's own
     limits, one thread for the device, u16 uploads and readback, and the display LUT against its
-    CPU reference (`siq-gpu --example gpu_info`).
+    CPU reference (`siq-gpu --example gpu_info`);
+  - P7.2, [`siq-stitch-live`](crates/siq-stitch-live/README.md)'s canvas: each frame painted on
+    sparse GPU pages through its affine, feathered so the newest frame wins, within a VRAM budget
+    (`siq-stitch-live --example paint_sim`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

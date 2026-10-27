@@ -26,7 +26,7 @@ SpectrumIQ's GPU foundation (ADR-0058), on wgpu: what live stitching (M7) and th
 - **Layer:** L1 Core.
 - **Depends on:** `wgpu` (DX12, Vulkan and WGSL only), `bytemuck`, `futures` (its executor and
   oneshot), `schemars`, `serde`, `thiserror`, `tracing`; `naga` in the tests.
-- **Used by:** the live mosaic, `siq-stitch-live` (P7.2), and its viewport (P7.3); later the GPU
+- **Used by:** `siq-stitch-live`, the live canvas (P7.2), and its viewport (P7.3); later the GPU
   depth from focus (P11.2) and deconvolution (P12.3).
 - **Phase:** P7.1.
 
@@ -37,7 +37,7 @@ SpectrumIQ's GPU foundation (ADR-0058), on wgpu: what live stitching (M7) and th
 | `GpuHandle::open(&options)` | The best adapter opened on a thread of its own, or `GpuError::NoAdapter` |
 | `handle.run(work).await`, `run_blocking(work)` | `work`, a `FnOnce(&mut Gpu) -> Result<R, GpuError>`, run on the GPU's thread after the jobs before it |
 | `handle.info()`, `handle.lost()` | The adapter's `AdapterReport`; why the device was lost, if it was |
-| `Gpu` | `device`, `queue`; `pipeline(&shader)`; `upload_u16(&samples)`, `upload_u16_texture(&samples, width, height)`; `read(&buffer, bytes)`; `timed_pass(label, record)` → the GPU's time if it can say; `groups(invocations, per_group)` → `[across, down]`; `fits_binding(bytes, what)`; `wait()` |
+| `Gpu` | `device`, `queue`; `pipeline(&shader)`; `upload_u16(&samples)`, `upload_u16_texture(&samples, width, height)`; `read(&buffer, bytes)`, `read_at(&buffer, offset, bytes)`; `timed_pass(label, record)` → the GPU's time if it can say; `groups(invocations, per_group)` → `[across, down]`; `fits_binding(bytes, what)`; `wait()` |
 | `Shader { name, source, entry }` | A compute shader, its WGSL `include_str!`d |
 | `adapters(&options)` | Every adapter, best first: `AdapterReport { name, backend, device_type, vendor, driver, timestamps, limits }` |
 | `LimitsReport` | `max_storage_buffer_binding_size`, `max_buffer_size`, `max_texture_dimension_2d`, `max_compute_workgroups_per_dimension`, `max_compute_invocations_per_workgroup` |

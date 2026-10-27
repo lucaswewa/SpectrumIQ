@@ -67,3 +67,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0056](0056-the-workflow-api.md) | The workflow API: invocation semantics, locking and cancellation (amended in P6.7: recovery) | Accepted | P6.5 |
 | [0057](0057-scan-setup-ux.md) | Scan setup UX (amended in P6.7: run control, recovery and sequences) | Accepted | P6.6 |
 | [0058](0058-wgpu-usage.md) | wgpu usage: backends, buffers and textures, limits, and threading | Accepted | P7.1 |
+| [0059](0059-live-canvas-design.md) | The live canvas: format, paging, blending, and painting policy | Accepted | P7.2 |
