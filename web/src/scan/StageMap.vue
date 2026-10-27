@@ -1,11 +1,14 @@
 <script setup lang="ts">
 // The stage map (ADR-0057): the stage's travel, the frame where the stage is, the saved
-// positions, the region drawn, the focus map's places, and the tiles planned, in their order.
+// positions, the region drawn, the focus map's places, and the tiles planned, in their order;
+// over the live mosaic, once something was painted (ADR-0060).
 // The wheel zooms about the pointer; dragging pans, or draws with the tool chosen: a rectangle
 // corner to corner, a polygon vertex by vertex (closed at its first), or places (a click on one
 // removes it).
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue'
 
+import MosaicBackdrop from '@/mosaic/MosaicBackdrop.vue'
+import { useMosaicStore } from '@/stores/mosaic'
 import { useStageStore } from '@/stores/stage'
 import { useWorkflowStore } from '@/stores/workflow'
 import AppButton from '@/ui/AppButton.vue'
@@ -22,6 +25,8 @@ const places = defineModel<Point[]>('places', { default: () => [] })
 
 const stage = useStageStore()
 const workflow = useWorkflowStore()
+const mosaic = useMosaicStore()
+const overMosaic = computed(() => mosaic.fitted && !!mosaic.bounds)
 const host = useTemplateRef<SVGSVGElement>('host')
 const view = ref<View>({ centre: [0, 0], scale: 0.01, size: [800, 600] })
 
@@ -143,7 +148,8 @@ const dot = (point: Point) => {
 </script>
 
 <template>
-  <div class="stage-map">
+  <div class="stage-map" :class="{ 'stage-map--mosaic': overMosaic }">
+    <MosaicBackdrop v-if="overMosaic" :view />
     <svg
       ref="host"
       class="stage-map__svg"
@@ -226,6 +232,16 @@ const dot = (point: Point) => {
   background: var(--color-surface-sunken);
   cursor: crosshair;
   touch-action: none;
+}
+
+/* Over the live mosaic, the map is see-through. */
+.stage-map--mosaic .stage-map__svg {
+  position: relative;
+  background: none;
+}
+
+.stage-map--mosaic .stage-map__travel {
+  fill: none;
 }
 
 .stage-map__svg[data-tool='pan'] {

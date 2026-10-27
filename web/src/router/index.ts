@@ -11,6 +11,7 @@ import CalibrationPage from '@/calibration/CalibrationPage.vue'
 import { DESTINATIONS } from '@/app/navigation'
 import DatasetsPage from '@/datasets/DatasetsPage.vue'
 import LivePage from '@/live/LivePage.vue'
+import MosaicPage from '@/mosaic/MosaicPage.vue'
 import ScanPage from '@/scan/ScanPage.vue'
 import AboutPage from '@/system/AboutPage.vue'
 import ViewerPage from '@/viewer2d/ViewerPage.vue'
@@ -21,6 +22,7 @@ const PAGES: Record<string, Component> = {
   calibration: CalibrationPage,
   datasets: DatasetsPage,
   live: LivePage,
+  mosaic: MosaicPage,
   scan: ScanPage,
   viewer: ViewerPage,
 }
@@ -80,6 +82,11 @@ const devRoutes: RouteRecordRaw[] = import.meta.env.DEV
         path: '/dev/run',
         name: 'dev-run',
         component: () => import('@/views/dev/RunDemoView.vue'),
+      },
+      {
+        path: '/dev/mosaic',
+        name: 'dev-mosaic',
+        component: () => import('@/views/dev/MosaicDemoView.vue'),
       },
     ]
   : []

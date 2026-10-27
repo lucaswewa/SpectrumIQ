@@ -1,8 +1,9 @@
 // A fake instrument for the development pages: a `fetch` that answers as a SpectrumIQ server
 // does, with a camera and a display Thing, MJPEG streams drawn in the browser, the stage, focus
 // and peripherals of `fakeMotion.ts`, which the drawing follows, the calibrations of
-// `fakeCalibration.ts`, and the workflows of `fakeWorkflow.ts`. For development only
-// (`/#/dev/live`, `/#/dev/control`, `/#/dev/calibration`, `/#/dev/scan`, `/#/dev/run`).
+// `fakeCalibration.ts`, the workflows of `fakeWorkflow.ts`, and the live mosaic of
+// `fakeMosaic.ts`. For development only (`/#/dev/live`, `/#/dev/control`, `/#/dev/calibration`,
+// `/#/dev/scan`, `/#/dev/run`, `/#/dev/mosaic`).
 import type { Pinia } from 'pinia'
 import { createApp, defineComponent, h, type Component } from 'vue'
 
@@ -14,6 +15,7 @@ import { useConnectionStore } from '@/stores/connection'
 import OverlayProvider from '@/ui/OverlayProvider.vue'
 
 import { calibrate, status } from './fakeCalibration'
+import { mosaicFetch } from './fakeMosaic'
 import { act, BEST_FOCUS, follow, motionValues } from './fakeMotion'
 import { workflowFetch } from './fakeWorkflow'
 
@@ -82,6 +84,11 @@ const THINGS = {
     'rename_position',
     'remove_position',
   ]),
+  mosaic_live: describe(
+    'mosaic_live',
+    ['enabled', 'viewport', 'bounds', 'px_per_um', 'canvas_scale', 'max_uncertainty_px', 'stats'],
+    { actions: ['clear', 'save_snapshot'], links: ['view'] },
+  ),
 }
 
 /** The fake's state: what reads answer, and what writes change. */
@@ -201,6 +208,8 @@ export const fakeFetch: typeof fetch = async (input, init = {}) => {
   }
   const workflow = workflowFetch(method, path, JSON.parse(String(init.body ?? '{}')))
   if (workflow) return workflow
+  const mosaic = mosaicFetch(method, path, init.body as string | undefined, init.signal)
+  if (mosaic) return mosaic
   if (path === 'display/histogram') return json(histogram())
   if (path === 'display/focus_measure') return json(histogram().focus)
   if (path in motionValues) {

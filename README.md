@@ -138,7 +138,9 @@ Done so far:
   - P6.7, the run panel and sequences: a run followed wherever it started, with thumbnails, paused,
     cancelled once confirmed, a failed step retried or skipped when its policy asks, a toast as it
     ends; and time-lapses of the saved positions set up on the Scan page (`/#/dev/run`).
-- Milestone 7 (live stitching), under way:
+- Milestone 7 (live stitching), complete: on the simulator, stepping over a 6 × 6-field area paints
+  a coherent mosaic, placed within a canvas pixel of the specimen, with no frame lost and its pages
+  within the VRAM budget:
   - P7.1, [`siq-gpu`](crates/siq-gpu/README.md): wgpu on DX12 and Vulkan, the adapter's own
     limits, one thread for the device, u16 uploads and readback, and the display LUT against its
     CPU reference (`siq-gpu --example gpu_info`);
@@ -148,7 +150,10 @@ Done so far:
   - P7.3, the [`mosaic_live`](crates/siq-server/README.md) Thing: the frames painted as the stage
     moves, binned and flat-corrected on the frame path, and the client's viewport rendered on the
     GPU and streamed as JPEGs; saved as an OME-Zarr dataset (`siq-server --example
-    live_mosaic_sim`).
+    live_mosaic_sim`);
+  - P7.4, the Mosaic page: the live mosaic panned and zoomed, the camera's field and a minimap
+    over it, a double-click moving the stage there, Clear and Save; and the Scan page's stage map
+    over the mosaic (`/#/mosaic`, `/#/dev/mosaic`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 
