@@ -15,6 +15,8 @@
 //! - **The mosaic** ([`composite`]) is written into OME-Zarr a block at a time, each block from the
 //!   tiles that cover it at their solved corners, resampled, flat-corrected and feathered, within a
 //!   few blocks' memory (ADR-0063).
+//! - **The report** ([`report`]) is where each tile went and each pair against the solution: the
+//!   stitch's QA, and its summary for the dataset's history (ADR-0064).
 //! - **The pixels** come from a [`TileSource`]: a dataset's raw frames, mapped read-only, or images
 //!   in memory.
 
@@ -22,15 +24,31 @@ mod tiles;
 
 pub mod composite;
 pub mod pairs;
+pub mod report;
 pub mod solve;
 
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use siq_storage::{FrameKey, StorageError};
 use siq_types::ImageError;
 
 pub use composite::{Bounds, CompositeOptions, Placed, Plane};
 pub use pairs::{Edge, PairOptions};
+pub use report::{Report, Summary};
 pub use solve::{Solution, SolveOptions};
 pub use tiles::{MappedTiles, Mosaic, Pixels, Tile, TileSource};
+
+/// How a mosaic is stitched: its pairs, its solve and its composite.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct StitchOptions {
+    /// How pairs are found and registered.
+    pub pairs: PairOptions,
+    /// How the tiles are aligned.
+    pub solve: SolveOptions,
+    /// How the mosaic is composited.
+    pub composite: CompositeOptions,
+}
 
 /// Why a mosaic couldn't be stitched.
 #[derive(Debug, thiserror::Error)]

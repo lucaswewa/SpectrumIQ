@@ -2,7 +2,8 @@
 // The Datasets page (ADR-0041, amended): the newest datasets, as cards, 18 to a page, filtered by
 // kind and by name. The list is read when the page opens, on
 // Refresh, and whenever a dataset is made. Details shows a dataset's manifest beside the cards:
-// where it came from, and what made its images, with its exports. View opens the viewer.
+// where it came from, and what made its images, with its exports, and Stitch for a scan's frames
+// (ADR-0064). View opens the viewer.
 import refreshIcon from '@material-symbols/svg-400/outlined/refresh.svg?raw'
 import { computed, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -21,6 +22,7 @@ import TextField from '@/ui/TextField.vue'
 import { dataRoot, manifestUrl } from '@/viewer2d/tiles'
 
 import DatasetCard from './DatasetCard.vue'
+import StitchDialog from './StitchDialog.vue'
 
 const PER_PAGE = 18
 
@@ -43,6 +45,7 @@ const page = ref(1)
 const selected = shallowRef<DatasetEntry>()
 const manifest = shallowRef<Manifest>()
 const loading = ref(false)
+const stitching = ref(false)
 
 const entries = computed(() => datasets.list ?? [])
 const known = computed(() => [...new Set(entries.value.map((entry) => entry.kind))].sort())
@@ -168,6 +171,10 @@ async function exportAs(kind: 'OME-TIFF' | 'DZI', entry: DatasetEntry, image: st
           </template>
         </template>
       </dl>
+      <AppButton v-if="selected.frames > 1" size="sm" @click="stitching = true">
+        Stitch…
+      </AppButton>
+      <StitchDialog v-model:open="stitching" :entry="selected" />
       <SectionHeading :level="3">History</SectionHeading>
       <ol v-if="manifest?.history.length" class="datasets-page__history">
         <li v-for="record in manifest.history" :key="record.id">{{ step(record) }}</li>

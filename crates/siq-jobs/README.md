@@ -7,19 +7,20 @@ priority, on threads of below-normal priority, and recorded in their dataset's m
 ## Place in the architecture
 
 - **Layer:** L4 Engines.
-- **Depends on:** `siq-storage` (the records), `siq-pyramid`, `siq-calib` and `siq-stitch` (their
-  jobs),
+- **Depends on:** `siq-storage` (the records), `siq-pyramid`, `siq-calib`, `siq-stitch` and
+  `siq-imgproc` (their jobs),
   `siq-telemetry`, `siq-types`; `rayon`, `tokio` (`watch`), `windows-sys`.
 - **Used by:** `siq-server` (the `jobs` Thing); the jobs of P4.4 and later.
 - **Phase:** P4.3; P4.4 added `kinds::PyramidJob`, P4.5 `kinds::DziExportJob`, P4.6
-  `kinds::OmeTiffExportJob`, P4.7 `kinds::ZarrFromRawJob`, P5.3 `kinds::ShadingJob`, and P8.3
-  `kinds::CompositeJob`.
+  `kinds::OmeTiffExportJob`, P4.7 `kinds::ZarrFromRawJob`, P5.3 `kinds::ShadingJob`, P8.3
+  `kinds::CompositeJob`, and P8.4 `kinds::StitchJob` and a job's results.
 
 ## API
 
 | Type | What |
 |---|---|
 | `Job` | `kind`, `version`, `params`, `estimate() -> Resources`, `run(&JobCtx) -> Result<JobOutput, JobError>` |
+| `JobOutput` | `outputs`, the paths written, and `results`, what it found: the dataset's record keeps both |
 | `JobCtx` | `dataset`, `pool` (below normal priority), `check` (`Err(Cancelled)` once cancelled), `progress`, `log`, `used` |
 | `Scheduler` | `new(SchedulerConfig, registry)`; `submit(job, Priority, dataset)` → `JobId`; `cancel`, `info`, `wait`, `snapshot`, `watch` (a `JobsSnapshot` of `queued` and `running` `JobInfo`s), `in_use`, `estimates_exceeded`, `shutdown` |
 | `SchedulerConfig` | The RAM and VRAM budgets, the pool's threads (half the processors), the starvation guard (60 s), the finished jobs kept (100) |
@@ -29,7 +30,8 @@ priority, on threads of below-normal priority, and recorded in their dataset's m
 | `kinds::PyramidJob` | An OME-Zarr image's pyramid (ADR-0044), as a job: its estimate from the image, its progress by chunks, and the image as its output. The jobs the service runs live in `kinds`, since processing crates (L3) can't use the job system (L4) |
 | `kinds::DziExportJob` | A plane of an OME-Zarr image as a static DZI pyramid on disk (ADR-0045): the descriptor and every level's tiles, rendered as the tile service does, in parallel |
 | `kinds::OmeTiffExportJob` | An OME-Zarr image as one OME-TIFF file (ADR-0046), with its dataset's manifest in the OME-XML: its estimate from the image, its progress by tiles, and the file as its output |
-| `kinds::CompositeJob { dataset, image, corners, l, channels, shading, options }` | A dataset's frames, by key, composited into one OME-Zarr mosaic at their corners (ADR-0063), a plane each `(t, c, z)`, then its pyramid: the composite as 80 % of its progress; its estimate the larger of the two stages'; the image as its output |
+| `kinds::CompositeJob { dataset, image, corners, l, channels, shading, options }` | A dataset's frames, by key, composited into one OME-Zarr mosaic at their corners (ADR-0063), a plane each `(t, c, z)`, a channel at a time through its own dark and flat (`shading` by channel id), then its pyramid: the composite as 80 % of its progress; its estimate the larger of the two stages'; the image as its output |
+| `kinds::StitchJob { dataset, image, l, channels, shading, options }` | A tile scan stitched (ADR-0064): its reference plane's pairs registered and solved, every frame composited at its tile's corner, the pyramid built, the QA report written: `zarr/<image>.ome.zarr` and `qa/<image>.json` as its outputs, the report's summary as its results; each channel's window from its first frame |
 | `kinds::ShadingJob { registry, key, dark, sensor }` | The flat of a dataset's frames of the whole sensor and of the key's channel, estimated a frame at a time (ADR-0050, BaSiC simplified), and kept in the registry for the key: its progress by frames, and the record's file as its output |
 
 **Unsafe code** (ADR-0007): `priority` calls `SetThreadPriority` and `GetThreadPriority` on the

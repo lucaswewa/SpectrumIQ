@@ -72,3 +72,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0061](0061-pairwise-registration-for-mosaics.md) | Pairwise registration for mosaics (amended in P8.2: trusting by correlation and margin) | Accepted | P8.1 |
 | [0062](0062-global-alignment.md) | Global alignment of a mosaic's tiles | Accepted | P8.2 |
 | [0063](0063-blending-and-out-of-core-compositing.md) | Blending and out-of-core compositing | Accepted | P8.3 |
+| [0064](0064-stitch-qa-reprocessing-and-provenance.md) | Stitch QA, re-processing, and provenance | Accepted | P8.4 |

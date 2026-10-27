@@ -37,9 +37,9 @@ describe('the app', () => {
   }
 
   it('says which milestone builds a page that is not built yet', async () => {
-    const app = await mountApp('/jobs')
+    const app = await mountApp('/3d')
     wrapper = app.wrapper
-    expect(wrapper.get('.planned-page__note').text()).toContain('milestone M8')
+    expect(wrapper.get('.planned-page__note').text()).toContain('milestone M11')
   })
 
   it('tells what the app is on the About page', async () => {

@@ -223,8 +223,8 @@ A phase is Done once it is merged.
 |---|---|---|---|---|
 | P8.1 | Overlap graph and pairwise registration | 750 | P5.1, P5.3, P4.3 | Done |
 | P8.2 | Global alignment | 700 | P8.1 | Done |
-| P8.3 | Out-of-core compositing | 850 | P8.2, P4.2, P4.4 | Review |
-| P8.4 | Stitch job, auto-stitch and QA UI | 800 | P8.3, P6.5, P4.8 | — |
+| P8.3 | Out-of-core compositing | 850 | P8.2, P4.2, P4.4 | Done |
+| P8.4 | Stitch job, auto-stitch and QA UI | 800 | P8.3, P6.5, P4.8 | Review |
 | P8.5 | Ground-truth validation and benchmarks | 400 | P8.4, P4.9 | — |
 | P8.6 | (Optional) Feature-based fallback | 850 | P8.5 | — |
 

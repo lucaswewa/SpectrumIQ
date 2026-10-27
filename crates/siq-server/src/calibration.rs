@@ -81,7 +81,7 @@ pub(crate) fn in_use(instrument: &Instrument) -> Option<ObjectiveConfig> {
 
 /// The dark level and the flat in force for `objective` and `channel`: the dark's level, or the
 /// one the flat was measured less.
-fn shading_in_force(
+pub(crate) fn shading_in_force(
     instrument: &Instrument,
     (objective, channel): (Option<ObjectiveId>, Option<ChannelId>),
 ) -> Option<(f32, FlatField)> {

@@ -41,7 +41,7 @@ This is the only crate that depends on teta-wot.
 - **Depends on:**
   - teta-wot v0.1.0 (git), and `tower` for `oneshot`;
   - `siq-acquire`, `siq-preview`, `siq-jobs`, `siq-workflow`, `siq-pyramid`, `siq-storage`,
-    `siq-calib`, `siq-register`, `siq-stitch-live`, `siq-gpu`;
+    `siq-calib`, `siq-register`, `siq-stitch`, `siq-stitch-live`, `siq-gpu`;
   - `siq-devices`, `siq-grbl`, `siq-ascii`, `siq-serial`, `siq-sim`;
   - `siq-config`, `siq-telemetry`, `siq-buffer`, `siq-imgproc`, `siq-synth`, `siq-types`;
   - `tokio`, `serde`, `schemars`, `chrono`, `anyhow`, `tracing`, `jpeg-encoder`.
@@ -51,7 +51,7 @@ This is the only crate that depends on teta-wot.
   cache; P4.7 the `datasets` Thing, a dataset's manifest and thumbnail; P4.8 an image's metadata;
   P5.2 the `calibration` Thing, and the frames' objective and calibration; P5.3 the darks and
   flats, and the previews' correction; P6.5 the `workflow` Thing; P7.3 the `mosaic_live` Thing,
-  and the GPU of `[gpu]`.
+  and the GPU of `[gpu]`; P8.4 stitching: `jobs.stitch`, auto-stitch, and the QA overlays.
 
 ## API
 
@@ -82,7 +82,7 @@ This is the only crate that depends on teta-wot.
 | `objective` | `position`, `moving` (observable); `objectives`, `current` | `select(position)`, which also sets the frames' objective | `changed` |
 | `modality` | `modality`, `moving` (observable); `modes`, `patterns` | `set_modality(mode, pattern?)` | `changed` |
 | `imaging` | `channel` (observable); `channels` | `select_channel(id)`: every light off, the filter, the exposure and colour, the light, then the frames' channel | `channel_changed` |
-| `jobs` | `queue`, `running` (observable): each job's id, kind, priority, state, progress, estimate and times | `cancel(id)` | — |
+| `jobs` | `queue`, `running` (observable): each job's id, kind, priority, state, progress, estimate and times; `auto_stitch` (writable, on at start): a finished tile scan is stitched by itself into `stitched` | `cancel(id)`; `stitch(dataset, image?, options?)`: the dataset stitched into `image` (`stitched`) as a job, by the calibration it keeps and each channel's dark and flat in force: the job's id (ADR-0064) | — |
 | `calibration` | `status`: each objective, with its calibration in force or `null`, and its dark and flat with each channel, and with none | `stage_camera`: the objective in use calibrated against the stage, kept as a new version, and stamped on its frames from then on; a snap's dataset keeps a copy, and its pixel size. `capture_dark(frames?)`: the objective and channel's dark, every light off, of the whole sensor. `capture_flat(defocus_um?, frames?)`: their flat, at nine places, out of focus or of a blank slide, less the dark. `estimate_shading(dataset, dark_level?)`: a dataset's tiles' flat, as a background job | — |
 | `workflow` | `state` (`idle`, `running`, `paused`, `asking`), `progress`, `problem` (observable); `positions`; `field`, the frame's corners about where the stage is; `plan_schema` | `run(name, steps, on_error?)`, any plan; `tile_scan(name, region, overlap?, order?, channels?, settle_ms?, focus?, z_stack?, focus_map?)`; `z_stack(name, planes, steps?)`; `multi_position(name, positions?, autofocus?, steps?)`, the saved positions if none; `time_lapse(name, interval_s, count?, duration_s?, overrun?, steps?)`. Each holds the global lock until its run ends, answers `{name, dataset, outcome, error, steps, frames}`, and is cancelled by a `DELETE` of its invocation; a plan that couldn't run is a 422. `estimate_tile_scan`, with `tile_scan`'s input: its tiles, a frame's corners, frames, time, bytes, the disk's room, and warnings. Every run takes `on_error`; one whose policy asks waits on a failed step for `retry` or `skip`. `pause`, `resume`, `save_position(name, x?, y?, z?, focus?)`, `rename_position(name, to)`, `remove_position(name)`, without the lock | `tile_acquired`, `finished` |
 | `mosaic_live` | `enabled`, `viewport` (`centre` in µm, `zoom` in view pixels a canvas pixel, `width` and `height` up to 1920 × 1080), `canvas_scale` (½), `max_uncertainty_px` (2) (writable); `bounds` in µm, `px_per_um`, `stats` (frames painted and passed over, the last paint's time, views, pages and their GPU memory against the budget) | `clear`; `save_snapshot(name?)`: what was painted, as the OME-Zarr image `mosaic` of a new dataset of kind `mosaic`, its pyramid submitted | MJPEG `view`, the viewport rendered |
@@ -116,6 +116,7 @@ the objective and the channel in the same way.
 | `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}.dzi` | The plane's DZI descriptor |
 | `GET /api/siq/data/{dataset}/{image}/{c}/{z}/{t}_files/{level}/{col}_{row}.{jpeg\|png}` | A tile, rendered on demand and cached within `tile_cache_mb`, with `min`, `max`, `gamma` and `cmap` (`grey`, `inverted`, `rrggbb`) in the query, each the channel's own if not given; an ETag, and 304 when it matches |
 | `GET /api/siq/data/{dataset}/{image}/value?c&z&t&level&x&y` | `{"value", "level", "x", "y"}`: the true value of a pixel of a Zarr level |
+| `GET /api/siq/data/{dataset}/{image}/overlays` | A stitched image's overlay layers, from `qa/<image>.json`: `stitch-tiles`, each tile's outline labelled with its position, and `stitch-residuals`, each pair's line, its `tone` its residual's (`success`, `warning`, `danger` rejected, `muted` untrusted); 404 without a report |
 
 An unknown dataset, image, plane, level or tile answers 404, and a mapping that isn't valid 400,
 each with `{"detail": …}`.
@@ -166,7 +167,9 @@ only:
 - `examples/python/tile_scan.py` runs a 2 × 2 tile scan, calibrating first if needed, and prints
   its progress;
 - `examples/python/z_stack.py` takes 11 planes in two channels about the focus;
-- `examples/python/timelapse.py` visits the saved positions every 10 s, four times, pausing once.
+- `examples/python/timelapse.py` visits the saved positions every 10 s, four times, pausing once;
+- `examples/python/stitch_dataset.py` stitches the newest tile scan again through `jobs.stitch`,
+  follows its job, and prints its measures from the history and its worst pairs from the QA.
 
 [`test.http`](../../test.http), at the repository's root, has a request for every route and
 affordance, for VS Code's REST Client extension. It includes expected refusals. The requests named
@@ -238,6 +241,14 @@ the corner of the stage's travel where it starts, and back:
   nothing waiting refused;
 - positions saved, refused twice under one name, renamed and removed; a multi-position visiting
   them; kept for a server started on the same folder.
+
+`stitch`, over HTTP with the simulator's mount as the calibration in force, over grains:
+
+- a 2 × 2 tile scan at a quarter's overlap stitched by itself once it finishes: its record's
+  outputs and results (4 tiles, 6 pairs, one component, under 0.5 px RMS), its mosaic's info and a
+  tile, and its overlays, four outlines and six toned lines; stitched again on `jobs.stitch` into
+  another image; overlays of an image without a report, 404;
+- a dataset without a calibration refused, saying so; auto-stitch turned off.
 
 `mosaic`, over HTTP with the simulator's mount as the calibration in force, each GPU test skipped
 with its reason where there is no GPU:

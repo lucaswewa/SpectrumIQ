@@ -13,7 +13,9 @@
 //!   each the channel's own if not given. OpenSeadragon repeats the descriptor's query on its
 //!   tiles;
 //! - `GET /api/siq/data/{dataset}/{image}/value?c=&z=&t=&level=&x=&y=`: `{"value": …}`, at a Zarr
-//!   level.
+//!   level;
+//! - `GET /api/siq/data/{dataset}/{image}/overlays`: a stitched image's overlay layers, from its QA
+//!   report (ADR-0064): its tiles' outlines, and its pairs' residuals.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -22,6 +24,7 @@ use std::sync::Arc;
 use serde_json::json;
 use siq_imgproc::Colormap;
 use siq_pyramid::tiles::{TileAt, TileError, TileFormat, TileLut, channel_lut, thumbnail, value};
+use siq_stitch::Report;
 use siq_storage::Dataset;
 use siq_storage::zarr::SampleType;
 use siq_types::DatasetId;
@@ -43,6 +46,7 @@ pub(crate) fn routes(instrument: &Arc<Instrument>) -> Router {
         .route("/api/siq/data/{dataset}/thumb.jpg", get(thumb))
         .route("/api/siq/data/{dataset}/{image}/info", get(image_info))
         .route("/api/siq/data/{dataset}/{image}/value", get(probe))
+        .route("/api/siq/data/{dataset}/{image}/overlays", get(overlays))
         .route(
             "/api/siq/data/{dataset}/{image}/{c}/{z}/{t}",
             get(descriptor),
@@ -118,6 +122,19 @@ async fn manifest(
     let folder = dataset_path(&instrument, &dataset)?;
     let dataset = Dataset::open(folder).map_err(TileError::from)?;
     Ok(Json(dataset.manifest()).into_response())
+}
+
+async fn overlays(
+    State(instrument): State<Arc<Instrument>>,
+    UrlPath((dataset, image)): UrlPath<(String, String)>,
+) -> Result<Response, Refusal> {
+    let folder = dataset_path(&instrument, &dataset)?;
+    let path = folder.join("qa").join(format!("{image}.json"));
+    let text =
+        std::fs::read(&path).map_err(|_| not_found(format!("{image} has no stitch report")))?;
+    let report: Report = serde_json::from_slice(&text)
+        .map_err(|error| Refusal(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
+    Ok(Json(crate::stitch::overlays(&report)).into_response())
 }
 
 async fn thumb(

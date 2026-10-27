@@ -17,7 +17,8 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
   API types; P3.3 the Live page; P3.4 its stage, focus and peripheral controls; P3.5 the desktop
   shell's host; P4.8 the Datasets and Viewer pages; P5.4 the Calibration page and its wizard;
   P6.6 the Scan page, and the saved positions on the server; P6.7 the run panel and sequences;
-  P7.4 the Mosaic page, and the stage map over the live mosaic.
+  P7.4 the Mosaic page, and the stage map over the live mosaic; P8.4 the Jobs page, Stitch on the
+  Datasets page, and a stitched image's QA overlays in the viewer.
 
 ## Layout
 
@@ -27,19 +28,20 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
 | `src/host/`        | The `HostAdapter`: the only way to the platform (links, files, full screen). The browser's, or the desktop shell's (`tauri.ts`, ADR-0040)                                         |
 | `src/api/wot/`     | The TD-driven client: properties, actions as invocations, observations over each Thing's WebSocket (SSE as the fallback), MJPEG over fetch, `ApiError`                            |
 | `src/api/`         | `streams.ts`, the budget of 3 MJPEG streams; `generated/`, the server's OpenAPI document and its types                                                                            |
-| `src/stores/`      | Pinia stores: `connection`, and `camera`, `display`, `stage`, `focus`, `imaging`, `peripherals`, `datasets`, `calibration`, `workflow`, `mosaic`, mirroring their Things          |
+| `src/stores/`      | Pinia stores: `connection`, and `camera`, `display`, `stage`, `focus`, `imaging`, `peripherals`, `datasets`, `calibration`, `workflow`, `mosaic`, `jobs`, mirroring their Things  |
 | `src/app/`         | The shell: the navigation rail, keyboard shortcuts, and the placeholder of pages not built yet                                                                                    |
 | `src/ui/`          | The components: native elements, and wrappers of Reka UI. Only this folder imports `reka-ui`                                                                                      |
 | `src/router/`      | One hash route per destination of the rail, and the development galleries                                                                                                         |
 | `src/live/`        | The Live page: the overview and the ROI streams, the ROI dragged on the overview, the display and camera controls, the histogram, the focus readout                               |
 | `src/control/`     | The stage, focus and peripherals on the Live page: the keys and the d-pad, the wheel, click-to-move, STOP, Home, the steps, saved positions (ADR-0039), kept by the server        |
-| `src/datasets/`    | The Datasets page: cards with thumbnails, filtered by kind and name, a dataset's manifest and history beside them, its exports, and deleting it                                   |
+| `src/datasets/`    | The Datasets page: cards with thumbnails, filtered by kind and name, a dataset's manifest and history beside them, its exports, Stitch… with its options, and deleting it         |
 | `src/viewer2d/`    | The Viewer page: OpenSeadragon with an additive tiled image per channel, the channels' LUT store and controls, z and t, the scale bar, the probe                                  |
 | `src/overlay/`     | Overlay layers drawn over an image, from `microscope`, and the Layers menu: used by the viewer, filled by M8                                                                      |
 | `src/calibration/` | The Calibration page, and the wizard from `microscope` (ADR-0051): its tasks per objective and channel, the first-run prompt, and the gating rules                                |
 | `src/scan/`        | The Scan page (ADR-0057): the stage map and its geometry, the plan's form and checks, the server's estimate, and Start; the sequence form; the run panel and its thumbnails       |
 | `src/mosaic/`      | The Mosaic page (ADR-0060): the live mosaic panned and zoomed, the camera's field, the minimap, double-click to move; the backdrop under it and the stage map; the viewport maths |
-| `src/system/`      | The About page                                                                                                                                                                    |
+| `src/jobs/`        | The Jobs page: the jobs running, with their progress, and waiting, each with Cancel; auto-stitch                                                                                  |
+|  The About page    |
 | `src/views/dev/`   | The galleries, `/#/dev/components` and `/#/dev/tokens`, and `/#/dev/observe`: in development builds only                                                                          |
 
 The rail lists architecture §11's destinations. Each shows once the instrument serves the Thing it

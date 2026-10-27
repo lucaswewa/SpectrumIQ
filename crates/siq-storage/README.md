@@ -20,7 +20,7 @@ images (ADR-0042), the master format of everything derived, with their OME-TIFF 
 | Type | What |
 |---|---|
 | `Dataset` | A dataset's folder: `create(data_root, NewDataset)` and `open(path)`; `raw_dir`, `zarr_dir`, `exports_dir`, `qa_dir`; `update(…)` writes the manifest atomically |
-| `Manifest` | `schema` and `schema_version`, id, kind (`snap`, `recording`, `tile_scan`, `z_stack`, `sequence` for any other plan's, `synthetic`, `mosaic` for a live mosaic saved), name, created, user, provenance, the instrument and calibration `Snapshot`s with their SHA-256, the plan, and the processing history. `read` refuses another format or a newer version; `write` is atomic |
+| `Manifest` | `schema` and `schema_version`, id, kind (`snap`, `recording`, `tile_scan`, `z_stack`, `sequence` for any other plan's, `synthetic`, `mosaic` for a live mosaic saved), name, created, user, provenance, the instrument and calibration `Snapshot`s with their SHA-256, the plan, and the processing history: each step's kind, version, parameters, outputs, state and `results`. `read` refuses another format or a newer version; `write` is atomic |
 | `DatasetWriter` | `start(dataset, subscriber, WriterOptions)` records every frame of a lossless subscriber on a thread of its own; `stats`, `is_finished`, `finish` → `WriterReport` |
 | `WriterOptions` | `min_free` (the bytes to keep free), each frame's `FrameKey`, the `FrameWrite` (`DirectIo`), the free-space query, and a `Catalog` to update |
 | `DatasetReader` | `open(dataset)` lists the frames with a sidecar, in key order; `RawFrame::map` → `MappedFrame`, with `image_u16`, `image_u8`, `as_bytes` and `meta` |

@@ -210,7 +210,7 @@ fn a_scan_s_frames_are_composited_into_a_mosaic_as_a_job_and_recorded() {
             colour: [255; 3],
             window: (0.0, 16_383.0),
         }],
-        shading: None,
+        shading: Vec::new(),
         options: CompositeOptions::default(),
     };
     assert!(job.estimate().ram > 0);

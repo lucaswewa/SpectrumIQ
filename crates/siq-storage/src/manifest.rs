@@ -129,6 +129,9 @@ pub struct ProcessingRecord {
     pub finished: Option<DateTime<Utc>>,
     /// Why it failed.
     pub error: Option<String>,
+    /// What it found, once it has finished: a stitch's residuals, say.
+    #[serde(default, skip_serializing_if = "Value::is_null")]
+    pub results: Value,
 }
 
 /// A dataset's manifest.

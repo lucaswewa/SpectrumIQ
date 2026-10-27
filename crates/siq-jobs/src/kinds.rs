@@ -6,10 +6,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use siq_calib::shading::{Estimator, FlatField, ShadingRecord, ShadingRegistry};
+use siq_imgproc::{Histogram, histogram};
 use siq_pyramid::tiles::{DziGeometry, TileAt, TileFormat, TileLut, render};
 use siq_pyramid::{Control, PyramidError, TOP};
 use siq_stitch::composite::{self, Bounds, CompositeOptions, Placed, Plane};
-use siq_stitch::{MappedTiles, Mosaic, StitchError};
+use siq_stitch::{MappedTiles, Mosaic, Report, StitchError, StitchOptions, pairs, solve};
 use siq_storage::ometiff::{self, TiffCompression};
 use siq_storage::zarr::{CHUNK, ChannelInfo, ImageInfo, SampleType, Size5, ZarrImage};
 use siq_storage::{Dataset, DatasetReader, FrameKey, StorageError};
@@ -158,6 +159,7 @@ fn output(ctx: &JobCtx, path: &Path) -> JobOutput {
         .unwrap_or(path);
     JobOutput {
         outputs: vec![path.to_string_lossy().replace('\\', "/")],
+        ..JobOutput::default()
     }
 }
 
@@ -385,6 +387,7 @@ impl Job for ShadingJob {
         ));
         Ok(JobOutput {
             outputs: vec![path.to_string_lossy().replace('\\', "/")],
+            ..JobOutput::default()
         })
     }
 }
@@ -403,8 +406,8 @@ pub struct CompositeJob {
     pub l: Affine2,
     /// The channels' labels, colours and windows, in the image's order.
     pub channels: Vec<ChannelInfo>,
-    /// The dark level and the flat, if any.
-    pub shading: Option<(f32, FlatField)>,
+    /// Each channel's dark level and flat, by its id: a channel without one is composited as it is.
+    pub shading: Vec<(u16, f32, FlatField)>,
     /// How the frames are composited.
     pub options: CompositeOptions,
 }
@@ -431,9 +434,31 @@ fn mapped(threads: usize) -> usize {
     4 * threads.max(1)
 }
 
+/// The threads a job's estimate assumes: half the processors, as the pool has.
+fn threads() -> usize {
+    std::thread::available_parallelism().map_or(1, |n| n.get() / 2)
+}
+
+/// The bytes of the first frame of the dataset at `folder`.
+fn frame_bytes(folder: &Path) -> u64 {
+    Dataset::open(folder)
+        .and_then(|dataset| DatasetReader::open(&dataset))
+        .ok()
+        .and_then(|reader| reader.frames().first().map(|frame| frame.sidecar.bytes))
+        .unwrap_or(0)
+}
+
+fn stopped(error: StitchError) -> JobError {
+    match error {
+        StitchError::Cancelled => JobError::Cancelled,
+        other => JobError::failed(other),
+    }
+}
+
 impl CompositeJob {
-    /// The image's planes, from the frames' `(t, c, z)`s in order, and their frames' tiles.
-    fn planes(&self, mosaic: &Mosaic) -> (Size5, Vec<Plane>) {
+    /// The image's planes, from the frames' `(t, c, z)`s in order, their frames' tiles, and each
+    /// plane's channel id.
+    fn planes(&self, mosaic: &Mosaic) -> (Size5, Vec<(Plane, u16)>) {
         let sorted = |pick: fn(&FrameKey) -> u32| {
             let mut values: Vec<u32> = self.corners.iter().map(|(key, _)| pick(key)).collect();
             values.sort_unstable();
@@ -446,7 +471,7 @@ impl CompositeJob {
             sorted(|key| key.z),
         );
         let rank = |values: &[u32], value: u32| values.partition_point(|&v| v < value) as u64;
-        let mut planes: Vec<Plane> = Vec::new();
+        let mut planes: Vec<(Plane, u16)> = Vec::new();
         for (source, ((key, corner), tile)) in self.corners.iter().zip(&mosaic.tiles).enumerate() {
             let at = (
                 rank(&ts, key.t),
@@ -458,12 +483,15 @@ impl CompositeJob {
                 tile: *tile,
                 corner: *corner,
             };
-            match planes.iter_mut().find(|plane| plane.at == at) {
-                Some(plane) => plane.tiles.push(placed),
-                None => planes.push(Plane {
-                    at,
-                    tiles: vec![placed],
-                }),
+            match planes.iter_mut().find(|(plane, _)| plane.at == at) {
+                Some((plane, _)) => plane.tiles.push(placed),
+                None => planes.push((
+                    Plane {
+                        at,
+                        tiles: vec![placed],
+                    },
+                    key.c,
+                )),
             }
         }
         let size = |values: &[u32]| values.len() as u64;
@@ -476,39 +504,20 @@ impl CompositeJob {
         };
         (counts, planes)
     }
-}
 
-impl Job for CompositeJob {
-    fn kind(&self) -> &str {
-        "composite"
-    }
-
-    fn params(&self) -> serde_json::Value {
-        serde_json::json!({ "image": self.image, "frames": self.corners.len(), "options": self.options })
-    }
-
-    fn estimate(&self) -> Resources {
-        let threads = std::thread::available_parallelism().map_or(1, |n| n.get() / 2);
-        let frame = Dataset::open(&self.dataset)
-            .and_then(|dataset| DatasetReader::open(&dataset))
-            .ok()
-            .and_then(|reader| reader.frames().first().map(|frame| frame.sidecar.bytes))
-            .unwrap_or(0);
+    /// The memory it holds at most, with `threads`.
+    fn bytes(&self, threads: usize) -> u64 {
         // The composite, then the pyramid, whose builder holds five u16 chunks a thread and as
         // much again for the codec: the larger of the two.
+        let frame = frame_bytes(&self.dataset);
         let composing =
             composite::bytes(CHUNK, &self.options, threads) + mapped(threads) as u64 * frame;
-        let building = threads as u64 * 5 * CHUNK * CHUNK * 2 * 2;
-        let ram = composing.max(building);
-        Resources {
-            ram,
-            vram: 0,
-            gpu: false,
-            threads,
-        }
+        composing.max(threads as u64 * 5 * CHUNK * CHUNK * 2 * 2)
     }
 
-    fn run(&mut self, ctx: &JobCtx) -> Result<JobOutput, JobError> {
+    /// Composites the frames and builds the pyramid, as the part of `ctx`'s progress from `from`,
+    /// `share` of the whole: the image's bounds.
+    fn compose(&self, ctx: &JobCtx, (from, share): (f64, f64)) -> Result<Bounds, JobError> {
         let dataset = Dataset::open(&self.dataset).map_err(JobError::failed)?;
         let reader = DatasetReader::open(&dataset).map_err(JobError::failed)?;
         // The frames in the order given, each by its key.
@@ -569,32 +578,42 @@ impl Job for CompositeJob {
             bounds.size[1],
             planes.len()
         ));
-        let shading = self.shading.as_ref().map(|(dark, flat)| (*dark, flat));
+        // A channel at a time, through its own flat.
+        let mut channels: Vec<u16> = planes.iter().map(|(_, c)| *c).collect();
+        channels.sort_unstable();
+        channels.dedup();
+        let each = 0.8 * share / channels.len().max(1) as f64;
+        for (k, c) in channels.iter().enumerate() {
+            let its: Vec<Plane> = planes
+                .iter()
+                .filter(|(_, of)| of == c)
+                .map(|(plane, _)| plane.clone())
+                .collect();
+            let flat = self.shading.iter().find(|(of, ..)| of == c);
+            let shading = flat.map(|(_, dark, flat)| (*dark, flat));
+            let part = Part {
+                ctx,
+                from: from + each * k as f64,
+                share: each,
+            };
+            ctx.pool()
+                .install(|| {
+                    composite::composite(
+                        &source,
+                        &its,
+                        &bounds,
+                        &image,
+                        shading,
+                        &self.options,
+                        &part,
+                    )
+                })
+                .map_err(stopped)?;
+        }
         let part = Part {
             ctx,
-            from: 0.0,
-            share: 0.8,
-        };
-        ctx.pool()
-            .install(|| {
-                composite::composite(
-                    &source,
-                    &planes,
-                    &bounds,
-                    &image,
-                    shading,
-                    &self.options,
-                    &part,
-                )
-            })
-            .map_err(|error| match error {
-                StitchError::Cancelled => JobError::Cancelled,
-                other => JobError::failed(other),
-            })?;
-        let part = Part {
-            ctx,
-            from: 0.8,
-            share: 0.2,
+            from: from + 0.8 * share,
+            share: 0.2 * share,
         };
         ctx.pool()
             .install(|| siq_pyramid::build(&mut image, TOP, &part))
@@ -603,6 +622,201 @@ impl Job for CompositeJob {
                 PyramidError::Storage(error) => JobError::failed(error),
             })?;
         ctx.log(format!("{} levels built", image.info().levels));
+        Ok(bounds)
+    }
+}
+
+impl Job for CompositeJob {
+    fn kind(&self) -> &str {
+        "composite"
+    }
+
+    fn params(&self) -> serde_json::Value {
+        serde_json::json!({ "image": self.image, "frames": self.corners.len(), "options": self.options })
+    }
+
+    fn estimate(&self) -> Resources {
+        let threads = threads();
+        Resources {
+            ram: self.bytes(threads),
+            vram: 0,
+            gpu: false,
+            threads,
+        }
+    }
+
+    fn run(&mut self, ctx: &JobCtx) -> Result<JobOutput, JobError> {
+        self.compose(ctx, (0.0, 1.0))?;
         Ok(output(ctx, &self.image))
+    }
+}
+
+/// A tile scan stitched (ADR-0061 to ADR-0064): its reference plane's pairs registered and solved,
+/// every frame composited at its tile's corner, the pyramid built, and the QA report written: the
+/// image `zarr/<image>.ome.zarr` and `qa/<image>.json`, and the report's summary in the dataset's
+/// history. The reference plane is the first frame's `(t, c, z)`.
+pub struct StitchJob {
+    /// The dataset's folder.
+    pub dataset: PathBuf,
+    /// The image's name, such as `stitched`.
+    pub image: String,
+    /// The calibration the frames were taken with, sensor pixels a µm.
+    pub l: Affine2,
+    /// The channels' labels and colours, by id; another's is `channel <id>`, in white.
+    pub channels: Vec<(u16, String, [u8; 3])>,
+    /// Each channel's dark level and flat, by its id.
+    pub shading: Vec<(u16, f32, FlatField)>,
+    /// How it is stitched.
+    pub options: StitchOptions,
+}
+
+impl StitchJob {
+    /// The channels' labels, colours and windows, in id order: the window from the 0.1 and 99.9
+    /// percentiles of each channel's first frame.
+    fn infos(&self, reader: &DatasetReader) -> Result<Vec<ChannelInfo>, JobError> {
+        let mut ids: Vec<u16> = reader
+            .frames()
+            .iter()
+            .map(|frame| frame.sidecar.key.c)
+            .collect();
+        ids.sort_unstable();
+        ids.dedup();
+        ids.iter()
+            .map(|&c| {
+                let frame = reader
+                    .frames()
+                    .iter()
+                    .find(|frame| frame.sidecar.key.c == c);
+                let mapped = frame.map(|frame| frame.map()).transpose();
+                let mapped = mapped.map_err(JobError::failed)?;
+                let window = mapped
+                    .as_ref()
+                    .and_then(|mapped| mapped.image_u16())
+                    .map(|view| {
+                        let mut counts = Histogram::new(16);
+                        let _ = histogram(&view, 4, &mut counts);
+                        let (low, high) = counts.auto_window(0.001, 0.999);
+                        (f64::from(low), f64::from(high))
+                    });
+                let named = self.channels.iter().find(|(id, ..)| *id == c);
+                Ok(ChannelInfo {
+                    label: named
+                        .map_or_else(|| format!("channel {c}"), |(_, name, _)| name.clone()),
+                    colour: named.map_or([255; 3], |(.., colour)| *colour),
+                    window: window.unwrap_or((0.0, 65_535.0)),
+                })
+            })
+            .collect()
+    }
+}
+
+impl Job for StitchJob {
+    fn kind(&self) -> &str {
+        "stitch"
+    }
+
+    fn params(&self) -> serde_json::Value {
+        serde_json::json!({ "image": self.image, "options": self.options })
+    }
+
+    fn estimate(&self) -> Resources {
+        let threads = threads();
+        // The pairs first, each holding 16 bytes a pixel of an overlap of up to half a frame and
+        // its FFTs; then the composite and the pyramid.
+        let pixels = frame_bytes(&self.dataset) / 2;
+        let pairs = threads as u64 * (16 * pixels / 2 + (12 << 20));
+        let composing = CompositeJob {
+            dataset: self.dataset.clone(),
+            image: PathBuf::new(),
+            corners: Vec::new(),
+            l: self.l,
+            channels: Vec::new(),
+            shading: Vec::new(),
+            options: self.options.composite,
+        };
+        Resources {
+            ram: pairs.max(composing.bytes(threads)),
+            vram: 0,
+            gpu: false,
+            threads,
+        }
+    }
+
+    fn run(&mut self, ctx: &JobCtx) -> Result<JobOutput, JobError> {
+        let dataset = Dataset::open(&self.dataset).map_err(JobError::failed)?;
+        let reader = DatasetReader::open(&dataset).map_err(JobError::failed)?;
+        let first = reader.frames().first();
+        let first = first.ok_or_else(|| JobError::failed("the dataset has no frames"))?;
+        let reference = first.sidecar.key;
+        let plane = |key: &FrameKey| (key.t, key.c, key.z);
+        let same = |key: &FrameKey| plane(key) == plane(&reference);
+        let (source, frames) = MappedTiles::open(&reader, same).map_err(JobError::failed)?;
+        let threads = ctx.pool().current_num_threads();
+        let source = source.with_capacity(mapped(threads));
+        let mosaic = Mosaic::place(&frames, &self.l).map_err(JobError::failed)?;
+        let options = &self.options;
+        let (least, share) = (
+            options.pairs.min_overlap_px,
+            options.pairs.min_overlap_share,
+        );
+        let found = mosaic.overlaps(least, share);
+        ctx.log(format!(
+            "registering {} pairs of {} tiles",
+            found.len(),
+            mosaic.tiles.len()
+        ));
+        let flat = self.shading.iter().find(|(c, ..)| *c == reference.c);
+        let shading = flat.map(|(_, dark, flat)| (*dark, flat));
+        let pairing = &options.pairs;
+        let edges = ctx
+            .pool()
+            .install(|| pairs::register(&source, &mosaic, &found, shading, pairing, threads))
+            .map_err(stopped)?;
+        ctx.check()?;
+        ctx.progress(0.25);
+        let solution = solve::solve(&mosaic, &edges, &options.solve);
+        ctx.log(format!(
+            "solved by {:?}: the edges used at {:.3} px RMS, {:.3} px at worst; {} component(s)",
+            solution.method, solution.rms_px, solution.max_px, solution.components
+        ));
+        ctx.progress(0.3);
+
+        // Every frame at its tile's corner, by its position in the scan.
+        let by_p: HashMap<u32, [f64; 2]> = mosaic
+            .tiles
+            .iter()
+            .zip(&solution.positions)
+            .map(|(tile, at)| (tile.key.p, *at))
+            .collect();
+        let corners: Vec<(FrameKey, [f64; 2])> = reader
+            .frames()
+            .iter()
+            .filter_map(|frame| {
+                let key = frame.sidecar.key;
+                by_p.get(&key.p).map(|corner| (key, *corner))
+            })
+            .collect();
+        let image = dataset.zarr_dir().join(format!("{}.ome.zarr", self.image));
+        let composing = CompositeJob {
+            dataset: self.dataset.clone(),
+            image: image.clone(),
+            corners,
+            l: self.l,
+            channels: self.infos(&reader)?,
+            shading: self.shading.clone(),
+            options: options.composite,
+        };
+        let bounds = composing.compose(ctx, (0.3, 0.7))?;
+
+        let report = Report::new(&mosaic, &edges, &solution, &bounds);
+        let qa = dataset.qa_dir();
+        let path = qa.join(format!("{}.json", self.image));
+        std::fs::create_dir_all(&qa).map_err(JobError::failed)?;
+        let text = serde_json::to_vec_pretty(&report).map_err(JobError::failed)?;
+        std::fs::write(&path, text).map_err(JobError::failed)?;
+        let mut done = output(ctx, &image);
+        done.outputs.extend(output(ctx, &path).outputs);
+        done.results = serde_json::to_value(report.summary).map_err(JobError::failed)?;
+        Ok(done)
     }
 }

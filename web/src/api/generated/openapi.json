@@ -3731,6 +3731,60 @@
         }
       }
     },
+    "/api/v1/jobs/auto_stitch": {
+      "get": {
+        "summary": "Whether a tile scan that finishes is stitched by itself, into `stitched`: on when the",
+        "description": "## Whether a tile scan that finishes is stitched by itself, into `stitched`: on when the\n\nWhether a tile scan that finishes is stitched by itself, into `stitched`: on when the\nservice starts.",
+        "operationId": "get_property_api_v1_jobs_auto_stitch_get",
+        "responses": {
+          "200": {
+            "description": "Value of auto_stitch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/jobs_auto_stitch_value"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set Whether a tile scan that finishes is stitched by itself, into `stitched`: on when the",
+        "description": "## Whether a tile scan that finishes is stitched by itself, into `stitched`: on when the\n\nWhether a tile scan that finishes is stitched by itself, into `stitched`: on when the\nservice starts.",
+        "operationId": "set_property_api_v1_jobs_auto_stitch_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/jobs_auto_stitch_value"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Property set successfully",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/jobs/cancel": {
       "get": {
         "summary": "All invocations of cancel.",
@@ -3850,6 +3904,75 @@
         }
       }
     },
+    "/api/v1/jobs/stitch": {
+      "get": {
+        "summary": "All invocations of stitch.",
+        "description": "List all the invocations of stitch that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_jobs_stitch_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of stitch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Stitches dataset `dataset` into its image `image` (`stitched` by default), as a background",
+        "description": "## Stitches dataset `dataset` into its image `image` (`stitched` by default), as a background\n\nStitches dataset `dataset` into its image `image` (`stitched` by default), as a background\njob: its pairs registered, its tiles solved, every frame composited, the pyramid built, and\nits QA report written (`qa/<image>.json`). Its tiles are placed by the calibration the\ndataset keeps; each channel through the dark and flat in force. It answers with the job's\nid, and doesn't wait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_jobs_stitch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/jobs_stitch_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/jobs_stitch_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/jobs_stitch_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/jobs/properties": {
       "get": {
         "summary": "Read All Properties",
@@ -3869,6 +3992,36 @@
                 "schema": {
                   "type": "string",
                   "description": "Server-sent events: each observable property's new values, as events named after it. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Write Multiple Properties",
+        "description": "Writes several properties of `jobs` (`writemultipleproperties`): nothing is written unless every value is valid.",
+        "operationId": "write_multiple_properties_api_v1_jobs_properties_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Properties written"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -10816,6 +10969,9 @@
           "log"
         ]
       },
+      "jobs_auto_stitch_value": {
+        "type": "boolean"
+      },
       "jobs_cancel_input": {
         "type": "object",
         "properties": {
@@ -11287,6 +11443,308 @@
             "queued"
           ]
         }
+      },
+      "jobs_stitch_input": {
+        "type": "object",
+        "properties": {
+          "dataset": {
+            "description": "A dataset: a scan, a stack, a snapshot, and everything derived from it.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "image": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "options": {
+            "oneOf": [
+              {
+                "description": "How a mosaic is stitched: its pairs, its solve and its composite.",
+                "type": "object",
+                "properties": {
+                  "pairs": {
+                    "description": "How pairs are found and registered.",
+                    "default": {
+                      "min_overlap_px": 32.0,
+                      "min_overlap_share": 0.05,
+                      "stage_sigma_um": 5.0,
+                      "reach_sigmas": 4.0,
+                      "min_shared": 0.25,
+                      "min_pce": 50.0,
+                      "min_ncc": 0.8,
+                      "min_margin": 0.3
+                    },
+                    "type": "object",
+                    "properties": {
+                      "min_overlap_px": {
+                        "description": "The least overlap two tiles must have each way to be registered, in pixels.",
+                        "default": 32.0,
+                        "type": "number"
+                      },
+                      "min_overlap_share": {
+                        "description": "The least overlap's area, as a share of a tile's: a scan's corners, a few percent, fall\nunder it.",
+                        "default": 0.05,
+                        "type": "number"
+                      },
+                      "stage_sigma_um": {
+                        "description": "The stage's uncertainty: its error's standard deviation per axis, in µm.",
+                        "default": 5.0,
+                        "type": "number"
+                      },
+                      "reach_sigmas": {
+                        "description": "How far the search reaches each way, in standard deviations of a pair's offset.",
+                        "default": 4.0,
+                        "type": "number"
+                      },
+                      "min_shared": {
+                        "description": "The least share of the overlap that a registration's shift may leave in common: a match in\na sliver is chance.",
+                        "default": 0.25,
+                        "type": "number"
+                      },
+                      "min_pce": {
+                        "description": "The least peak-to-correlation energy of a trusted registration: a floor, as an overlap the\nstage shifted far registers rightly with little energy.",
+                        "default": 50.0,
+                        "type": "number"
+                      },
+                      "min_ncc": {
+                        "description": "The least correlation of a trusted registration's overlap.",
+                        "default": 0.8,
+                        "type": "number"
+                      },
+                      "min_margin": {
+                        "description": "The least margin of a trusted registration's peak over the next.",
+                        "default": 0.3,
+                        "type": "number"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "solve": {
+                    "description": "How the tiles are aligned.",
+                    "default": {
+                      "stage_sigma_um": 5.0,
+                      "edge_sigma_px": 0.25,
+                      "huber_k": 1.345,
+                      "reject_k": 4.0,
+                      "reject_px": 1.0,
+                      "iterations": 10,
+                      "dense_below": 500,
+                      "method": null
+                    },
+                    "type": "object",
+                    "properties": {
+                      "stage_sigma_um": {
+                        "description": "The stage's uncertainty: its error's standard deviation per axis, in µm. Each tile is held\nto its stage position this loosely.",
+                        "default": 5.0,
+                        "type": "number"
+                      },
+                      "edge_sigma_px": {
+                        "description": "An edge's uncertainty per axis, in mosaic pixels: the least of its robust spread.",
+                        "default": 0.25,
+                        "type": "number"
+                      },
+                      "huber_k": {
+                        "description": "Huber's threshold, in the edges' standard deviations.",
+                        "default": 1.345,
+                        "type": "number"
+                      },
+                      "reject_k": {
+                        "description": "The edge that disagrees most is rejected while its residual is over this many standard\ndeviations, and over `reject_px`.",
+                        "default": 4.0,
+                        "type": "number"
+                      },
+                      "reject_px": {
+                        "description": "The least residual rejected, in mosaic pixels.",
+                        "default": 1.0,
+                        "type": "number"
+                      },
+                      "iterations": {
+                        "description": "The reweightings at most, each round.",
+                        "default": 10,
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "dense_below": {
+                        "description": "Below this many tiles the normal equations are factored; at or above it, conjugate\ngradients.",
+                        "default": 500,
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "method": {
+                        "description": "The method, whatever the size: by `dense_below` if `None`.",
+                        "oneOf": [
+                          {
+                            "description": "How the solution is found.",
+                            "oneOf": [
+                              {
+                                "description": "The normal equations factored by Cholesky: a few hundred tiles at most.",
+                                "const": "dense",
+                                "type": "string"
+                              },
+                              {
+                                "description": "Conjugate gradients on the sparse system, preconditioned by its diagonal.",
+                                "const": "conjugate_gradient",
+                                "type": "string"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "composite": {
+                    "description": "How the mosaic is composited.",
+                    "default": {
+                      "feather_px": 128.0,
+                      "integer": false,
+                      "block_chunks": 2
+                    },
+                    "type": "object",
+                    "properties": {
+                      "feather_px": {
+                        "description": "How far in from a tile's edge its weight rises to 1, in pixels: at most half its smaller\nside.",
+                        "default": 128.0,
+                        "type": "number"
+                      },
+                      "integer": {
+                        "description": "Whole pixels only: each tile's corner rounded, and its pixels copied, not resampled.",
+                        "default": false,
+                        "type": "boolean"
+                      },
+                      "block_chunks": {
+                        "description": "A block's side, in the image's chunks.",
+                        "default": 2,
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "dataset"
+        ],
+        "additionalProperties": false
+      },
+      "jobs_stitch_output": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "jobs_stitch_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/jobs_stitch_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/jobs_stitch_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
       },
       "datasets_created_data": {
         "description": "A dataset, as the API lists it.",

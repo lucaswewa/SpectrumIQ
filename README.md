@@ -163,7 +163,10 @@ Done so far:
     solve_on_dataset`);
   - P8.3, the compositing: the mosaic written into OME-Zarr a block at a time, each tile
     resampled at its solved corner, flat-corrected and feathered, within a few blocks' memory, and
-    its pyramid built, as a job (`siq-stitch --example composite_dataset`).
+    its pyramid built, as a job (`siq-stitch --example composite_dataset`);
+  - P8.4, the stitch job: a tile scan stitched by itself when it finishes, or on request, its QA
+    report and measures kept with the dataset; the Jobs page, Stitch… on the Datasets page, and the
+    viewer's tile and residual overlays (`examples/python/stitch_dataset.py`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

@@ -1,14 +1,18 @@
 <script setup lang="ts">
 // The Viewer page: the 2D viewer (ADR-0009, amended) of `?dataset=<id>&image=<name>`, or, without
 // them, of the newest dataset with an image. A dataset with several images has a choice of them.
-import { computed } from 'vue'
+// A stitched image has its QA's overlays: its tiles' outlines and its pairs' residuals (ADR-0064).
+import { computed, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import type { OverlayLayer } from '@/overlay/types'
+import { useConnectionStore } from '@/stores/connection'
 import { useDatasetsStore } from '@/stores/datasets'
 import AppSelect from '@/ui/AppSelect.vue'
 import FormField from '@/ui/FormField.vue'
 import MainView from '@/ui/MainView.vue'
 
+import { dataRoot } from './tiles'
 import Viewer2D from './Viewer2D.vue'
 
 const route = useRoute()
@@ -27,10 +31,36 @@ const entry = computed(() => {
 const image = computed(() => asked('image') ?? entry.value?.images[0])
 const choose = (next: string | undefined) =>
   entry.value && void router.replace({ query: { dataset: entry.value.id, image: next } })
+
+// The image's overlays, if it was stitched: none otherwise.
+const connection = useConnectionStore()
+const overlays = shallowRef<OverlayLayer[]>([])
+watch(
+  [() => entry.value?.id, image],
+  async ([dataset, name]) => {
+    overlays.value = []
+    const client = connection.client
+    if (!dataset || !name || !client) return
+    const at = (part: string) => encodeURIComponent(part)
+    const url = new URL(`${at(dataset)}/${at(name)}/overlays`, dataRoot(client))
+    try {
+      overlays.value = (await client.request(url)) as OverlayLayer[]
+    } catch {
+      // Not stitched: no report, no overlays.
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
-  <Viewer2D v-if="entry && image" :key="`${entry.id}/${image}`" :dataset="entry.id" :image="image">
+  <Viewer2D
+    v-if="entry && image"
+    :key="`${entry.id}/${image}`"
+    :dataset="entry.id"
+    :image="image"
+    :overlays="overlays"
+  >
     <template v-if="entry.images.length > 1" #toolbar>
       <FormField label="Image" class="viewer-page__image">
         <AppSelect

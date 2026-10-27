@@ -3,8 +3,11 @@
 // layer's shapes are in its own pixels, those of the image it describes,
 // and are drawn wherever that image is on screen, at any zoom.
 
+/** A shape's colour, as a meaning the theme colours: a stitch's residual, say. */
+export type Tone = 'success' | 'warning' | 'danger' | 'muted'
+
 /** A shape, in its layer's pixels: x to the right and y down, from the top left. */
-export type Shape = { title?: string } & (
+export type Shape = { title?: string; tone?: Tone } & (
   | {
       kind: 'rect'
       x: number

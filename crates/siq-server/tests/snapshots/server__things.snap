@@ -124,11 +124,13 @@ expression: descriptions
   "jobs": {
     "title": "Jobs",
     "properties": [
+      "auto_stitch",
       "queue",
       "running"
     ],
     "actions": [
-      "cancel"
+      "cancel",
+      "stitch"
     ],
     "events": []
   },

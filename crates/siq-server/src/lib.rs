@@ -20,6 +20,7 @@
 //! This is the only crate that depends on teta-wot.
 
 use std::future::{Future, IntoFuture};
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, OnceLock, PoisonError, RwLock};
 use std::time::Instant;
 
@@ -51,6 +52,7 @@ pub mod imaging;
 pub mod jobs;
 pub mod mosaic;
 pub mod peripherals;
+mod stitch;
 pub mod things;
 pub mod webapp;
 pub mod workflow;
@@ -120,6 +122,8 @@ pub struct Instrument {
     /// The clock the drivers, the acquisition and the workflows keep time on.
     pub clock: Arc<dyn Clock>,
     pub(crate) gpu: OnceLock<Compute>,
+    /// Whether a finished tile scan is stitched by itself: `jobs.auto_stitch`.
+    pub(crate) auto_stitch: AtomicBool,
     hooks: RwLock<Vec<Arc<dyn DatasetHook>>>,
     slot_bytes: usize,
     started: Instant,
@@ -345,6 +349,7 @@ impl Service {
             shading,
             clock,
             gpu: OnceLock::new(),
+            auto_stitch: AtomicBool::new(true),
             hooks: RwLock::default(),
             slot_bytes: full,
             started: Instant::now(),
@@ -359,6 +364,7 @@ impl Service {
             }
         };
         calibration::stamp(&instrument);
+        instrument.on_dataset_complete(Arc::new(stitch::AutoStitch));
         let server = things(camera, fitted).service(instrument.clone()).build()?;
         let webapp = webapp::WebApp::Embedded;
         Ok(Self {

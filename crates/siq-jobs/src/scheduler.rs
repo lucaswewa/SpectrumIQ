@@ -370,7 +370,7 @@ impl Inner {
         (record, params, version): (String, serde_json::Value, String),
     ) {
         lower_this_thread();
-        let write = |info: &JobInfo, outputs: Vec<String>| {
+        let write = |info: &JobInfo, outputs: Vec<String>, results: serde_json::Value| {
             let Some(path) = &info.dataset else { return };
             let _one = self
                 .manifests
@@ -394,6 +394,7 @@ impl Inner {
                 started: info.started,
                 finished: info.finished,
                 error: info.error.clone(),
+                results,
             };
             let updated = Dataset::open(path).and_then(|mut dataset| {
                 dataset.update(|manifest| {
@@ -407,14 +408,14 @@ impl Inner {
                 tracing::warn!(job = %info.id, %error, "the job's record wasn't written");
             }
         };
-        write(&started, Vec::new());
+        write(&started, Vec::new(), serde_json::Value::Null);
 
         let result = catch_unwind(AssertUnwindSafe(|| job.run(ctx)))
             .unwrap_or_else(|_| Err(JobError::Failed("the job panicked".to_owned())));
-        let mut outputs = Vec::new();
+        let (mut outputs, mut results) = (Vec::new(), serde_json::Value::Null);
         let (state, error) = match result {
             Ok(output) => {
-                outputs = output.outputs;
+                (outputs, results) = (output.outputs, output.results);
                 (JobState::Done, None)
             }
             Err(JobError::Cancelled) => (JobState::Cancelled, None),
@@ -441,7 +442,7 @@ impl Inner {
             state => tracing::info!(job = %info.id, kind = %info.kind, ?state, "a job ended"),
         }
         // Recorded first, so that a finished job is a recorded one.
-        write(&info, outputs);
+        write(&info, outputs, results);
         let mut shared = self.lock();
         if let Some(at) = shared.running.iter().position(|e| e.info.id == info.id) {
             shared.running.remove(at);

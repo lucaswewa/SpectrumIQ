@@ -67,6 +67,7 @@ fn a_dataset_has_its_folders_and_a_manifest_with_its_provenance() {
                 started: None,
                 finished: None,
                 error: None,
+                results: serde_json::Value::Null,
             })
         })
         .unwrap();

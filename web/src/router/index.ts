@@ -10,6 +10,7 @@ import PlannedPage from '@/app/PlannedPage.vue'
 import CalibrationPage from '@/calibration/CalibrationPage.vue'
 import { DESTINATIONS } from '@/app/navigation'
 import DatasetsPage from '@/datasets/DatasetsPage.vue'
+import JobsPage from '@/jobs/JobsPage.vue'
 import LivePage from '@/live/LivePage.vue'
 import MosaicPage from '@/mosaic/MosaicPage.vue'
 import ScanPage from '@/scan/ScanPage.vue'
@@ -21,6 +22,7 @@ const PAGES: Record<string, Component> = {
   about: AboutPage,
   calibration: CalibrationPage,
   datasets: DatasetsPage,
+  jobs: JobsPage,
   live: LivePage,
   mosaic: MosaicPage,
   scan: ScanPage,

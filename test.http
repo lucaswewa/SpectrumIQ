@@ -566,6 +566,146 @@ Content-Type: application/json
 
 {"name": "there"}
 
+# ============================== Calibration ==============================
+# The stage–camera calibration and the darks and flats, of the objective and channel in use. Each
+# takes the global lock and moves the stage, the lights or the focus.
+
+### Each objective, with its calibration in force and its darks and flats by channel
+GET {{api}}/calibration/status
+
+### Calibrate the objective in use against the stage: kept as a new version, stamped on frames
+POST {{api}}/calibration/stage_camera
+Content-Type: application/json
+
+{}
+
+### The dark of the objective and channel in use: every light off, 8 frames
+POST {{api}}/calibration/capture_dark
+Content-Type: application/json
+
+{"frames": 8}
+
+### The flat: nine places, 100 µm out of focus, less the dark
+POST {{api}}/calibration/capture_flat
+Content-Type: application/json
+
+{"defocus_um": 100.0}
+
+# ============================== Stitching ==============================
+# A tile scan's mosaic: stitched by itself when the scan finishes, while auto-stitch is on, or on
+# request into another image. Send them in order: they use the scan made.
+
+### Whether a finished tile scan is stitched by itself (on when the service starts)
+GET {{api}}/jobs/auto_stitch
+
+### A 2 × 2 tile scan in brightfield, at a quarter's overlap
+# @name scanning
+POST {{api}}/workflow/tile_scan
+Content-Type: application/json
+
+{"name": "to stitch", "region": {"shape": "rect", "x0": -20100, "y0": -15100, "x1": -19900, "y1": -14900}, "overlap": 0.25, "channels": [1]}
+
+### Its invocation: send again until `completed`, for its dataset
+# @name scanned
+GET {{scanning.response.body.$.href}}
+
+@scan = {{scanned.response.body.$.output.dataset}}
+@stitched = {{host}}/api/siq/data/{{scan}}
+
+### Its stitch, by itself: the record in its history, with the residuals once done
+GET {{stitched}}/manifest
+
+### The stitched image: its size, levels, pixel size and channels
+GET {{stitched}}/stitched/info
+
+### Its overlays: the tiles' outlines, and the pairs' residuals, each with its tone
+GET {{stitched}}/stitched/overlays
+
+### Stitch it again into another image, at whole pixels: a background job, whose id it gives
+POST {{api}}/jobs/stitch
+Content-Type: application/json
+
+{"dataset": "{{scan}}", "image": "whole-pixels", "options": {"composite": {"integer": true}}}
+
+### Turn auto-stitch off
+PUT {{api}}/jobs/auto_stitch
+Content-Type: application/json
+
+false
+
+### And on again
+PUT {{api}}/jobs/auto_stitch
+Content-Type: application/json
+
+true
+
+# ============================== The live mosaic ==============================
+# The frames painted where their pose puts them, once calibrated, and the view of it streamed.
+# Start live view first.
+
+### Whether the frames are painted (needs a GPU)
+GET {{api}}/mosaic_live/enabled
+
+### Paint them
+PUT {{api}}/mosaic_live/enabled
+Content-Type: application/json
+
+true
+
+### What was painted, on the stage in µm (null until a frame is)
+GET {{api}}/mosaic_live/bounds
+
+### Canvas pixels a µm, by the calibration and the canvas scale
+GET {{api}}/mosaic_live/px_per_um
+
+### What it has done: frames painted and passed over, views, pages and GPU memory
+GET {{api}}/mosaic_live/stats
+
+### The view streamed: its centre in µm, zoom and size
+GET {{api}}/mosaic_live/viewport
+
+### Look at 1280 × 720 about (-20, -15) mm, at a quarter of the canvas's detail
+PUT {{api}}/mosaic_live/viewport
+Content-Type: application/json
+
+{"centre": [-20000.0, -15000.0], "zoom": 0.25, "width": 1280, "height": 720}
+
+### Refused: a view larger than 1920 × 1080 (422)
+PUT {{api}}/mosaic_live/viewport
+Content-Type: application/json
+
+{"centre": [0.0, 0.0], "zoom": 1.0, "width": 4000, "height": 720}
+
+### The view's stream (a page: open it in a browser)
+GET {{api}}/mosaic_live/view/viewer
+
+### Canvas pixels a sensor pixel: ½ by default; changing it clears the mosaic
+GET {{api}}/mosaic_live/canvas_scale
+
+### Paint moving frames up to 8 canvas pixels of uncertainty (2 by default)
+PUT {{api}}/mosaic_live/max_uncertainty_px
+Content-Type: application/json
+
+8.0
+
+### Save what was painted as a dataset: one OME-Zarr image, its pyramid a job
+POST {{api}}/mosaic_live/save_snapshot
+Content-Type: application/json
+
+{"name": "map"}
+
+### Empty it
+POST {{api}}/mosaic_live/clear
+Content-Type: application/json
+
+{}
+
+### Stop painting
+PUT {{api}}/mosaic_live/enabled
+Content-Type: application/json
+
+false
+
 # ============================== Invocations ==============================
 
 ### Every invocation the server keeps, with its state

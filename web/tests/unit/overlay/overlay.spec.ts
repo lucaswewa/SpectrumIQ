@@ -68,6 +68,52 @@ describe('overlay layers', () => {
     expect([label!.text(), label!.find('text').attributes('x')]).toEqual(['Middle', '310'])
   })
 
+  it("colours a shape's stroke by its tone, not its halo", () => {
+    const residuals: OverlayLayer = {
+      id: 'stitch-residuals',
+      label: 'Stitch residuals',
+      size: [300, 100],
+      shapes: [
+        {
+          kind: 'line',
+          points: [
+            [100, 50],
+            [200, 50],
+          ],
+          tone: 'success',
+        },
+        {
+          kind: 'line',
+          points: [
+            [100, 50],
+            [150, 90],
+          ],
+          tone: 'danger',
+          dashed: true,
+        },
+        {
+          kind: 'line',
+          points: [
+            [0, 0],
+            [1, 1],
+          ],
+        },
+      ],
+    }
+    const placement = { x: 0, y: 0, width: 300, height: 100 }
+    const wrapper = mount(OverlayLayers, { props: { layers: [residuals], placement } })
+    const [good, rejected, plain] = wrapper.findAll('[data-layer="stitch-residuals"] > g')
+    expect(good!.find('.overlay-layers__stroke').classes()).toContain(
+      'overlay-layers__stroke--success',
+    )
+    const stroke = rejected!.find('.overlay-layers__stroke').classes()
+    expect(stroke).toEqual(
+      expect.arrayContaining(['overlay-layers__stroke--danger', 'overlay-layers__dashed']),
+    )
+    expect(rejected!.find('.overlay-layers__halo').classes().join(' ')).not.toContain('--danger')
+    expect(plain!.find('.overlay-layers__stroke').classes().join(' ')).not.toContain('--')
+  })
+
   it('draws nothing until the image is placed', () => {
     const wrapper = mount(OverlayLayers, { props: { layers: [outlines], placement: undefined } })
     expect(wrapper.find('svg').exists()).toBe(false)

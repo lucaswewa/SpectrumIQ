@@ -72,7 +72,11 @@ const drawn = computed(() => {
           <polyline
             v-for="part in ['halo', 'stroke']"
             :key="part"
-            :class="[`overlay-layers__${part}`, { 'overlay-layers__dashed': shape.dashed }]"
+            :class="[
+              `overlay-layers__${part}`,
+              { 'overlay-layers__dashed': shape.dashed },
+              part === 'stroke' && shape.tone && `overlay-layers__stroke--${shape.tone}`,
+            ]"
             :points="shape.at"
           />
         </template>
@@ -120,6 +124,23 @@ const drawn = computed(() => {
 
 .overlay-layers__stroke.overlay-layers__dashed {
   stroke-dasharray: 6 4;
+}
+
+/* A shape's tone: a stitch's residual, good, fair, rejected or not trusted. */
+.overlay-layers__stroke--success {
+  stroke: var(--color-success);
+}
+
+.overlay-layers__stroke--warning {
+  stroke: var(--color-warning);
+}
+
+.overlay-layers__stroke--danger {
+  stroke: var(--color-danger);
+}
+
+.overlay-layers__stroke--muted {
+  stroke: var(--color-text-muted);
 }
 
 .overlay-layers__text {

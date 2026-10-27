@@ -35,6 +35,9 @@ out of core into OME-Zarr.
   in; then normalised. A block holds its sums and weights and its chunks: `composite::bytes`.
 - **Memory:** at most `threads` pairs are registered at once, on the calling rayon pool, each
   holding at most `bytes_per_pair`.
+- **The report** (`Report`, ADR-0064) is where each tile went, how far it moved and its worst
+  residual, and each pair's residual, trust and use, with a `Summary`: the stitch's QA, written
+  beside its image, and its measures for the dataset's history.
 - **The pixels** come from a `TileSource`: a dataset's raw frames mapped read-only as they are
   read, at most `capacity` kept mapped, the least recently used let go first (`MappedTiles`), or
   images in memory.
@@ -45,8 +48,9 @@ out of core into OME-Zarr.
 - **Depends on:** `siq-register`, `siq-calib`, `siq-storage`, `siq-types`; `rayon`, `schemars`,
   `serde`, `thiserror`; `siq-datagen`, `siq-sim`, `siq-pyramid`, `serde_json` and `tempfile` in the
   tests and the examples.
-- **Used by:** `siq-jobs`' `CompositeJob`, and the stitch job (P8.4).
-- **Phase:** P8.1; P8.2 added the global solve; P8.3 the compositing.
+- **Used by:** `siq-jobs`' `CompositeJob` and `StitchJob`; `siq-server`, for the report's overlays.
+- **Phase:** P8.1; P8.2 added the global solve; P8.3 the compositing; P8.4 the report and
+  `StitchOptions`.
 
 ## API
 
@@ -69,6 +73,8 @@ out of core into OME-Zarr.
 | `solve::solve(&mosaic, &edges, &options)` | The tiles' corners that best agree with the trusted edges and the stage: a `Solution` |
 | `Solution` | `positions` (each tile's corner), `edges` (each edge's `Residual`: `residual`, `weight`, `used`), `tiles` (each tile's `TileReport`: `moved_px`, `worst_px`, `component`), `components`, `method`, `rms_px` and `max_px` of the edges used, `solves` |
 | `SolveOptions` | `stage_sigma_um` (5), `edge_sigma_px` (0.25), `huber_k` (1.345), `reject_k` (4), `reject_px` (1), `iterations` (10), `dense_below` (500), `method` (`Dense` or `ConjugateGradient`; by size if `None`) |
+| `Report::new(&mosaic, &edges, &solution, &bounds)` | The QA: `bounds`, `tiles` (`TileQa`: `p`, `corner` in the image, `size`, `moved_px`, `worst_px`, `component`), `edges` (`EdgeQa`: `i`, `j`, `residual_px`, `pce`, `ncc`, `confident`, `used`), and `summary` (`Summary`: tiles, pairs, trusted, rejected, components, method, `rms_px`, `max_px`, `moved_px`) |
+| `StitchOptions` | `pairs`, `solve` and `composite`: each its options, the defaults if left out |
 | `StitchError` | No pose, binnings that differ, a tile that isn't there or isn't 16-bit, storage, image views, cancelled |
 
 ## Examples

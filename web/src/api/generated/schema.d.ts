@@ -2635,6 +2635,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/auto_stitch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether a tile scan that finishes is stitched by itself, into `stitched`: on when the
+         * @description ## Whether a tile scan that finishes is stitched by itself, into `stitched`: on when the
+         *
+         *     Whether a tile scan that finishes is stitched by itself, into `stitched`: on when the
+         *     service starts.
+         */
+        get: operations["get_property_api_v1_jobs_auto_stitch_get"];
+        /**
+         * Set Whether a tile scan that finishes is stitched by itself, into `stitched`: on when the
+         * @description ## Whether a tile scan that finishes is stitched by itself, into `stitched`: on when the
+         *
+         *     Whether a tile scan that finishes is stitched by itself, into `stitched`: on when the
+         *     service starts.
+         */
+        put: operations["set_property_api_v1_jobs_auto_stitch_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/cancel": {
         parameters: {
             query?: never;
@@ -2710,6 +2740,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jobs/stitch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of stitch.
+         * @description List all the invocations of stitch that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_jobs_stitch_get"];
+        put?: never;
+        /**
+         * Stitches dataset `dataset` into its image `image` (`stitched` by default), as a background
+         * @description ## Stitches dataset `dataset` into its image `image` (`stitched` by default), as a background
+         *
+         *     Stitches dataset `dataset` into its image `image` (`stitched` by default), as a background
+         *     job: its pairs registered, its tiles solved, every frame composited, the pyramid built, and
+         *     its QA report written (`qa/<image>.json`). Its tiles are placed by the calibration the
+         *     dataset keeps; each channel through the dark and flat in force. It answers with the job's
+         *     id, and doesn't wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_jobs_stitch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jobs/properties": {
         parameters: {
             query?: never;
@@ -2722,7 +2786,11 @@ export interface paths {
          * @description Every property of `jobs` (`readallproperties`), or their changes (`observeallproperties`).
          */
         get: operations["read_all_properties_api_v1_jobs_properties_get"];
-        put?: never;
+        /**
+         * Write Multiple Properties
+         * @description Writes several properties of `jobs` (`writemultipleproperties`): nothing is written unless every value is valid.
+         */
+        put: operations["write_multiple_properties_api_v1_jobs_properties_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -5260,6 +5328,7 @@ export interface components {
             log: components["schemas"]["LogRecordModel"][];
             error?: components["schemas"]["ProblemDetails"] | null;
         };
+        jobs_auto_stitch_value: boolean;
         jobs_cancel_input: {
             id: number;
         };
@@ -5360,6 +5429,172 @@ export interface components {
             /** @description Why it failed. */
             error?: string | null;
         }[];
+        jobs_stitch_input: {
+            /**
+             * Format: uuid
+             * @description A dataset: a scan, a stack, a snapshot, and everything derived from it.
+             */
+            dataset: string;
+            image?: string | null;
+            options?: {
+                /**
+                 * @description How pairs are found and registered.
+                 * @default {
+                 *       "min_overlap_px": 32,
+                 *       "min_overlap_share": 0.05,
+                 *       "stage_sigma_um": 5,
+                 *       "reach_sigmas": 4,
+                 *       "min_shared": 0.25,
+                 *       "min_pce": 50,
+                 *       "min_ncc": 0.8,
+                 *       "min_margin": 0.3
+                 *     }
+                 */
+                pairs?: {
+                    /**
+                     * @description The least overlap two tiles must have each way to be registered, in pixels.
+                     * @default 32
+                     */
+                    min_overlap_px?: number;
+                    /**
+                     * @description The least overlap's area, as a share of a tile's: a scan's corners, a few percent, fall
+                     *     under it.
+                     * @default 0.05
+                     */
+                    min_overlap_share?: number;
+                    /**
+                     * @description The stage's uncertainty: its error's standard deviation per axis, in µm.
+                     * @default 5
+                     */
+                    stage_sigma_um?: number;
+                    /**
+                     * @description How far the search reaches each way, in standard deviations of a pair's offset.
+                     * @default 4
+                     */
+                    reach_sigmas?: number;
+                    /**
+                     * @description The least share of the overlap that a registration's shift may leave in common: a match in
+                     *     a sliver is chance.
+                     * @default 0.25
+                     */
+                    min_shared?: number;
+                    /**
+                     * @description The least peak-to-correlation energy of a trusted registration: a floor, as an overlap the
+                     *     stage shifted far registers rightly with little energy.
+                     * @default 50
+                     */
+                    min_pce?: number;
+                    /**
+                     * @description The least correlation of a trusted registration's overlap.
+                     * @default 0.8
+                     */
+                    min_ncc?: number;
+                    /**
+                     * @description The least margin of a trusted registration's peak over the next.
+                     * @default 0.3
+                     */
+                    min_margin?: number;
+                };
+                /**
+                 * @description How the tiles are aligned.
+                 * @default {
+                 *       "stage_sigma_um": 5,
+                 *       "edge_sigma_px": 0.25,
+                 *       "huber_k": 1.345,
+                 *       "reject_k": 4,
+                 *       "reject_px": 1,
+                 *       "iterations": 10,
+                 *       "dense_below": 500,
+                 *       "method": null
+                 *     }
+                 */
+                solve?: {
+                    /**
+                     * @description The stage's uncertainty: its error's standard deviation per axis, in µm. Each tile is held
+                     *     to its stage position this loosely.
+                     * @default 5
+                     */
+                    stage_sigma_um?: number;
+                    /**
+                     * @description An edge's uncertainty per axis, in mosaic pixels: the least of its robust spread.
+                     * @default 0.25
+                     */
+                    edge_sigma_px?: number;
+                    /**
+                     * @description Huber's threshold, in the edges' standard deviations.
+                     * @default 1.345
+                     */
+                    huber_k?: number;
+                    /**
+                     * @description The edge that disagrees most is rejected while its residual is over this many standard
+                     *     deviations, and over `reject_px`.
+                     * @default 4
+                     */
+                    reject_k?: number;
+                    /**
+                     * @description The least residual rejected, in mosaic pixels.
+                     * @default 1
+                     */
+                    reject_px?: number;
+                    /**
+                     * @description The reweightings at most, each round.
+                     * @default 10
+                     */
+                    iterations?: number;
+                    /**
+                     * @description Below this many tiles the normal equations are factored; at or above it, conjugate
+                     *     gradients.
+                     * @default 500
+                     */
+                    dense_below?: number;
+                    /** @description The method, whatever the size: by `dense_below` if `None`. */
+                    method?: ("dense" | "conjugate_gradient") | null;
+                };
+                /**
+                 * @description How the mosaic is composited.
+                 * @default {
+                 *       "feather_px": 128,
+                 *       "integer": false,
+                 *       "block_chunks": 2
+                 *     }
+                 */
+                composite?: {
+                    /**
+                     * @description How far in from a tile's edge its weight rises to 1, in pixels: at most half its smaller
+                     *     side.
+                     * @default 128
+                     */
+                    feather_px?: number;
+                    /**
+                     * @description Whole pixels only: each tile's corner rounded, and its pixels copied, not resampled.
+                     * @default false
+                     */
+                    integer?: boolean;
+                    /**
+                     * @description A block's side, in the image's chunks.
+                     * @default 2
+                     */
+                    block_chunks?: number;
+                };
+            } | null;
+        };
+        jobs_stitch_output: number;
+        jobs_stitch_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["jobs_stitch_input"];
+            output?: components["schemas"]["jobs_stitch_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
         /** @description A dataset, as the API lists it. */
         datasets_created_data: {
             /**
@@ -10416,6 +10651,59 @@ export interface operations {
             };
         };
     };
+    get_property_api_v1_jobs_auto_stitch_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of auto_stitch */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["jobs_auto_stitch_value"];
+                };
+            };
+        };
+    };
+    set_property_api_v1_jobs_auto_stitch_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["jobs_auto_stitch_value"];
+            };
+        };
+        responses: {
+            /** @description Property set successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_invocations_api_v1_jobs_cancel_get: {
         parameters: {
             query?: never;
@@ -10520,6 +10808,68 @@ export interface operations {
             };
         };
     };
+    list_invocations_api_v1_jobs_stitch_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of stitch. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_jobs_stitch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["jobs_stitch_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["jobs_stitch_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["jobs_stitch_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_all_properties_api_v1_jobs_properties_get: {
         parameters: {
             query?: never;
@@ -10537,6 +10887,37 @@ export interface operations {
                 content: {
                     "application/json": Record<string, never>;
                     "text/event-stream": string;
+                };
+            };
+        };
+    };
+    write_multiple_properties_api_v1_jobs_properties_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Properties written */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

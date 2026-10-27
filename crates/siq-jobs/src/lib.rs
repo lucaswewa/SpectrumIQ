@@ -139,6 +139,8 @@ pub struct JobInfo {
 pub struct JobOutput {
     /// What it wrote, as paths in its dataset, for the dataset's record.
     pub outputs: Vec<String>,
+    /// What it found, for the dataset's record: `null` if nothing.
+    pub results: serde_json::Value,
 }
 
 /// Why a job didn't finish.

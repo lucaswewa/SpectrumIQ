@@ -53,6 +53,7 @@ impl Job for Held {
         }
         Ok(JobOutput {
             outputs: vec![format!("zarr/{}.ome.zarr", self.kind)],
+            ..JobOutput::default()
         })
     }
 }
