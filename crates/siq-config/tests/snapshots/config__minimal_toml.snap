@@ -17,6 +17,11 @@ expression: config
     "job_vram_gb": 4.0,
     "tile_cache_mb": 1024
   },
+  "gpu": {
+    "enabled": true,
+    "software": false,
+    "mosaic_vram_gb": 2.0
+  },
   "log": {
     "filter": "info",
     "console": true,

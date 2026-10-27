@@ -24,6 +24,9 @@ pub struct InstrumentConfig {
     /// The memory budget (architecture §5).
     #[serde(default)]
     pub memory: MemoryConfig,
+    /// The GPU, which the live mosaic needs (ADR-0058).
+    #[serde(default)]
+    pub gpu: GpuConfig,
     /// Where logs go.
     #[serde(default)]
     pub log: LogConfig,
@@ -99,6 +102,29 @@ impl Default for MemoryConfig {
             job_ram_gb: 14.0,
             job_vram_gb: 4.0,
             tile_cache_mb: 1024,
+        }
+    }
+}
+
+/// The GPU (ADR-0058), opened when the live mosaic is first enabled.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct GpuConfig {
+    /// Whether to use one: without, there is no live mosaic.
+    pub enabled: bool,
+    /// The backend's software adapter (WARP on DX12) rather than a GPU: slow, for machines without
+    /// one.
+    pub software: bool,
+    /// The GPU memory the live mosaic's pages may take, in GB: past it, they wait in RAM, shrunk.
+    pub mosaic_vram_gb: f64,
+}
+
+impl Default for GpuConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            software: false,
+            mosaic_vram_gb: 2.0,
         }
     }
 }

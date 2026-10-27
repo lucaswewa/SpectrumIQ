@@ -44,6 +44,7 @@ async fn the_things_are_listed_and_described() {
         "imaging",
         "jobs",
         "modality",
+        "mosaic_live",
         "objective",
         "stage",
         "workflow",

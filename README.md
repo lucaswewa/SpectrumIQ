@@ -144,7 +144,11 @@ Done so far:
     CPU reference (`siq-gpu --example gpu_info`);
   - P7.2, [`siq-stitch-live`](crates/siq-stitch-live/README.md)'s canvas: each frame painted on
     sparse GPU pages through its affine, feathered so the newest frame wins, within a VRAM budget
-    (`siq-stitch-live --example paint_sim`).
+    (`siq-stitch-live --example paint_sim`);
+  - P7.3, the [`mosaic_live`](crates/siq-server/README.md) Thing: the frames painted as the stage
+    moves, binned and flat-corrected on the frame path, and the client's viewport rendered on the
+    GPU and streamed as JPEGs; saved as an OME-Zarr dataset (`siq-server --example
+    live_mosaic_sim`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

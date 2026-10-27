@@ -3903,6 +3903,363 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/mosaic_live/bounds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What was painted, on the stage in µm: `null` while nothing is.
+         * @description ## What was painted, on the stage in µm: `null` while nothing is.
+         *
+         *     What was painted, on the stage in µm: `null` while nothing is.
+         */
+        get: operations["get_property_api_v1_mosaic_live_bounds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/canvas_scale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Canvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,
+         * @description ## Canvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,
+         *
+         *     Canvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,
+         *     by a whole factor. Changing it clears the mosaic.
+         */
+        get: operations["get_property_api_v1_mosaic_live_canvas_scale_get"];
+        /**
+         * Set Canvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,
+         * @description ## Canvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,
+         *
+         *     Canvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,
+         *     by a whole factor. Changing it clears the mosaic.
+         */
+        put: operations["set_property_api_v1_mosaic_live_canvas_scale_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of clear.
+         * @description List all the invocations of clear that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_mosaic_live_clear_get"];
+        put?: never;
+        /**
+         * Empties the mosaic. It doesn't wait for the global lock.
+         * @description ## Empties the mosaic. It doesn't wait for the global lock.
+         *
+         *     Empties the mosaic. It doesn't wait for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_mosaic_live_clear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Whether the frames are painted as they come. Enabling it opens the GPU the first time,
+         * @description ## Whether the frames are painted as they come. Enabling it opens the GPU the first time,
+         *
+         *     Whether the frames are painted as they come. Enabling it opens the GPU the first time,
+         *     and is refused without one.
+         */
+        get: operations["get_property_api_v1_mosaic_live_enabled_get"];
+        /**
+         * Set Whether the frames are painted as they come. Enabling it opens the GPU the first time,
+         * @description ## Whether the frames are painted as they come. Enabling it opens the GPU the first time,
+         *
+         *     Whether the frames are painted as they come. Enabling it opens the GPU the first time,
+         *     and is refused without one.
+         */
+        put: operations["set_property_api_v1_mosaic_live_enabled_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/max_uncertainty_px": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by
+         * @description ## How uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by
+         *
+         *     How uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by
+         *     default, M7's placement criterion; 0 for settled frames only. The uncertainty is how far
+         *     the stage went between the readings either side, so a frame moving faster than this over
+         *     the stage's polling interval waits for the stage to stop.
+         */
+        get: operations["get_property_api_v1_mosaic_live_max_uncertainty_px_get"];
+        /**
+         * Set How uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by
+         * @description ## How uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by
+         *
+         *     How uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by
+         *     default, M7's placement criterion; 0 for settled frames only. The uncertainty is how far
+         *     the stage went between the readings either side, so a frame moving faster than this over
+         *     the stage's polling interval waits for the stage to stop.
+         */
+        put: operations["set_property_api_v1_mosaic_live_max_uncertainty_px_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/px_per_um": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Canvas pixels a µm, as the frames' calibration and `canvas_scale` make them: `null` until
+         * @description ## Canvas pixels a µm, as the frames' calibration and `canvas_scale` make them: `null` until
+         *
+         *     Canvas pixels a µm, as the frames' calibration and `canvas_scale` make them: `null` until
+         *     a frame is painted.
+         */
+        get: operations["get_property_api_v1_mosaic_live_px_per_um_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/save_snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of save_snapshot.
+         * @description List all the invocations of save_snapshot that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_mosaic_live_save_snapshot_get"];
+        put?: never;
+        /**
+         * Saves what was painted to a new dataset, `name` ("live mosaic" by default): one OME-Zarr
+         * @description ## Saves what was painted to a new dataset, `name` ("live mosaic" by default): one OME-Zarr
+         *
+         *     Saves what was painted to a new dataset, `name` ("live mosaic" by default): one OME-Zarr
+         *     image, `mosaic`, at canvas scale, whose pyramid a background job builds. It doesn't wait
+         *     for the global lock.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_mosaic_live_save_snapshot_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the live mosaic has done, and the GPU memory its pages take.
+         * @description ## What the live mosaic has done, and the GPU memory its pages take.
+         *
+         *     What the live mosaic has done, and the GPU memory its pages take.
+         */
+        get: operations["get_property_api_v1_mosaic_live_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mjpeg Stream Response
+         * @description An MJPEG stream: each frame as a part of a `multipart/x-mixed-replace` response, which an `<img>` plays.
+         */
+        get: operations["mjpeg_stream_response_api_v1_mosaic_live_view_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/view/viewer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Viewer Page
+         * @description A page that shows the stream.
+         */
+        get: operations["viewer_page_api_v1_mosaic_live_view_viewer_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/viewport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the client looks at: the stage point at its centre in µm, its zoom (view pixels a
+         * @description ## What the client looks at: the stage point at its centre in µm, its zoom (view pixels a
+         *
+         *     What the client looks at: the stage point at its centre in µm, its zoom (view pixels a
+         *     canvas pixel, from 1/1024 to 64), and its size, at most 1920 × 1080.
+         */
+        get: operations["get_property_api_v1_mosaic_live_viewport_get"];
+        /**
+         * Set What the client looks at: the stage point at its centre in µm, its zoom (view pixels a
+         * @description ## What the client looks at: the stage point at its centre in µm, its zoom (view pixels a
+         *
+         *     What the client looks at: the stage point at its centre in µm, its zoom (view pixels a
+         *     canvas pixel, from 1/1024 to 64), and its size, at most 1920 × 1080.
+         */
+        put: operations["set_property_api_v1_mosaic_live_viewport_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read All Properties
+         * @description Every property of `mosaic_live` (`readallproperties`), or their changes (`observeallproperties`).
+         */
+        get: operations["read_all_properties_api_v1_mosaic_live_properties_get"];
+        /**
+         * Write Multiple Properties
+         * @description Writes several properties of `mosaic_live` (`writemultipleproperties`): nothing is written unless every value is valid.
+         */
+        put: operations["write_multiple_properties_api_v1_mosaic_live_properties_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Query All Actions
+         * @description The invocations of each action of `mosaic_live`, newest first (`queryallactions`).
+         */
+        get: operations["query_all_actions_api_v1_mosaic_live_actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/mosaic_live/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Thing Description
+         * @description The W3C Thing Description of `mosaic_live`: its properties, actions and events, and how to use them.
+         */
+        get: operations["things_mosaic_live_api_v1_mosaic_live__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -6463,6 +6820,122 @@ export interface components {
             output?: components["schemas"]["workflow_z_stack_output"] | null;
             log: components["schemas"]["LogRecordModel"][];
             error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        mosaic_live_bounds_value: {
+            /** @description The least x. */
+            x0: number;
+            /** @description The least y. */
+            y0: number;
+            /** @description The greatest x. */
+            x1: number;
+            /** @description The greatest y. */
+            y1: number;
+        } | null;
+        mosaic_live_canvas_scale_value: number;
+        /**
+         * @description Represent the input of an action that never takes parameters.
+         *
+         *     This may be either an empty dictionary or ``None``.
+         */
+        mosaic_live_clear_input: Record<string, never> | null;
+        mosaic_live_clear_output: null;
+        mosaic_live_clear_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["mosaic_live_clear_input"];
+            output?: components["schemas"]["mosaic_live_clear_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        mosaic_live_enabled_value: boolean;
+        mosaic_live_max_uncertainty_px_value: number;
+        mosaic_live_px_per_um_value: number | null;
+        mosaic_live_save_snapshot_input: {
+            name?: string | null;
+        };
+        /** @description A snapshot saved: its dataset, its image, and the background job building the image's pyramid. */
+        mosaic_live_save_snapshot_output: {
+            /** @description The dataset made. */
+            dataset: {
+                /**
+                 * Format: uuid
+                 * @description Its id.
+                 */
+                id: string;
+                /** @description What it holds: `snap`, `tile_scan`, `z_stack`, …. */
+                kind: string;
+                /** @description Its name. */
+                name: string;
+                /**
+                 * Format: date-time
+                 * @description When it was made.
+                 */
+                created: string;
+                /** @description Who made it. */
+                user: string;
+                /** @description The raw frames recorded in it. */
+                frames: number;
+                /** @description Its OME-Zarr images, by name, as the data routes take them: `snap`, `mosaic`, …. */
+                images: string[];
+            };
+            /** @description The image's name: `mosaic`. */
+            image: string;
+            /** @description The pyramid's job. */
+            pyramid: number;
+        };
+        mosaic_live_save_snapshot_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["mosaic_live_save_snapshot_input"];
+            output?: components["schemas"]["mosaic_live_save_snapshot_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
+        };
+        /** @description What the live mosaic has done, and the GPU memory it takes. */
+        mosaic_live_stats_value: {
+            /** @description Frames painted since the service started. */
+            painted: number;
+            /** @description Frames passed over: moving too fast to place. */
+            passed_over: number;
+            /** @description How long the last frame took to prepare and paint, in ms. */
+            last_paint_ms?: number | null;
+            /** @description Views rendered. */
+            views: number;
+            /** @description The canvas's pages on the GPU. */
+            pages_on_gpu: number;
+            /** @description Its pages waiting in RAM, shrunk. */
+            pages_in_ram: number;
+            /** @description The GPU memory its pages take, in bytes. */
+            vram_bytes: number;
+            /** @description The GPU memory they may take: `[gpu] mosaic_vram_gb`. */
+            vram_budget_bytes: number;
+        };
+        /** @description What the client looks at. */
+        mosaic_live_viewport_value: {
+            /** @description The stage point at its centre, in µm: `[x, y]`. */
+            centre: number[];
+            /** @description View pixels a canvas pixel: 1 shows the canvas's own detail, ½ twice as much of it. */
+            zoom: number;
+            /** @description Its width, in pixels: at most 1920. */
+            width: number;
+            /** @description Its height, in pixels: at most 1080. */
+            height: number;
         };
     };
     responses: never;
@@ -11867,6 +12340,536 @@ export interface operations {
         };
     };
     things_workflow_api_v1_workflow__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThingDescription"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_mosaic_live_bounds_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of bounds */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_bounds_value"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_mosaic_live_canvas_scale_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of canvas_scale */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_canvas_scale_value"];
+                };
+            };
+        };
+    };
+    set_property_api_v1_mosaic_live_canvas_scale_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["mosaic_live_canvas_scale_value"];
+            };
+        };
+        responses: {
+            /** @description Property set successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_mosaic_live_clear_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of clear. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_mosaic_live_clear_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["mosaic_live_clear_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_clear_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_clear_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_mosaic_live_enabled_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of enabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_enabled_value"];
+                };
+            };
+        };
+    };
+    set_property_api_v1_mosaic_live_enabled_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["mosaic_live_enabled_value"];
+            };
+        };
+        responses: {
+            /** @description Property set successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_mosaic_live_max_uncertainty_px_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of max_uncertainty_px */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_max_uncertainty_px_value"];
+                };
+            };
+        };
+    };
+    set_property_api_v1_mosaic_live_max_uncertainty_px_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["mosaic_live_max_uncertainty_px_value"];
+            };
+        };
+        responses: {
+            /** @description Property set successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_mosaic_live_px_per_um_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of px_per_um */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_px_per_um_value"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_mosaic_live_save_snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of save_snapshot. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_mosaic_live_save_snapshot_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["mosaic_live_save_snapshot_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_save_snapshot_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_save_snapshot_invocation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_property_api_v1_mosaic_live_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of stats */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_stats_value"];
+                };
+            };
+        };
+    };
+    mjpeg_stream_response_api_v1_mosaic_live_view_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "multipart/x-mixed-replace; boundary=frame": string;
+                };
+            };
+        };
+    };
+    viewer_page_api_v1_mosaic_live_view_viewer_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/html": string;
+                };
+            };
+        };
+    };
+    get_property_api_v1_mosaic_live_viewport_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of viewport */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["mosaic_live_viewport_value"];
+                };
+            };
+        };
+    };
+    set_property_api_v1_mosaic_live_viewport_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["mosaic_live_viewport_value"];
+            };
+        };
+        responses: {
+            /** @description Property set successfully */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_all_properties_api_v1_mosaic_live_properties_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    write_multiple_properties_api_v1_mosaic_live_properties_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Properties written */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    query_all_actions_api_v1_mosaic_live_actions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: components["schemas"]["InvocationSummary"][];
+                    };
+                };
+            };
+        };
+    };
+    things_mosaic_live_api_v1_mosaic_live__get: {
         parameters: {
             query?: never;
             header?: never;

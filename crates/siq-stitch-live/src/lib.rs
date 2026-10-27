@@ -14,22 +14,30 @@
 //!   in host RAM shrunk; a page painted again is restored.
 //! - **The policy:** only frames whose pose is known paint ([`paints`]): settled, or moving with an
 //!   uncertainty under the threshold.
+//! - **Frames come prepared** ([`Preparer`]): binned to about the canvas's scale, and corrected by
+//!   the dark and the flat in force.
+//! - **The viewport** ([`Viewport`]: a stage point, a zoom and a size up to 1920 × 1080) is
+//!   rendered from the pages through the display's LUT, a byte a pixel, on the GPU.
 //! - **On the GPU's thread:** a [`Canvas`] is used inside `siq-gpu`'s jobs; [`paint::cpu`] is the
 //!   reference its kernel is held to.
 
 mod canvas;
+mod prepare;
 
 pub mod paint;
+pub mod view;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use siq_gpu::Shader;
 use siq_types::{Affine2, Micrometers, PoseQuality};
 
-pub use canvas::{Canvas, CanvasOptions, PAGE, Painted};
+pub use canvas::{Canvas, CanvasOptions, PAGE, PAGE_BYTES, Painted};
+pub use prepare::{Prepared, Preparer};
+pub use view::{View, Viewport};
 
 /// Every shader here: the tests validate each.
-pub const SHADERS: &[Shader] = &[paint::SHADER];
+pub const SHADERS: &[Shader] = &[paint::SHADER, view::SHADER];
 
 /// Where the canvas is on the stage: canvas pixel = (stage µm − `origin`) × `px_per_um`.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]

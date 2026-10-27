@@ -10,9 +10,12 @@ publish.workspace = true
 
 [dependencies]
 bytemuck.workspace = true
+rayon.workspace = true
 schemars.workspace = true
 serde.workspace = true
+siq-calib = { path = "../siq-calib" }
 siq-gpu = { path = "../siq-gpu" }
+siq-imgproc = { path = "../siq-imgproc" }
 siq-types = { path = "../siq-types" }
 thiserror.workspace = true
 

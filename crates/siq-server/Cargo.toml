@@ -11,6 +11,7 @@ publish.workspace = true
 [dependencies]
 anyhow.workspace = true
 chrono.workspace = true
+jpeg-encoder.workspace = true
 rust-embed.workspace = true
 schemars = { workspace = true, features = ["chrono04"] }
 serde.workspace = true
@@ -21,6 +22,7 @@ siq-buffer = { path = "../siq-buffer" }
 siq-calib = { path = "../siq-calib" }
 siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }
+siq-gpu = { path = "../siq-gpu" }
 siq-grbl = { path = "../siq-grbl" }
 siq-imgproc = { path = "../siq-imgproc" }
 siq-jobs = { path = "../siq-jobs" }
@@ -29,6 +31,7 @@ siq-pyramid = { path = "../siq-pyramid" }
 siq-register = { path = "../siq-register" }
 siq-serial = { path = "../siq-serial" }
 siq-sim = { path = "../siq-sim" }
+siq-stitch-live = { path = "../siq-stitch-live" }
 siq-storage = { path = "../siq-storage" }
 siq-synth = { path = "../siq-synth" }
 siq-telemetry = { path = "../siq-telemetry" }

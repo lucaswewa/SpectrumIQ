@@ -147,6 +147,23 @@ expression: descriptions
       "changed"
     ]
   },
+  "mosaic_live": {
+    "title": "MosaicLive",
+    "properties": [
+      "bounds",
+      "canvas_scale",
+      "enabled",
+      "max_uncertainty_px",
+      "px_per_um",
+      "stats",
+      "viewport"
+    ],
+    "actions": [
+      "clear",
+      "save_snapshot"
+    ],
+    "events": []
+  },
   "objective": {
     "title": "Objective",
     "properties": [

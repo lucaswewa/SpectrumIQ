@@ -4,10 +4,10 @@
 //!
 //! - **Things,** under `/api/v1/`: `camera`, `display`, `stage`, `focus`, the fitted peripherals
 //!   (`illumination`, `filter_wheel`, `objective`, `modality`), `imaging`, `jobs`, `datasets`,
-//!   `calibration` and `workflow`.
+//!   `calibration`, `workflow` and `mosaic_live`.
 //!   The global lock is on: hardware actions and writes take it, and `stage.halt`, `focus.halt`,
-//!   `jobs.cancel`, the `datasets` actions other than `snap_to_dataset`, and the `workflow`
-//!   actions other than its runs don't. A run holds it throughout.
+//!   `jobs.cancel`, the `datasets` actions other than `snap_to_dataset`, the `workflow`
+//!   actions other than its runs, and `mosaic_live`, don't. A run holds it throughout.
 //! - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`; and under
 //!   `/api/siq/data/`, a dataset's manifest and thumbnail, and its images' deep-zoom tiles and
 //!   pixel values (ADR-0045).
@@ -20,7 +20,7 @@
 //! This is the only crate that depends on teta-wot.
 
 use std::future::{Future, IntoFuture};
-use std::sync::{Arc, PoisonError, RwLock};
+use std::sync::{Arc, OnceLock, PoisonError, RwLock};
 use std::time::Instant;
 
 use anyhow::Context;
@@ -29,6 +29,7 @@ use siq_acquire::Acquisition;
 use siq_buffer::{FramePool, PoolConfig};
 use siq_config::model::InstrumentConfig;
 use siq_devices::FocusDrive;
+use siq_gpu::{Compute, GpuOptions};
 use siq_preview::{PreviewConfig, Previews};
 use siq_sim::state::TrueState;
 use siq_telemetry::Registry;
@@ -48,6 +49,7 @@ pub mod datasets;
 pub mod devices;
 pub mod imaging;
 pub mod jobs;
+pub mod mosaic;
 pub mod peripherals;
 pub mod things;
 pub mod webapp;
@@ -60,6 +62,7 @@ use datasets::Datasets;
 use devices::Peripherals;
 use imaging::Imaging;
 use jobs::Jobs;
+use mosaic::MosaicLive;
 use peripherals::{FilterWheel, Illumination, ModalityUnit, Objective};
 use siq_calib::CalibrationRegistry;
 use siq_calib::shading::ShadingRegistry;
@@ -116,12 +119,24 @@ pub struct Instrument {
     pub shading: Arc<ShadingRegistry>,
     /// The clock the drivers, the acquisition and the workflows keep time on.
     pub clock: Arc<dyn Clock>,
+    pub(crate) gpu: OnceLock<Compute>,
     hooks: RwLock<Vec<Arc<dyn DatasetHook>>>,
     slot_bytes: usize,
     started: Instant,
 }
 
 impl Instrument {
+    /// The GPU of `[gpu]`, opened the first time it is asked for, or why there is none.
+    pub fn gpu(&self) -> &Compute {
+        self.gpu.get_or_init(|| {
+            let gpu = &self.config.gpu;
+            Compute::open(&GpuOptions {
+                cpu: !gpu.enabled,
+                software: gpu.software,
+            })
+        })
+    }
+
     /// The instrument as the workflows see it.
     pub fn devices(&self) -> siq_workflow::DeviceSet {
         let peripherals = &self.peripherals;
@@ -259,6 +274,7 @@ fn things(camera: Camera, fitted: impl Fn(&str) -> bool) -> ThingServerBuilder {
         .thing("datasets", Datasets::default())
         .thing("calibration", Calibration::default())
         .thing("workflow", Workflow::default())
+        .thing("mosaic_live", MosaicLive::default())
 }
 
 /// The service: the Things' server, and the instrument behind it.
@@ -328,6 +344,7 @@ impl Service {
             calibrations,
             shading,
             clock,
+            gpu: OnceLock::new(),
             hooks: RwLock::default(),
             slot_bytes: full,
             started: Instant::now(),

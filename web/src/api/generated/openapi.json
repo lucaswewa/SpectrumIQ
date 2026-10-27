@@ -5868,6 +5868,554 @@
           }
         }
       }
+    },
+    "/api/v1/mosaic_live/bounds": {
+      "get": {
+        "summary": "What was painted, on the stage in µm: `null` while nothing is.",
+        "description": "## What was painted, on the stage in µm: `null` while nothing is.\n\nWhat was painted, on the stage in µm: `null` while nothing is.",
+        "operationId": "get_property_api_v1_mosaic_live_bounds_get",
+        "responses": {
+          "200": {
+            "description": "Value of bounds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_bounds_value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/canvas_scale": {
+      "get": {
+        "summary": "Canvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,",
+        "description": "## Canvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,\n\nCanvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,\nby a whole factor. Changing it clears the mosaic.",
+        "operationId": "get_property_api_v1_mosaic_live_canvas_scale_get",
+        "responses": {
+          "200": {
+            "description": "Value of canvas_scale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_canvas_scale_value"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set Canvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,",
+        "description": "## Canvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,\n\nCanvas pixels a sensor pixel, from 1/64 to 1: ½ by default. Frames are binned to about it,\nby a whole factor. Changing it clears the mosaic.",
+        "operationId": "set_property_api_v1_mosaic_live_canvas_scale_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mosaic_live_canvas_scale_value"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Property set successfully",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/clear": {
+      "get": {
+        "summary": "All invocations of clear.",
+        "description": "List all the invocations of clear that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_mosaic_live_clear_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of clear.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Empties the mosaic. It doesn't wait for the global lock.",
+        "description": "## Empties the mosaic. It doesn't wait for the global lock.\n\nEmpties the mosaic. It doesn't wait for the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_mosaic_live_clear_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mosaic_live_clear_input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_clear_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_clear_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/enabled": {
+      "get": {
+        "summary": "Whether the frames are painted as they come. Enabling it opens the GPU the first time,",
+        "description": "## Whether the frames are painted as they come. Enabling it opens the GPU the first time,\n\nWhether the frames are painted as they come. Enabling it opens the GPU the first time,\nand is refused without one.",
+        "operationId": "get_property_api_v1_mosaic_live_enabled_get",
+        "responses": {
+          "200": {
+            "description": "Value of enabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_enabled_value"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set Whether the frames are painted as they come. Enabling it opens the GPU the first time,",
+        "description": "## Whether the frames are painted as they come. Enabling it opens the GPU the first time,\n\nWhether the frames are painted as they come. Enabling it opens the GPU the first time,\nand is refused without one.",
+        "operationId": "set_property_api_v1_mosaic_live_enabled_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mosaic_live_enabled_value"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Property set successfully",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/max_uncertainty_px": {
+      "get": {
+        "summary": "How uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by",
+        "description": "## How uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by\n\nHow uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by\ndefault, M7's placement criterion; 0 for settled frames only. The uncertainty is how far\nthe stage went between the readings either side, so a frame moving faster than this over\nthe stage's polling interval waits for the stage to stop.",
+        "operationId": "get_property_api_v1_mosaic_live_max_uncertainty_px_get",
+        "responses": {
+          "200": {
+            "description": "Value of max_uncertainty_px",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_max_uncertainty_px_value"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set How uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by",
+        "description": "## How uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by\n\nHow uncertain a moving frame's pose may be for it to paint, in canvas pixels: 2 by\ndefault, M7's placement criterion; 0 for settled frames only. The uncertainty is how far\nthe stage went between the readings either side, so a frame moving faster than this over\nthe stage's polling interval waits for the stage to stop.",
+        "operationId": "set_property_api_v1_mosaic_live_max_uncertainty_px_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mosaic_live_max_uncertainty_px_value"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Property set successfully",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/px_per_um": {
+      "get": {
+        "summary": "Canvas pixels a µm, as the frames' calibration and `canvas_scale` make them: `null` until",
+        "description": "## Canvas pixels a µm, as the frames' calibration and `canvas_scale` make them: `null` until\n\nCanvas pixels a µm, as the frames' calibration and `canvas_scale` make them: `null` until\na frame is painted.",
+        "operationId": "get_property_api_v1_mosaic_live_px_per_um_get",
+        "responses": {
+          "200": {
+            "description": "Value of px_per_um",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_px_per_um_value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/save_snapshot": {
+      "get": {
+        "summary": "All invocations of save_snapshot.",
+        "description": "List all the invocations of save_snapshot that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_mosaic_live_save_snapshot_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of save_snapshot.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Saves what was painted to a new dataset, `name` (\"live mosaic\" by default): one OME-Zarr",
+        "description": "## Saves what was painted to a new dataset, `name` (\"live mosaic\" by default): one OME-Zarr\n\nSaves what was painted to a new dataset, `name` (\"live mosaic\" by default): one OME-Zarr\nimage, `mosaic`, at canvas scale, whose pyramid a background job builds. It doesn't wait\nfor the global lock.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_mosaic_live_save_snapshot_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mosaic_live_save_snapshot_input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_save_snapshot_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_save_snapshot_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/stats": {
+      "get": {
+        "summary": "What the live mosaic has done, and the GPU memory its pages take.",
+        "description": "## What the live mosaic has done, and the GPU memory its pages take.\n\nWhat the live mosaic has done, and the GPU memory its pages take.",
+        "operationId": "get_property_api_v1_mosaic_live_stats_get",
+        "responses": {
+          "200": {
+            "description": "Value of stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_stats_value"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/view": {
+      "get": {
+        "summary": "Mjpeg Stream Response",
+        "description": "An MJPEG stream: each frame as a part of a `multipart/x-mixed-replace` response, which an `<img>` plays.",
+        "operationId": "mjpeg_stream_response_api_v1_mosaic_live_view_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "multipart/x-mixed-replace; boundary=frame": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/view/viewer": {
+      "get": {
+        "summary": "Viewer Page",
+        "description": "A page that shows the stream.",
+        "operationId": "viewer_page_api_v1_mosaic_live_view_viewer_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/viewport": {
+      "get": {
+        "summary": "What the client looks at: the stage point at its centre in µm, its zoom (view pixels a",
+        "description": "## What the client looks at: the stage point at its centre in µm, its zoom (view pixels a\n\nWhat the client looks at: the stage point at its centre in µm, its zoom (view pixels a\ncanvas pixel, from 1/1024 to 64), and its size, at most 1920 × 1080.",
+        "operationId": "get_property_api_v1_mosaic_live_viewport_get",
+        "responses": {
+          "200": {
+            "description": "Value of viewport",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mosaic_live_viewport_value"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set What the client looks at: the stage point at its centre in µm, its zoom (view pixels a",
+        "description": "## What the client looks at: the stage point at its centre in µm, its zoom (view pixels a\n\nWhat the client looks at: the stage point at its centre in µm, its zoom (view pixels a\ncanvas pixel, from 1/1024 to 64), and its size, at most 1920 × 1080.",
+        "operationId": "set_property_api_v1_mosaic_live_viewport_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mosaic_live_viewport_value"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Property set successfully",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/properties": {
+      "get": {
+        "summary": "Read All Properties",
+        "description": "Every property of `mosaic_live` (`readallproperties`), or their changes (`observeallproperties`).",
+        "operationId": "read_all_properties_api_v1_mosaic_live_properties_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Each property's value, by name."
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each observable property's new values, as events named after it. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Write Multiple Properties",
+        "description": "Writes several properties of `mosaic_live` (`writemultipleproperties`): nothing is written unless every value is valid.",
+        "operationId": "write_multiple_properties_api_v1_mosaic_live_properties_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Properties written"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/actions": {
+      "get": {
+        "summary": "Query All Actions",
+        "description": "The invocations of each action of `mosaic_live`, newest first (`queryallactions`).",
+        "operationId": "query_all_actions_api_v1_mosaic_live_actions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/InvocationSummary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/mosaic_live/": {
+      "get": {
+        "summary": "Thing Description",
+        "description": "The W3C Thing Description of `mosaic_live`: its properties, actions and events, and how to use them.",
+        "operationId": "things_mosaic_live_api_v1_mosaic_live__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThingDescription"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -16179,6 +16727,455 @@
           "input",
           "log"
         ]
+      },
+      "mosaic_live_bounds_value": {
+        "oneOf": [
+          {
+            "description": "What was painted, on the stage, in µm.",
+            "type": "object",
+            "properties": {
+              "x0": {
+                "description": "The least x.",
+                "type": "number"
+              },
+              "y0": {
+                "description": "The least y.",
+                "type": "number"
+              },
+              "x1": {
+                "description": "The greatest x.",
+                "type": "number"
+              },
+              "y1": {
+                "description": "The greatest y.",
+                "type": "number"
+              }
+            },
+            "required": [
+              "x0",
+              "y0",
+              "x1",
+              "y1"
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "mosaic_live_canvas_scale_value": {
+        "type": "number"
+      },
+      "mosaic_live_clear_input": {
+        "description": "Represent the input of an action that never takes parameters.\n\nThis may be either an empty dictionary or ``None``.",
+        "oneOf": [
+          {
+            "description": "A model representing an object that must have no keys.",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "mosaic_live_clear_output": {
+        "type": "null"
+      },
+      "mosaic_live_clear_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/mosaic_live_clear_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/mosaic_live_clear_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "mosaic_live_enabled_value": {
+        "type": "boolean"
+      },
+      "mosaic_live_max_uncertainty_px_value": {
+        "type": "number"
+      },
+      "mosaic_live_px_per_um_value": {
+        "oneOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "mosaic_live_save_snapshot_input": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "mosaic_live_save_snapshot_output": {
+        "description": "A snapshot saved: its dataset, its image, and the background job building the image's pyramid.",
+        "type": "object",
+        "properties": {
+          "dataset": {
+            "description": "The dataset made.",
+            "type": "object",
+            "properties": {
+              "id": {
+                "description": "Its id.",
+                "format": "uuid",
+                "type": "string"
+              },
+              "kind": {
+                "description": "What it holds: `snap`, `tile_scan`, `z_stack`, ….",
+                "type": "string"
+              },
+              "name": {
+                "description": "Its name.",
+                "type": "string"
+              },
+              "created": {
+                "description": "When it was made.",
+                "format": "date-time",
+                "type": "string"
+              },
+              "user": {
+                "description": "Who made it.",
+                "type": "string"
+              },
+              "frames": {
+                "description": "The raw frames recorded in it.",
+                "type": "integer",
+                "minimum": 0
+              },
+              "images": {
+                "description": "Its OME-Zarr images, by name, as the data routes take them: `snap`, `mosaic`, ….",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "name",
+              "created",
+              "user",
+              "frames",
+              "images"
+            ]
+          },
+          "image": {
+            "description": "The image's name: `mosaic`.",
+            "type": "string"
+          },
+          "pyramid": {
+            "description": "The pyramid's job.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "dataset",
+          "image",
+          "pyramid"
+        ]
+      },
+      "mosaic_live_save_snapshot_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/mosaic_live_save_snapshot_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/mosaic_live_save_snapshot_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
+        ]
+      },
+      "mosaic_live_stats_value": {
+        "description": "What the live mosaic has done, and the GPU memory it takes.",
+        "type": "object",
+        "properties": {
+          "painted": {
+            "description": "Frames painted since the service started.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "passed_over": {
+            "description": "Frames passed over: moving too fast to place.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "last_paint_ms": {
+            "description": "How long the last frame took to prepare and paint, in ms.",
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "views": {
+            "description": "Views rendered.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "pages_on_gpu": {
+            "description": "The canvas's pages on the GPU.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "pages_in_ram": {
+            "description": "Its pages waiting in RAM, shrunk.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "vram_bytes": {
+            "description": "The GPU memory its pages take, in bytes.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "vram_budget_bytes": {
+            "description": "The GPU memory they may take: `[gpu] mosaic_vram_gb`.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "painted",
+          "passed_over",
+          "views",
+          "pages_on_gpu",
+          "pages_in_ram",
+          "vram_bytes",
+          "vram_budget_bytes"
+        ]
+      },
+      "mosaic_live_viewport_value": {
+        "description": "What the client looks at.",
+        "type": "object",
+        "properties": {
+          "centre": {
+            "description": "The stage point at its centre, in µm: `[x, y]`.",
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "maxItems": 2,
+            "minItems": 2
+          },
+          "zoom": {
+            "description": "View pixels a canvas pixel: 1 shows the canvas's own detail, ½ twice as much of it.",
+            "type": "number"
+          },
+          "width": {
+            "description": "Its width, in pixels: at most 1920.",
+            "type": "integer",
+            "minimum": 0
+          },
+          "height": {
+            "description": "Its height, in pixels: at most 1080.",
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "centre",
+          "zoom",
+          "width",
+          "height"
+        ],
+        "additionalProperties": false
       }
     }
   }

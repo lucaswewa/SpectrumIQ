@@ -30,6 +30,15 @@ expression: schema
         "tile_cache_mb": 1024
       }
     },
+    "gpu": {
+      "description": "The GPU, which the live mosaic needs (ADR-0058).",
+      "$ref": "#/$defs/GpuConfig",
+      "default": {
+        "enabled": true,
+        "software": false,
+        "mosaic_vram_gb": 2.0
+      }
+    },
     "log": {
       "description": "Where logs go.",
       "$ref": "#/$defs/LogConfig",
@@ -181,6 +190,29 @@ expression: schema
           "format": "uint32",
           "minimum": 0,
           "default": 1024
+        }
+      },
+      "additionalProperties": false
+    },
+    "GpuConfig": {
+      "description": "The GPU (ADR-0058), opened when the live mosaic is first enabled.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "description": "Whether to use one: without, there is no live mosaic.",
+          "type": "boolean",
+          "default": true
+        },
+        "software": {
+          "description": "The backend's software adapter (WARP on DX12) rather than a GPU: slow, for machines without\none.",
+          "type": "boolean",
+          "default": false
+        },
+        "mosaic_vram_gb": {
+          "description": "The GPU memory the live mosaic's pages may take, in GB: past it, they wait in RAM, shrunk.",
+          "type": "number",
+          "format": "double",
+          "default": 2.0
         }
       },
       "additionalProperties": false

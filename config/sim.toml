@@ -15,6 +15,10 @@ job_ram_gb = 14.0
 job_vram_gb = 4.0
 tile_cache_mb = 1024
 
+[gpu]                       # the live mosaic's (ADR-0058)
+enabled = true
+mosaic_vram_gb = 2.0        # its pages; past it, they wait in RAM
+
 [log]
 filter = "info"
 directory = "../logs"

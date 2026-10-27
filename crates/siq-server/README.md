@@ -16,11 +16,13 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
   - `datasets`, the datasets, a snap made into one, and their exports (ADR-0041, amended);
   - `calibration`, the stage–camera calibration of the objective in use (ADR-0049), and the dark
     and flat of the objective and channel in use (ADR-0050);
-  - `workflow`, plans run by `siq-workflow`'s engine, and the saved positions (ADR-0056).
+  - `workflow`, plans run by `siq-workflow`'s engine, and the saved positions (ADR-0056);
+  - `mosaic_live`, the live mosaic painted as the stage moves, and the client's view of it
+    streamed (ADR-0059, amended).
 
   The global lock is on. The `halt` actions, `jobs.cancel`, the `datasets` actions other than
-  `snap_to_dataset`, and the `workflow` actions other than its runs bypass it. A run holds it
-  throughout.
+  `snap_to_dataset`, the `workflow` actions other than its runs, and `mosaic_live` bypass it. A
+  run holds it throughout.
 - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`; under
   `/api/siq/data/`, a dataset's manifest and thumbnail, and its images' tiles. teta-wot's router
   is the fallback (ADR-0003, amended).
@@ -39,16 +41,17 @@ This is the only crate that depends on teta-wot.
 - **Depends on:**
   - teta-wot v0.1.0 (git), and `tower` for `oneshot`;
   - `siq-acquire`, `siq-preview`, `siq-jobs`, `siq-workflow`, `siq-pyramid`, `siq-storage`,
-    `siq-calib`, `siq-register`;
+    `siq-calib`, `siq-register`, `siq-stitch-live`, `siq-gpu`;
   - `siq-devices`, `siq-grbl`, `siq-ascii`, `siq-serial`, `siq-sim`;
   - `siq-config`, `siq-telemetry`, `siq-buffer`, `siq-imgproc`, `siq-synth`, `siq-types`;
-  - `tokio`, `serde`, `schemars`, `chrono`, `anyhow`, `tracing`.
+  - `tokio`, `serde`, `schemars`, `chrono`, `anyhow`, `tracing`, `jpeg-encoder`.
 - **Used by:** `apps/spectrumiq-server`, the service binary.
 - **Phase:** P2.3; P2.4 added the peripherals, the channels, and the metrics and memory routes;
   P3.1 the web app; P4.3 the `jobs` Thing; P4.5 the data routes, with the catalog and the tile
   cache; P4.7 the `datasets` Thing, a dataset's manifest and thumbnail; P4.8 an image's metadata;
   P5.2 the `calibration` Thing, and the frames' objective and calibration; P5.3 the darks and
-  flats, and the previews' correction.
+  flats, and the previews' correction; P6.5 the `workflow` Thing; P7.3 the `mosaic_live` Thing,
+  and the GPU of `[gpu]`.
 
 ## API
 
@@ -82,6 +85,7 @@ This is the only crate that depends on teta-wot.
 | `jobs` | `queue`, `running` (observable): each job's id, kind, priority, state, progress, estimate and times | `cancel(id)` | — |
 | `calibration` | `status`: each objective, with its calibration in force or `null`, and its dark and flat with each channel, and with none | `stage_camera`: the objective in use calibrated against the stage, kept as a new version, and stamped on its frames from then on; a snap's dataset keeps a copy, and its pixel size. `capture_dark(frames?)`: the objective and channel's dark, every light off, of the whole sensor. `capture_flat(defocus_um?, frames?)`: their flat, at nine places, out of focus or of a blank slide, less the dark. `estimate_shading(dataset, dark_level?)`: a dataset's tiles' flat, as a background job | — |
 | `workflow` | `state` (`idle`, `running`, `paused`, `asking`), `progress`, `problem` (observable); `positions`; `field`, the frame's corners about where the stage is; `plan_schema` | `run(name, steps, on_error?)`, any plan; `tile_scan(name, region, overlap?, order?, channels?, settle_ms?, focus?, z_stack?, focus_map?)`; `z_stack(name, planes, steps?)`; `multi_position(name, positions?, autofocus?, steps?)`, the saved positions if none; `time_lapse(name, interval_s, count?, duration_s?, overrun?, steps?)`. Each holds the global lock until its run ends, answers `{name, dataset, outcome, error, steps, frames}`, and is cancelled by a `DELETE` of its invocation; a plan that couldn't run is a 422. `estimate_tile_scan`, with `tile_scan`'s input: its tiles, a frame's corners, frames, time, bytes, the disk's room, and warnings. Every run takes `on_error`; one whose policy asks waits on a failed step for `retry` or `skip`. `pause`, `resume`, `save_position(name, x?, y?, z?, focus?)`, `rename_position(name, to)`, `remove_position(name)`, without the lock | `tile_acquired`, `finished` |
+| `mosaic_live` | `enabled`, `viewport` (`centre` in µm, `zoom` in view pixels a canvas pixel, `width` and `height` up to 1920 × 1080), `canvas_scale` (½), `max_uncertainty_px` (2) (writable); `bounds` in µm, `px_per_um`, `stats` (frames painted and passed over, the last paint's time, views, pages and their GPU memory against the budget) | `clear`; `save_snapshot(name?)`: what was painted, as the OME-Zarr image `mosaic` of a new dataset of kind `mosaic`, its pyramid submitted | MJPEG `view`, the viewport rendered |
 | `datasets` | — | `summary(offset, limit)`: a page of the datasets, newest first; `snap_to_dataset(channels?, name?)`: a frame per channel, recorded raw, written as the image `snap` by a job, and its pyramid submitted; `export_ome_tiff(dataset, image)` and `export_dzi(dataset, image, c, z, t, format)`, as background jobs; `delete(dataset)`, refused while a job works on it | `created` |
 
 The peripherals' Things are served only if their `[peripherals]` section is present.
@@ -141,9 +145,14 @@ curl http://127.0.0.1:5000/api/siq/system/memory
 | Example | What it shows | Run |
 |---|---|---|
 | `calibrate_sim` | The simulated instrument's stage–camera calibration through the `calibration` Thing, on a 4096 × 3072 sensor binned 2 × 2: the scale, rotation and shear found against those injected, the residuals, the backlash, and where it was kept | `cargo run --release -p siq-server --example calibrate_sim [-- --settings <folder>]` |
+| `live_mosaic_sim` | The live mosaic through the `mosaic_live` Thing: a 2048 × 1536 sensor stepped over 6 × 6 fields at 10 % overlap while the live view runs, each painted where its pose puts it; the whole area's view and a 1:1 view where four fields meet written as JPEGs, and the mosaic saved | `cargo run --release -p siq-server --example live_mosaic_sim [-- <out.jpg>]` |
 
-Every example also runs in smoke mode (`SIQ_SMOKE=1`) in `cargo xtask ci`, on 1024 × 768: the
-smaller field calibrates less precisely.
+Every example also runs in smoke mode (`SIQ_SMOKE=1`) in `cargo xtask ci`: `calibrate_sim` on
+1024 × 768, where the smaller field calibrates less precisely; `live_mosaic_sim` on 512 × 384, 3 × 3
+fields.
+
+On the RTX 4060, `live_mosaic_sim` paints a frame in 1.8 ms, binned and its upload included: 36
+fields in 15.7 s, the stage's moves and settling most of it, with no frame lost.
 
 `apps/spectrumiq-server` runs the service. Scripts drive it over HTTP, with the standard library
 only:
@@ -230,6 +239,17 @@ the corner of the stage's travel where it starts, and back:
 - positions saved, refused twice under one name, renamed and removed; a multi-position visiting
   them; kept for a server started on the same folder.
 
+`mosaic`, over HTTP with the simulator's mount as the calibration in force, each GPU test skipped
+with its reason where there is no GPU:
+
+- 3 × 3 fields visited and painted, their bounds within 3 µm of the grid's, `px_per_um` the
+  calibration's at ½; the snapshot a `mosaic` dataset, correlating 0.87 with the specimen where the
+  stage truly stopped, best at no offset of ±3 canvas pixels; cleared, no bounds;
+- the largest view streamed at 1920 × 1080 while the stage moves and the frames paint, with no
+  frame lost and the pages within the VRAM budget; disabled;
+- a viewport or a canvas scale out of range refused with 422; a snapshot of nothing failing;
+- without a GPU (`[gpu] enabled = false`), enabling refused with 422, saying why.
+
 `webapp`, from a build in a temporary folder:
 
 - the page and its assets, with their media types and caching;
@@ -247,4 +267,9 @@ the corner of the stage's travel where it starts, and back:
 - **The lifecycle copies `ThingServer::serve_with` at v0.1.0:** check it on each teta-wot upgrade.
 - **A run holds the global lock throughout:** for hours, a time-lapse leaves only `pause`,
   `resume`, the halts and what reads.
-- **A workflow's dataset raises no `datasets.created`:** `workflow.finished` says so instead.
+- **A workflow's dataset raises no `datasets.created`:** `workflow.finished` says so instead;
+  nor does a mosaic's snapshot.
+- **The live mosaic paints moving frames only below about 7 µm/s at 10×,** with 5 stage readings
+  a second and the default `max_uncertainty_px`: faster, the frames wait for the stage to stop.
+- **The live mosaic repaints the field the stage stands on at the frame rate,** its binning on the
+  frame-path pool the previews share: disable it when it isn't looked at.

@@ -34,6 +34,8 @@ pub enum DatasetKind {
     Sequence,
     /// Made by `siq-datagen`, with its ground truth.
     Synthetic,
+    /// The live mosaic, saved: one image at canvas scale.
+    Mosaic,
 }
 
 impl DatasetKind {
@@ -46,6 +48,7 @@ impl DatasetKind {
             Self::ZStack => "z_stack",
             Self::Sequence => "sequence",
             Self::Synthetic => "synthetic",
+            Self::Mosaic => "mosaic",
         }
     }
 }

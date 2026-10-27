@@ -58,8 +58,9 @@ pub struct Params {
 
 impl Params {
     /// The paint of `frame`, mapped by `m` (frame pixels to canvas pixels), on the page whose
-    /// corner is canvas pixel `origin` and whose side is `side` pixels: `None` if the frame misses
-    /// it, or `m` is singular.
+    /// corner is canvas pixel `origin` and whose side is `side` pixels, feathered `feather` frame
+    /// pixels in, at most an eighth of its shorter side: `None` if the frame misses the page, or
+    /// `m` is singular.
     pub fn for_page(
         frame: &Frame<'_>,
         m: &Affine2,
@@ -86,7 +87,9 @@ impl Params {
             frame_size: [frame.width, frame.height],
             rect_origin: [rx, ry],
             rect_size: [rw, rh],
-            feather: feather.max(1e-3),
+            feather: feather
+                .min(frame.width.min(frame.height) as f32 / 8.0)
+                .max(1e-3),
             page: side,
         })
     }

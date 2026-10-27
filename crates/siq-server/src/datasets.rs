@@ -72,7 +72,7 @@ pub struct DatasetEntry {
 }
 
 impl DatasetEntry {
-    fn of(summary: &DatasetSummary) -> Self {
+    pub(crate) fn of(summary: &DatasetSummary) -> Self {
         Self {
             id: summary.id,
             kind: summary.kind.name().to_owned(),

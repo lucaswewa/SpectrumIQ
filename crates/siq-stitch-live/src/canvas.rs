@@ -5,15 +5,18 @@ use std::collections::HashMap;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use siq_gpu::lut::Table;
 use siq_gpu::wgpu::util::DeviceExt;
 use siq_gpu::{Gpu, GpuError, wgpu};
 use siq_types::Affine2;
 
 use crate::paint::{self, Frame, Params};
+use crate::view::{self, View};
 
 /// A page's side, in canvas pixels.
 pub const PAGE: u32 = 4096;
-const PAGE_BYTES: u64 = PAGE as u64 * PAGE as u64 * 4;
+/// A page's bytes: 64 MB.
+pub const PAGE_BYTES: u64 = PAGE as u64 * PAGE as u64 * 4;
 
 /// How the canvas keeps its pages, and paints.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -21,7 +24,8 @@ const PAGE_BYTES: u64 = PAGE as u64 * PAGE as u64 * 4;
 pub struct CanvasOptions {
     /// The GPU memory its pages may take, in bytes: 2 GB, 32 pages, by default.
     pub budget_bytes: u64,
-    /// How far in from a frame's edge its alpha reaches 1, in frame pixels: 64 by default.
+    /// How far in from a frame's edge its alpha reaches 1, in frame pixels: 64 by default, and
+    /// at most an eighth of the frame's shorter side.
     pub feather_px: f32,
     /// How much an evicted page shrinks each way in host RAM: 4 by default.
     pub shrink: u32,
@@ -264,6 +268,60 @@ impl Canvas {
             }
         }
         Ok(out)
+    }
+
+    /// `view` of the canvas through `table`: a byte a pixel, row by row. A pixel is black where
+    /// nothing was painted, darker where little of it is covered, and from host RAM at its shrunk
+    /// detail where its page was evicted.
+    pub fn render(&self, gpu: &mut Gpu, view: &View, table: &Table) -> Result<Vec<u8>, GpuError> {
+        let ([width, height], stride) = (view.size, view.stride());
+        let bytes = (u64::from(stride) * u64::from(height) * 4).max(4);
+        gpu.fits_binding(bytes, "the view")?;
+        let device = &gpu.device;
+        let out = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("view"),
+            size: bytes,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+        let entries: Vec<u32> = table.iter().map(|&level| u32::from(level)).collect();
+        let lut = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("view lut"),
+            contents: bytemuck::cast_slice(&entries),
+            usage: wgpu::BufferUsages::STORAGE,
+        });
+        let side = i64::from(PAGE);
+        for (key, page) in &self.pages {
+            let corner = [i64::from(key[0]) * side, i64::from(key[1]) * side];
+            match &page.place {
+                Place::Gpu(buffer) => {
+                    if let Some(params) = view::Params::for_page(view, corner, PAGE, 1) {
+                        view::gpu(gpu, buffer, &lut, &out, &params)?;
+                    }
+                }
+                Place::Host(shrunk) => {
+                    let factor = self.options.shrink.max(1);
+                    let Some(params) = view::Params::for_page(view, corner, PAGE / factor, factor)
+                    else {
+                        continue;
+                    };
+                    let buffer = gpu
+                        .device
+                        .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                            label: Some("view shrunk page"),
+                            contents: bytemuck::cast_slice(shrunk),
+                            usage: wgpu::BufferUsages::STORAGE,
+                        });
+                    view::gpu(gpu, &buffer, &lut, &out, &params)?;
+                }
+            }
+        }
+        let read = gpu.read(&out, bytes)?;
+        let rows = read.chunks_exact(stride as usize * 4).take(height as usize);
+        Ok(rows
+            .flat_map(|row| &row[..width as usize])
+            .copied()
+            .collect())
     }
 
     /// Every page gone.

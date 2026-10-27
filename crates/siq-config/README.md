@@ -42,6 +42,7 @@ The shipped files are the reference:
 |---|---|
 | `[server]` | `bind` (`127.0.0.1`), `port` (5000), `data_root` (`data`), `scratch` (`scratch`), `settings` (`settings`, the calibrations, P5.2), `min_free_gb` (20) |
 | `[memory]` | `pool_slots` (12), `job_ram_gb` (14), `job_vram_gb` (4), `tile_cache_mb` (1024) |
+| `[gpu]` | `enabled` (true), `software` (false), `mosaic_vram_gb` (2): the live mosaic's GPU and its pages' budget |
 | `[log]` | `filter` (`info`), `console` (true), `directory` (none), `keep_days` (30) |
 | `[camera]` | `kind = "sim"`: `width` (11648), `height` (8742), `pixel_format` (`Mono14`), `frame_rate` (9), `pixel_size` (3.76 µm). `kind = "euresys"`: `interface` (0), `device` (0), `features` |
 | `[stage]` | `kind = "sim"`: `poll_hz` (5). `kind = "grbl"`: `port`, `baud` (115200), `poll_hz` (5). Both: `[stage.motion]`, with `unlock` (true), `approach` (`[1, 1, 1]`, each 1 or −1) and `overshoot` (50 µm) |

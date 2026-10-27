@@ -127,6 +127,7 @@ pub struct Previews {
     display: Arc<watch::Sender<DisplaySettings>>,
     roi: Arc<watch::Sender<RoiSettings>>,
     flat: Arc<watch::Sender<PreviewFlat>>,
+    pool: Arc<ThreadPool>,
     stop: Arc<AtomicBool>,
     threads: Vec<JoinHandle<()>>,
 }
@@ -276,6 +277,7 @@ impl Previews {
             display,
             roi,
             flat,
+            pool,
             stop,
             threads,
         })
@@ -309,6 +311,11 @@ impl Previews {
     /// The flat-field correction.
     pub fn flat(&self) -> PreviewFlat {
         self.flat.borrow().clone()
+    }
+
+    /// The frame-path pool, which other consumers of the frames may share: the live mosaic.
+    pub fn pool(&self) -> &Arc<ThreadPool> {
+        &self.pool
     }
 }
 

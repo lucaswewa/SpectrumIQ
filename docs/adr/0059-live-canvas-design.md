@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-10-27
 - **Phase:** P7.2
-- **Related:** ADR-0049, ADR-0050, ADR-0058, REQ-STI-001, REQ-STI-003
+- **Related:** ADR-0045, ADR-0049, ADR-0050, ADR-0058, REQ-STI-001, REQ-STI-003, REQ-PRV-001
 
 ## Context
 
@@ -34,7 +34,8 @@
   rectangle of it covered. Each pixel's centre is mapped back into the frame (the inverse affine,
   composed with the page's corner in f64, then f32, so its numbers are a frame's), sampled
   bilinearly between the four pixel centres around it, and composited:
-  - the alpha ramps from 0 at the frame's edge to 1 a feather in (64 frame pixels by default);
+  - the alpha ramps from 0 at the frame's edge to 1 a feather in (64 frame pixels by default,
+    at most an eighth of the frame's shorter side: P7.3);
   - the coverage becomes `a + c·(1 − a)`, and the value `(n·a + v·c·(1 − a)) / coverage`.
 
   So **the newest frame wins** wherever its alpha is 1, and blends with what was there only inside
@@ -82,3 +83,48 @@
   the WGSL.
 - **`paint_sim`:** a 6 × 6 grid of synthetic frames, turned 0.4°, each 0.5 µm off, painted across a
   page corner into a coherent mosaic.
+
+## Amendment (P7.3, 2026-10-27): the viewport, its stream, and the Thing
+
+- **The client names what it looks at,** `mosaic_live.viewport`: the stage point at its centre in
+  µm, a zoom (view pixels a canvas pixel, from 1/1024 to 64) and a size up to 1920 × 1080. The
+  server renders that view and streams it as JPEGs, `mosaic_live/view`, so the bandwidth is the
+  view's, whatever the mosaic's size.
+- **The view kernel** draws a view from the pages it meets, a dispatch each over only the view's
+  pixels the page may show: each view pixel takes the canvas pixel its centre falls on, through
+  the display's LUT to a byte, times its coverage, so unpainted canvas is black and a mosaic's
+  edge fades. Four pixels share a word, so the dispatches of neighbouring pages never write the
+  same word at once. A page in host RAM is uploaded for the view, and drawn at its shrunk detail.
+- **The window** is the display's (`display.lut`): fixed, or automatic from the newest frame
+  painted, as the live view is.
+- **A view is rendered** at most 10 times a second, and only when something changed: a frame
+  painted, the viewport, a clear. While nothing is painting, a change of viewport renders at once.
+- **Frames come prepared,** on the frame-path pool the previews share: binned by the whole factor
+  nearest to the canvas's scale, then corrected, `(value − dark) × gain`, by the dark and flat in
+  force. The frame's slot is free again before its paint starts.
+- **The painting policy's threshold** is `max_uncertainty_px`, 2 canvas pixels by default: M7's
+  placement criterion. A moving frame's uncertainty is how far the stage went between the readings
+  either side, so at 5 readings a second a frame paints while moving only below about 7 µm/s at
+  10×; above it, frames wait for the stage to stop. A client may raise it to paint while jogging.
+- **The feather** is at most an eighth of the frame's shorter side, so a small frame isn't all
+  edge.
+- **`save_snapshot`** writes the painted box to a new dataset of kind `mosaic`: one OME-Zarr image
+  at canvas scale, its origin and pixel size on the stage, a band of chunk rows at a time read
+  back from the canvas; a background job builds its pyramid.
+- **The GPU opens** when the mosaic is first enabled, by `[gpu]`: without one, enabling is refused
+  (HTTP 422), saying why. `[gpu] mosaic_vram_gb` (2) is the pages' budget.
+- **Alternatives considered:**
+  - **The whole canvas sent as tiles to the client:** the deep-zoom viewer's way (ADR-0045), but
+    the live canvas changes with every frame, and the client would hold it all.
+  - **Bilinear or box-filtered sampling of the view:** smoother zoomed out, but a box over 16
+    canvas pixels a view pixel costs 16 reads; the navigation map shows each place's newest frame
+    and is refreshed as soon as the stage moves. Nearest, as the viewer zoomed in shows pixels.
+  - **The LUT on the CPU:** a read-back of 32-bit words, four times the bytes, and the mapping at
+    a frame's rate on the frame-path pool.
+- **Verification:** `crates/siq-stitch-live/tests/view.rs` (a viewport on the canvas and its
+  checks; a frame binned to the scale and flat-corrected; the view as the canvas's pixels through
+  the LUT say, with no pixel off by more than 1; a spot at the centre of a view about it, within
+  0.01 view pixels; an evicted page shown shrunk); `crates/siq-server/tests/mosaic.rs` (3 × 3
+  fields painted, their bounds within 3 µm, the mosaic correlating 0.87 with the specimen where
+  the stage stopped, best at no offset; a 1920 × 1080 view streamed while painting, no frame lost,
+  the pages within the budget; the settings checked; refused without a GPU); `live_mosaic_sim`.

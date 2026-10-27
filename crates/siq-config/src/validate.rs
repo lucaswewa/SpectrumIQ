@@ -109,6 +109,11 @@ pub(crate) fn validate(config: &InstrumentConfig) -> Problems {
         at!["memory", "tile_cache_mb"],
         "must be positive",
     );
+    p.check(
+        positive(config.gpu.mosaic_vram_gb),
+        at!["gpu", "mosaic_vram_gb"],
+        "must be positive",
+    );
     devices(&mut p, config);
     objectives(&mut p, config);
     channels(&mut p, config);

@@ -35,7 +35,7 @@ The design is in [ADR-0032](../../docs/adr/0032-preview-stream-design.md).
   - `rayon`, `thiserror`, `tracing`.
 - **Used by:** P2.3's server, whose camera Thing feeds its MJPEG streams from a `PreviewSink`, and
   whose display Thing sets the `DisplaySettings`.
-- **Phase:** P2.2; P5.3 the flat-field correction.
+- **Phase:** P2.2; P5.3 the flat-field correction; P7.3 the pool shared.
 
 ## API
 
@@ -45,6 +45,7 @@ The design is in [ADR-0032](../../docs/adr/0032-preview-stream-design.md).
 | `set_display(DisplaySettings)`, `display()` | `Contrast::Manual { min, max, gamma }` or `Contrast::Auto { low_pct, high_pct }`, and a `Colormap`. The default is auto from 0.1 to 99.9 %, in grey |
 | `set_roi(RoiSettings)`, `roi()` | `RoiSettings { region: Option<RectPx> in sensor pixels, zoom: Zoom::Native or Zoom::Half }`. `None` shows the frame's middle |
 | `set_flat(PreviewFlat)`, `flat()` | `PreviewFlat { enabled, shading: Option<Arc<Shading>> }`, a `Shading` being a dark level and a `FlatField`. Off by default |
+| `pool()` | The frame-path pool, for other consumers of the frames to share: the live mosaic's binning |
 | `PreviewConfig` | Largest sizes (1920 × 1080 each), JPEG quality (85), the rates `[overview, roi, stats]` (10, 10, 5), pool threads (half the cores) |
 | `PreviewSink::push_jpeg(StreamKind, Vec<u8>, &FrameMeta)` | Where each JPEG goes |
 | `StatsSink::push_stats(&FrameStats)` | `FrameStats { meta, region, histogram: [u32; 256], window, focus }` |
