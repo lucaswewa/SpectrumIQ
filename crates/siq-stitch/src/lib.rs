@@ -9,17 +9,22 @@
 //! - **Each pair** ([`pairs`]) is registered by phase correlation of the two tiles' nominal overlap,
 //!   flat-corrected, its search reaching only as far as the stage's uncertainty allows, into an
 //!   [`Edge`]: the measured offset and how sure it is (ADR-0061).
+//! - **The solution** ([`solve`]) is the tiles' corners that best agree with the trusted edges
+//!   and, weakly, with the stage: weighted least squares over translations, Huber's weights, and
+//!   the edges that disagree still rejected (ADR-0062).
 //! - **The pixels** come from a [`TileSource`]: a dataset's raw frames, mapped read-only, or images
 //!   in memory.
 
 mod tiles;
 
 pub mod pairs;
+pub mod solve;
 
 use siq_storage::{FrameKey, StorageError};
 use siq_types::ImageError;
 
 pub use pairs::{Edge, PairOptions};
+pub use solve::{Solution, SolveOptions};
 pub use tiles::{MappedTiles, Mosaic, Tile, TileSource};
 
 /// Why a mosaic couldn't be stitched.

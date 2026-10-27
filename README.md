@@ -157,7 +157,10 @@ Done so far:
 - Milestone 8 (post-acquisition stitching), under way:
   - P8.1, [`siq-stitch`](crates/siq-stitch/README.md)'s pairs: a scan's tiles placed by their
     poses, the sides of the grid registered by phase correlation within the stage's reach, each
-    offset with its confidence (`siq-stitch --example pairs_on_dataset`).
+    offset with its confidence (`siq-stitch --example pairs_on_dataset`);
+  - P8.2, the global solve: the tiles placed by every trusted edge and, weakly, the stage, with
+    outliers rejected; 30 tiles within 0.06 pixels RMS of the truth (`siq-stitch --example
+    solve_on_dataset`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

@@ -31,16 +31,19 @@ pub struct PairOptions {
     /// The least share of the overlap that a registration's shift may leave in common: a match in
     /// a sliver is chance.
     pub min_shared: f64,
-    /// The least peak-to-correlation energy of a trusted registration.
+    /// The least peak-to-correlation energy of a trusted registration: a floor, as an overlap the
+    /// stage shifted far registers rightly with little energy.
     pub min_pce: f64,
     /// The least correlation of a trusted registration's overlap.
     pub min_ncc: f64,
+    /// The least margin of a trusted registration's peak over the next.
+    pub min_margin: f64,
 }
 
 impl Default for PairOptions {
     /// 32 pixels and 5 % of a tile; a stage of 5 µm, searched 4 standard deviations of a pair's
-    /// offset out, leaving a quarter of the overlap; and an energy of 300 and a correlation of 0.5
-    /// to trust.
+    /// offset out, leaving a quarter of the overlap; and a correlation of 0.8, a margin of 0.3 and
+    /// an energy of 50 to trust.
     fn default() -> Self {
         Self {
             min_overlap_px: 32.0,
@@ -48,8 +51,9 @@ impl Default for PairOptions {
             stage_sigma_um: 5.0,
             reach_sigmas: 4.0,
             min_shared: 0.25,
-            min_pce: 300.0,
-            min_ncc: 0.5,
+            min_pce: 50.0,
+            min_ncc: 0.8,
+            min_margin: 0.3,
         }
     }
 }
@@ -80,8 +84,8 @@ pub struct Edge {
     pub ncc: f64,
     /// The overlap registered, width and height, in pixels.
     pub overlap_px: [u32; 2],
-    /// Whether it is trusted: registered within the reach, and over the energy and correlation
-    /// thresholds.
+    /// Whether it is trusted: registered within the reach, and over the correlation, margin and
+    /// energy thresholds.
     pub confident: bool,
 }
 
@@ -221,7 +225,7 @@ fn one(
         margin,
         ncc,
         overlap_px: crops.size,
-        confident: pce >= options.min_pce && ncc >= options.min_ncc,
+        confident: pce >= options.min_pce && ncc >= options.min_ncc && margin >= options.min_margin,
     })
 }
 

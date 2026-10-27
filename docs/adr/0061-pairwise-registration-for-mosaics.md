@@ -37,7 +37,8 @@
   registrar's: shrunk to 512 pixels a side, then refined at
   full resolution in windows of the overlap.
 - **An edge** is the measured offset of `j`'s corner from `i`'s, with the energy, margin,
-  correlation and overlap; it is trusted at an energy of 300 and a correlation of 0.5. A pair that
+  correlation and overlap; it is trusted at an energy of 300 and a correlation of 0.5 (amended in
+  P8.2: a correlation of 0.8, a margin of 0.3 and an energy of 50). A pair that
   doesn't register, or has under 16 pixels each way, is an edge that isn't trusted, at its nominal
   offset. A tile that can't be read is an error.
 - **Memory:** `bytes_per_pair` is 16 bytes a pixel of the largest overlap, for the corrected
@@ -78,3 +79,16 @@
 - `crates/siq-stitch/tests/memory.rs`: the peak heap within `threads × bytes_per_pair`.
 - `crates/siq-register/tests/register.rs`: `the_search_reaches_only_as_far_as_asked`.
 - `pairs_on_dataset`.
+
+## Amendment (P8.2, 2026-10-27): trusting by correlation and margin
+
+- **An edge is trusted** at a correlation of 0.8, a margin of 0.3, and an energy of 50, not at an
+  energy of 300 and a correlation of 0.5.
+- **Why:** the energy under-rates an overlap the stage shifted far. On a 4 × 4 scan over grains, two
+  sides that the stage had put 37 and 30 pixels off registered within 0.3 pixels of the truth with
+  energies of 56 and 220, but correlations of 0.985 and margins near 0.9. The false match of
+  smoke mode had a correlation of 0.62 and a margin of 0.20: the correlation and the margin tell
+  them apart where the energy can't. The energy stays as a floor against unrelated images (about
+  30).
+- **Verification:** `crates/siq-stitch/tests/solve.rs` uses all 24 pairs of its scan;
+  `crates/siq-stitch/tests/pairs.rs` still distrusts noise alone.
