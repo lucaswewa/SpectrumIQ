@@ -21,6 +21,8 @@ thiserror.workspace = true
 [dev-dependencies]
 serde_json.workspace = true
 siq-datagen = { path = "../../apps/siq-datagen" }
+siq-pyramid = { path = "../siq-pyramid" }
+siq-sim = { path = "../siq-sim" }
 tempfile.workspace = true
 
 [lints]

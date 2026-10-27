@@ -192,8 +192,8 @@ fn one(
     };
     let (pa, pb) = (source.pixels(i)?, source.pixels(j)?);
     let (va, vb) = (
-        pa.sub_view(Crops::rect(crops.a, crops.size))?,
-        pb.sub_view(Crops::rect(crops.b, crops.size))?,
+        pa.view()?.sub_view(Crops::rect(crops.a, crops.size))?,
+        pb.view()?.sub_view(Crops::rect(crops.b, crops.size))?,
     );
     let found = match shading {
         None => registrar.register(va, vb),

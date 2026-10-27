@@ -71,3 +71,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0060](0060-mosaic-navigation-ux.md) | Mosaic navigation UX | Accepted | P7.4 |
 | [0061](0061-pairwise-registration-for-mosaics.md) | Pairwise registration for mosaics (amended in P8.2: trusting by correlation and margin) | Accepted | P8.1 |
 | [0062](0062-global-alignment.md) | Global alignment of a mosaic's tiles | Accepted | P8.2 |
+| [0063](0063-blending-and-out-of-core-compositing.md) | Blending and out-of-core compositing | Accepted | P8.3 |

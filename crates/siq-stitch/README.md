@@ -2,7 +2,7 @@
 
 Post-acquisition stitching (REQ-STI-002, ADR-0013): a scan's tiles placed by their stage poses,
 their overlaps registered pairwise, the placement solved globally, and the mosaic composited
-out of core into OME-Zarr (P8.3).
+out of core into OME-Zarr.
 
 - **The tiles** (`Mosaic::place`) are placed through the calibration: a frame taken at pose `P`
   has its corner at `L·P / binning − size / 2` on the mosaic, whose pixels are the frames', along
@@ -28,18 +28,25 @@ out of core into OME-Zarr (P8.3).
   that disagrees most is rejected while it is over 4 robust standard deviations and a pixel, and
   the rest solved again. Each connected component keeps its tiles' mean where the stage put them;
   a tile without an edge stays at its own. All channels and planes share the reference's solution.
+- **The mosaic** (`composite::composite`, ADR-0063) is written into OME-Zarr a block of 2 × 2
+  chunks at a time, in parallel: each block from the tiles that meet it, found by a grid of cells,
+  each mosaic pixel sampled bilinearly from each tile at its solved corner (or copied, with
+  `integer`), flat-corrected, and weighted by ramps that rise from a tile's edge to 1 at 128 pixels
+  in; then normalised. A block holds its sums and weights and its chunks: `composite::bytes`.
 - **Memory:** at most `threads` pairs are registered at once, on the calling rayon pool, each
   holding at most `bytes_per_pair`.
-- **The pixels** come from a `TileSource`: a dataset's raw frames mapped read-only
-  (`MappedTiles`), or images in memory.
+- **The pixels** come from a `TileSource`: a dataset's raw frames mapped read-only as they are
+  read, at most `capacity` kept mapped, the least recently used let go first (`MappedTiles`), or
+  images in memory.
 
 ## Place in the architecture
 
 - **Layer:** L3 Processing.
 - **Depends on:** `siq-register`, `siq-calib`, `siq-storage`, `siq-types`; `rayon`, `schemars`,
-  `serde`, `thiserror`; `siq-datagen`, `serde_json` and `tempfile` in the tests and the example.
-- **Used by:** the stitch job (P8.4).
-- **Phase:** P8.1; P8.2 added the global solve.
+  `serde`, `thiserror`; `siq-datagen`, `siq-sim`, `siq-pyramid`, `serde_json` and `tempfile` in the
+  tests and the examples.
+- **Used by:** `siq-jobs`' `CompositeJob`, and the stitch job (P8.4).
+- **Phase:** P8.1; P8.2 added the global solve; P8.3 the compositing.
 
 ## API
 
@@ -52,17 +59,24 @@ out of core into OME-Zarr (P8.3).
 | `Edge` | `i`, `j`, `shift` (`j`'s corner from `i`'s, in mosaic pixels), `pce`, `margin`, `ncc`, `overlap_px`, `confident` |
 | `PairOptions` | `min_overlap_px` (32), `min_overlap_share` (0.05), `stage_sigma_um` (5), `reach_sigmas` (4), `min_shared` (0.25), `min_pce` (50), `min_ncc` (0.8), `min_margin` (0.3); `reach_px(px_per_um)` |
 | `pairs::bytes_per_pair(&mosaic, &pairs)` | The most a pair's registration holds, from the largest overlap |
-| `TileSource`, `MappedTiles::open(&reader, keep)` | Where pixels come from: a dataset's frames that `keep` takes, mapped, and their metadata; `[OwnedImage<u16>]` too |
+| `TileSource`, `Pixels` | Where pixels come from, by a tile's index: `pixels(i)` → `Pixels`, borrowed or a mapping held, whose `view()` is the image; `[OwnedImage<u16>]` is one |
+| `MappedTiles::open(&reader, keep)`, `.with_capacity(n)` | A dataset's frames that `keep` takes, and their metadata, mapped as read; at most `n` kept mapped |
+| `composite::composite(&source, &planes, &bounds, &image, shading, &options, &control)` | `planes` written into level 0 of `image`, a block at a time on the calling pool; `control` hears the progress and may stop it |
+| `Bounds::of(&corners, &sizes)` | The box of the tiles at their corners: `Bounds { origin, size }`, in mosaic pixels |
+| `Plane { at, tiles }`, `Placed { source, tile, corner }` | A plane `(t, c, z)` of the image, and its tiles: each the source's index, the tile, and its corner |
+| `CompositeOptions` | `feather_px` (128), `integer` (false), `block_chunks` (2) |
+| `composite::bytes(chunk, &options, threads)` | The most the composite holds |
 | `solve::solve(&mosaic, &edges, &options)` | The tiles' corners that best agree with the trusted edges and the stage: a `Solution` |
 | `Solution` | `positions` (each tile's corner), `edges` (each edge's `Residual`: `residual`, `weight`, `used`), `tiles` (each tile's `TileReport`: `moved_px`, `worst_px`, `component`), `components`, `method`, `rms_px` and `max_px` of the edges used, `solves` |
 | `SolveOptions` | `stage_sigma_um` (5), `edge_sigma_px` (0.25), `huber_k` (1.345), `reject_k` (4), `reject_px` (1), `iterations` (10), `dense_below` (500), `method` (`Dense` or `ConjugateGradient`; by size if `None`) |
-| `StitchError` | No pose, binnings that differ, a tile that isn't there or isn't 16-bit, storage, image views |
+| `StitchError` | No pose, binnings that differ, a tile that isn't there or isn't 16-bit, storage, image views, cancelled |
 
 ## Examples
 
 | Example | What it shows | Run |
 |---|---|---|
 | `pairs_on_dataset` | A `siq-datagen` scan of 5 × 4 tiles of 2048 × 1536 over cells, or a dataset of yours: its pairs registered, those not trusted, and the offsets against the truth and the stage's own error | `cargo run --release -p siq-stitch --example pairs_on_dataset [-- <dataset folder>]` |
+| `composite_dataset` | A `siq-datagen` scan of 4 × 3 tiles of 2048 × 1536 over cells with its ideal mosaic, or a dataset of yours: registered, solved, its flat estimated from its frames, composited as `zarr/stitched.ome.zarr` with its pyramid, and set against the ideal | `cargo run --release -p siq-stitch --example composite_dataset [-- <dataset folder>]` |
 | `solve_on_dataset` | A `siq-datagen` scan of 6 × 5 tiles of 2048 × 1536 over cells, or a dataset of yours: its pairs registered and solved, the edges rejected, and the tiles' placement against the truth and the stage's | `cargo run --release -p siq-stitch --example solve_on_dataset [-- <dataset folder>]` |
 
 On the 16-thread workstation, `pairs_on_dataset` registers the 31 pairs of its 20 tiles in 51 ms,
@@ -70,7 +84,9 @@ every one trusted, within 0.025 pixels RMS of the truth (0.054 at worst), where 
 22.7 pixels RMS off. `solve_on_dataset` places its 30 tiles within 0.058 pixels RMS of the truth
 (0.175 at worst), where the stage was 17.2 RMS and 30.6 at worst; the solve takes 39 µs. Smoke
 mode (`SIQ_SMOKE=1`) makes 3 × 3 tiles of 512 × 384: their 57-pixel strips over sparse cells leave
-a pair untrusted, and the solve places the tiles within 0.087 pixels RMS.
+a pair untrusted, and the solve places the tiles within 0.087 pixels RMS. `composite_dataset`
+composites 30.4 MP in 0.20 s (149 MP/s) and its pyramid in 0.17 s, matching the ideal mosaic at
+35.4 dB once the stage's mean error is taken out.
 
 ## Features
 
@@ -92,7 +108,13 @@ None.
 - `tests/solve.rs`: a `siq-datagen` scan's 24 pairs, two made 15 and 9 pixels wrong, solved within
   0.3 pixels RMS and 1 at worst of the truth (0.071 and 0.142 here), the two rejected; a drift
   ramp of 3.4 pixels removed to 0.12; disconnected columns each kept at their stage mean, a tile
-  alone at its own; the dense and conjugate-gradient solvers within 10⁻⁶ pixels.
+  alone at its own; the dense and conjugate-gradient solvers within 10⁻⁶ pixels;
+- `tests/composite.rs`: a 3 × 3 scan through the simulator's flat, composited at its true corners,
+  against the ideal mosaic at 25 dB at least (28.0 here) and 6 dB over the stage's corners (16.2);
+  two neighbours composited apart, within 0.5 % of each other in their overlap through the flat
+  (0.1 %) and over 2 % without it; whole pixels copied, and uncovered ones 0;
+- `tests/composite_memory.rs`: a 4 × 4 mosaic of 18.2 MB composited on two threads within
+  `composite::bytes`, 5.0 MB at the peak.
 
 ## Limitations
 
@@ -101,6 +123,10 @@ None.
   solver leans on the tile's other sides and its stage prior.
 - **The stage prior is weak, not absent:** it pulls a drifting row's ends toward where the stage
   said, by about a tenth of a pixel over ten tiles.
+- **Bilinear resampling softens** each tile by up to half a pixel's blur; `integer` copies, at
+  half a pixel's error at most.
+- **Feathering, not multi-band blending:** a flat that is off shows as a gentle ramp across the
+  overlap, not a step.
 - **The dense solve is cubic:** 0.78 s a solve at 1960 tiles, against 2 ms by conjugate gradients
   (15 ms at 10 000 tiles), so it stops at 500.
 - **Corners aren't registered** by default: under 5 % of a tile, they add little.

@@ -12,20 +12,25 @@
 //! - **The solution** ([`solve`]) is the tiles' corners that best agree with the trusted edges
 //!   and, weakly, with the stage: weighted least squares over translations, Huber's weights, and
 //!   the edges that disagree still rejected (ADR-0062).
+//! - **The mosaic** ([`composite`]) is written into OME-Zarr a block at a time, each block from the
+//!   tiles that cover it at their solved corners, resampled, flat-corrected and feathered, within a
+//!   few blocks' memory (ADR-0063).
 //! - **The pixels** come from a [`TileSource`]: a dataset's raw frames, mapped read-only, or images
 //!   in memory.
 
 mod tiles;
 
+pub mod composite;
 pub mod pairs;
 pub mod solve;
 
 use siq_storage::{FrameKey, StorageError};
 use siq_types::ImageError;
 
+pub use composite::{Bounds, CompositeOptions, Placed, Plane};
 pub use pairs::{Edge, PairOptions};
 pub use solve::{Solution, SolveOptions};
-pub use tiles::{MappedTiles, Mosaic, Tile, TileSource};
+pub use tiles::{MappedTiles, Mosaic, Pixels, Tile, TileSource};
 
 /// Why a mosaic couldn't be stitched.
 #[derive(Debug, thiserror::Error)]
@@ -48,4 +53,7 @@ pub enum StitchError {
     /// A view didn't fit its image.
     #[error(transparent)]
     Image(#[from] ImageError),
+    /// It was cancelled.
+    #[error("cancelled")]
+    Cancelled,
 }

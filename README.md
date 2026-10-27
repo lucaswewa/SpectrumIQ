@@ -160,7 +160,10 @@ Done so far:
     offset with its confidence (`siq-stitch --example pairs_on_dataset`);
   - P8.2, the global solve: the tiles placed by every trusted edge and, weakly, the stage, with
     outliers rejected; 30 tiles within 0.06 pixels RMS of the truth (`siq-stitch --example
-    solve_on_dataset`).
+    solve_on_dataset`);
+  - P8.3, the compositing: the mosaic written into OME-Zarr a block at a time, each tile
+    resampled at its solved corner, flat-corrected and feathered, within a few blocks' memory, and
+    its pyramid built, as a job (`siq-stitch --example composite_dataset`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

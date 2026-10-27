@@ -16,6 +16,7 @@ serde.workspace = true
 serde_json.workspace = true
 siq-calib = { path = "../siq-calib" }
 siq-pyramid = { path = "../siq-pyramid" }
+siq-stitch = { path = "../siq-stitch" }
 siq-storage = { path = "../siq-storage" }
 siq-telemetry = { path = "../siq-telemetry" }
 siq-types = { path = "../siq-types" }

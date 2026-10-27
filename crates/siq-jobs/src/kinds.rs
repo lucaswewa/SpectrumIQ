@@ -1,16 +1,19 @@
 //! The jobs the service runs, each around a processing crate's work: here because processing
 //! (L3) can't depend on the job system (L4).
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use siq_calib::shading::{Estimator, ShadingRecord, ShadingRegistry};
+use siq_calib::shading::{Estimator, FlatField, ShadingRecord, ShadingRegistry};
 use siq_pyramid::tiles::{DziGeometry, TileAt, TileFormat, TileLut, render};
 use siq_pyramid::{Control, PyramidError, TOP};
+use siq_stitch::composite::{self, Bounds, CompositeOptions, Placed, Plane};
+use siq_stitch::{MappedTiles, Mosaic, StitchError};
 use siq_storage::ometiff::{self, TiffCompression};
-use siq_storage::zarr::{ImageInfo, ZarrImage};
+use siq_storage::zarr::{CHUNK, ChannelInfo, ImageInfo, SampleType, Size5, ZarrImage};
 use siq_storage::{Dataset, DatasetReader, FrameKey, StorageError};
-use siq_types::{ChannelId, ObjectiveId, Roi};
+use siq_types::{Affine2, ChannelId, ObjectiveId, Roi};
 
 use crate::{Job, JobCtx, JobError, JobOutput, Resources};
 
@@ -383,5 +386,223 @@ impl Job for ShadingJob {
         Ok(JobOutput {
             outputs: vec![path.to_string_lossy().replace('\\', "/")],
         })
+    }
+}
+
+/// A dataset's frames composited into one OME-Zarr mosaic at the corners given (ADR-0063), then
+/// its pyramid built: the stitch's last stages, which the stitch job runs after its solve. Each
+/// `(t, c, z)` of the frames given is a plane of the image, in their order.
+pub struct CompositeJob {
+    /// The dataset's folder.
+    pub dataset: PathBuf,
+    /// The image to make, such as `<dataset>/zarr/mosaic.ome.zarr`.
+    pub image: PathBuf,
+    /// Each frame composited, by its key, and its corner on the mosaic.
+    pub corners: Vec<(FrameKey, [f64; 2])>,
+    /// The calibration, sensor pixels a µm: the frames' size on the stage, and the image's.
+    pub l: Affine2,
+    /// The channels' labels, colours and windows, in the image's order.
+    pub channels: Vec<ChannelInfo>,
+    /// The dark level and the flat, if any.
+    pub shading: Option<(f32, FlatField)>,
+    /// How the frames are composited.
+    pub options: CompositeOptions,
+}
+
+/// A part of a job's progress, as a builder's control: from `from`, `share` of the whole.
+struct Part<'a> {
+    ctx: &'a JobCtx,
+    from: f64,
+    share: f64,
+}
+
+impl Control for Part<'_> {
+    fn progress(&self, done: f64) {
+        self.ctx.progress(self.from + self.share * done);
+    }
+
+    fn cancelled(&self) -> bool {
+        self.ctx.cancelled()
+    }
+}
+
+/// The tiles kept mapped while compositing: a few for each thread.
+fn mapped(threads: usize) -> usize {
+    4 * threads.max(1)
+}
+
+impl CompositeJob {
+    /// The image's planes, from the frames' `(t, c, z)`s in order, and their frames' tiles.
+    fn planes(&self, mosaic: &Mosaic) -> (Size5, Vec<Plane>) {
+        let sorted = |pick: fn(&FrameKey) -> u32| {
+            let mut values: Vec<u32> = self.corners.iter().map(|(key, _)| pick(key)).collect();
+            values.sort_unstable();
+            values.dedup();
+            values
+        };
+        let (ts, cs, zs) = (
+            sorted(|key| key.t),
+            sorted(|key| u32::from(key.c)),
+            sorted(|key| key.z),
+        );
+        let rank = |values: &[u32], value: u32| values.partition_point(|&v| v < value) as u64;
+        let mut planes: Vec<Plane> = Vec::new();
+        for (source, ((key, corner), tile)) in self.corners.iter().zip(&mosaic.tiles).enumerate() {
+            let at = (
+                rank(&ts, key.t),
+                rank(&cs, u32::from(key.c)),
+                rank(&zs, key.z),
+            );
+            let placed = Placed {
+                source,
+                tile: *tile,
+                corner: *corner,
+            };
+            match planes.iter_mut().find(|plane| plane.at == at) {
+                Some(plane) => plane.tiles.push(placed),
+                None => planes.push(Plane {
+                    at,
+                    tiles: vec![placed],
+                }),
+            }
+        }
+        let size = |values: &[u32]| values.len() as u64;
+        let counts = Size5 {
+            t: size(&ts),
+            c: size(&cs),
+            z: size(&zs),
+            y: 0,
+            x: 0,
+        };
+        (counts, planes)
+    }
+}
+
+impl Job for CompositeJob {
+    fn kind(&self) -> &str {
+        "composite"
+    }
+
+    fn params(&self) -> serde_json::Value {
+        serde_json::json!({ "image": self.image, "frames": self.corners.len(), "options": self.options })
+    }
+
+    fn estimate(&self) -> Resources {
+        let threads = std::thread::available_parallelism().map_or(1, |n| n.get() / 2);
+        let frame = Dataset::open(&self.dataset)
+            .and_then(|dataset| DatasetReader::open(&dataset))
+            .ok()
+            .and_then(|reader| reader.frames().first().map(|frame| frame.sidecar.bytes))
+            .unwrap_or(0);
+        // The composite, then the pyramid, whose builder holds five u16 chunks a thread and as
+        // much again for the codec: the larger of the two.
+        let composing =
+            composite::bytes(CHUNK, &self.options, threads) + mapped(threads) as u64 * frame;
+        let building = threads as u64 * 5 * CHUNK * CHUNK * 2 * 2;
+        let ram = composing.max(building);
+        Resources {
+            ram,
+            vram: 0,
+            gpu: false,
+            threads,
+        }
+    }
+
+    fn run(&mut self, ctx: &JobCtx) -> Result<JobOutput, JobError> {
+        let dataset = Dataset::open(&self.dataset).map_err(JobError::failed)?;
+        let reader = DatasetReader::open(&dataset).map_err(JobError::failed)?;
+        // The frames in the order given, each by its key.
+        let order: HashMap<FrameKey, usize> = self
+            .corners
+            .iter()
+            .enumerate()
+            .map(|(k, (key, _))| (*key, k))
+            .collect();
+        let (source, mut frames) =
+            MappedTiles::open(&reader, |key| order.contains_key(key)).map_err(JobError::failed)?;
+        let source = source.with_capacity(mapped(ctx.pool().current_num_threads()));
+        if frames.len() != self.corners.len() {
+            return Err(JobError::failed(
+                "a frame to composite isn't in the dataset",
+            ));
+        }
+        frames.sort_by_key(|(key, _)| order[key]);
+        let mosaic = Mosaic::place(&frames, &self.l).map_err(JobError::failed)?;
+        let (counts, planes) = self.planes(&mosaic);
+        let corners: Vec<[f64; 2]> = self.corners.iter().map(|(_, corner)| *corner).collect();
+        let sizes: Vec<[u32; 2]> = mosaic.tiles.iter().map(|tile| tile.size).collect();
+        let bounds = Bounds::of(&corners, &sizes);
+        // The image's pixel on the stage: a mosaic pixel `m` shows the stage at `L⁻¹·m·binning`.
+        let binning = f64::from(mosaic.tiles.first().map_or(1, |tile| tile.binning));
+        let inverse = self
+            .l
+            .invert()
+            .ok_or_else(|| JobError::failed("the calibration is singular"))?;
+        let first = bounds.origin.map(|at| (at as f64 + 0.5) * binning);
+        let [x, y] = inverse.apply_vector(first);
+        let pixel = 1.0 / mosaic.px_per_um;
+        let info = ImageInfo {
+            name: self
+                .image
+                .file_name()
+                .and_then(|name| name.to_str())
+                .and_then(|name| name.split('.').next())
+                .unwrap_or("mosaic")
+                .to_owned(),
+            sample: SampleType::U16,
+            size: Size5 {
+                y: bounds.size[1],
+                x: bounds.size[0],
+                ..counts
+            },
+            levels: 1,
+            chunk: CHUNK,
+            pixel_size: [1.0, pixel, pixel],
+            origin: [0.0, y, x],
+            channels: self.channels.clone(),
+        };
+        let mut image = ZarrImage::create(&self.image, info).map_err(JobError::failed)?;
+        ctx.log(format!(
+            "compositing {} frames into {} × {} pixels, {} plane(s)",
+            self.corners.len(),
+            bounds.size[0],
+            bounds.size[1],
+            planes.len()
+        ));
+        let shading = self.shading.as_ref().map(|(dark, flat)| (*dark, flat));
+        let part = Part {
+            ctx,
+            from: 0.0,
+            share: 0.8,
+        };
+        ctx.pool()
+            .install(|| {
+                composite::composite(
+                    &source,
+                    &planes,
+                    &bounds,
+                    &image,
+                    shading,
+                    &self.options,
+                    &part,
+                )
+            })
+            .map_err(|error| match error {
+                StitchError::Cancelled => JobError::Cancelled,
+                other => JobError::failed(other),
+            })?;
+        let part = Part {
+            ctx,
+            from: 0.8,
+            share: 0.2,
+        };
+        ctx.pool()
+            .install(|| siq_pyramid::build(&mut image, TOP, &part))
+            .map_err(|error| match error {
+                PyramidError::Cancelled => JobError::Cancelled,
+                PyramidError::Storage(error) => JobError::failed(error),
+            })?;
+        ctx.log(format!("{} levels built", image.info().levels));
+        Ok(output(ctx, &self.image))
     }
 }

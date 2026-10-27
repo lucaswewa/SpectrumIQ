@@ -1,7 +1,10 @@
 //! The tiles of a mosaic, where their stage poses put them, which overlap, and where their pixels
 //! come from (ADR-0061).
 
-use siq_storage::{DatasetReader, FrameKey, MappedFrame};
+use std::collections::{HashMap, VecDeque};
+use std::sync::{Arc, Mutex, PoisonError};
+
+use siq_storage::{DatasetReader, FrameKey, MappedFrame, RawFrame};
 use siq_types::{Affine2, FrameMeta, ImageView, OwnedImage};
 
 use crate::StitchError;
@@ -112,47 +115,106 @@ pub(crate) fn overlap(a: &Tile, b: &Tile) -> Option<([f64; 2], [f64; 2])> {
 /// Where the tiles' pixels come from, by their index in the mosaic.
 pub trait TileSource: Sync {
     /// Tile `index`'s pixels.
-    fn pixels(&self, index: usize) -> Result<ImageView<'_, u16>, StitchError>;
+    fn pixels(&self, index: usize) -> Result<Pixels<'_>, StitchError>;
 }
 
-/// A dataset's frames, mapped read-only.
+/// A tile's pixels: borrowed, or a mapping held for as long as they are used.
+pub enum Pixels<'a> {
+    /// An image the source holds.
+    View(ImageView<'a, u16>),
+    /// A frame mapped, which the source may since have let go.
+    Mapped(usize, Arc<MappedFrame>),
+}
+
+impl Pixels<'_> {
+    /// The pixels, as an image.
+    pub fn view(&self) -> Result<ImageView<'_, u16>, StitchError> {
+        match self {
+            Self::View(view) => Ok(*view),
+            Self::Mapped(index, frame) => frame.image_u16().ok_or(StitchError::NotWords(*index)),
+        }
+    }
+}
+
+/// The frames mapped, by index, and the order they were last used in, oldest first.
+type Held = (VecDeque<usize>, HashMap<usize, Arc<MappedFrame>>);
+
+/// A dataset's frames, mapped read-only as they are asked for: at most `capacity` kept mapped,
+/// the least recently used let go first, so that a large mosaic's working set is the tiles its
+/// blocks read.
 pub struct MappedTiles {
-    frames: Vec<MappedFrame>,
+    frames: Vec<RawFrame>,
+    capacity: usize,
+    mapped: Mutex<Held>,
 }
 
 impl MappedTiles {
-    /// The frames of `reader` that `keep` takes, mapped, in key order, and their metadata.
+    /// The frames of `reader` that `keep` takes, in key order, and their metadata; every one may
+    /// stay mapped.
     pub fn open(
         reader: &DatasetReader,
         keep: impl Fn(&FrameKey) -> bool,
     ) -> Result<(Self, Vec<(FrameKey, FrameMeta)>), StitchError> {
-        let kept: Vec<_> = reader
+        let frames: Vec<RawFrame> = reader
             .frames()
             .iter()
             .filter(|frame| keep(&frame.sidecar.key))
+            .cloned()
             .collect();
-        let frames = kept
-            .iter()
-            .map(|frame| frame.map())
-            .collect::<Result<Vec<_>, _>>()?;
-        let metas = kept
+        let metas = frames
             .iter()
             .map(|frame| (frame.sidecar.key, frame.sidecar.meta))
             .collect();
-        Ok((Self { frames }, metas))
+        let mapped = Mutex::new((VecDeque::new(), HashMap::new()));
+        let capacity = usize::MAX;
+        Ok((
+            Self {
+                frames,
+                capacity,
+                mapped,
+            },
+            metas,
+        ))
+    }
+
+    /// The same, keeping at most `capacity` frames mapped, and at least one.
+    pub fn with_capacity(self, capacity: usize) -> Self {
+        Self {
+            capacity: capacity.max(1),
+            ..self
+        }
     }
 }
 
 impl TileSource for MappedTiles {
-    fn pixels(&self, index: usize) -> Result<ImageView<'_, u16>, StitchError> {
+    fn pixels(&self, index: usize) -> Result<Pixels<'_>, StitchError> {
         let frame = self.frames.get(index).ok_or(StitchError::NoTile(index))?;
-        frame.image_u16().ok_or(StitchError::NotWords(index))
+        let mut guard = self.mapped.lock().unwrap_or_else(PoisonError::into_inner);
+        let (order, held) = &mut *guard;
+        if let Some(mapped) = held.get(&index) {
+            let mapped = Arc::clone(mapped);
+            order.retain(|&kept| kept != index);
+            order.push_back(index);
+            return Ok(Pixels::Mapped(index, mapped));
+        }
+        let mapped = Arc::new(frame.map()?);
+        held.insert(index, Arc::clone(&mapped));
+        order.push_back(index);
+        while held.len() > self.capacity {
+            let Some(oldest) = order.pop_front() else {
+                break;
+            };
+            held.remove(&oldest);
+        }
+        Ok(Pixels::Mapped(index, mapped))
     }
 }
 
 /// Images in memory, as tiles: synthetic mosaics, and the tests'.
 impl TileSource for [OwnedImage<u16>] {
-    fn pixels(&self, index: usize) -> Result<ImageView<'_, u16>, StitchError> {
-        Ok(self.get(index).ok_or(StitchError::NoTile(index))?.view())
+    fn pixels(&self, index: usize) -> Result<Pixels<'_>, StitchError> {
+        Ok(Pixels::View(
+            self.get(index).ok_or(StitchError::NoTile(index))?.view(),
+        ))
     }
 }

@@ -1,5 +1,6 @@
-//! The jobs the service runs (ADR-0043 to ADR-0046): a dataset's pyramid, built through the
-//! scheduler, then its DZI and OME-TIFF exports, each recorded. REQ-DATA-003, REQ-DATA-004,
+//! The jobs the service runs (ADR-0043 to ADR-0046, ADR-0063): a dataset's pyramid, built through
+//! the scheduler, then its DZI and OME-TIFF exports, each recorded; and a scan's frames composited
+//! into a mosaic with its pyramid. REQ-DATA-003, REQ-DATA-004,
 //! REQ-DATA-005.
 
 use std::time::Duration;
@@ -7,10 +8,11 @@ use std::time::Duration;
 use siq_jobs::kinds::{DziExportJob, OmeTiffExportJob, PyramidJob};
 use siq_jobs::*;
 use siq_pyramid::tiles::{DziGeometry, TileFormat};
+use siq_stitch::CompositeOptions;
 use siq_storage::ometiff::TiffCompression;
 use siq_storage::zarr::{ChannelInfo, ImageInfo, SampleType, Size5, ZarrImage};
-use siq_storage::{Dataset, DatasetKind, NewDataset, ProcessingState};
-use siq_types::{OwnedImage, RectPx};
+use siq_storage::{Dataset, DatasetKind, FrameKey, NewDataset, ProcessingState};
+use siq_types::{Affine2, OwnedImage, RectPx};
 
 #[test]
 fn a_dataset_s_pyramid_is_built_as_a_job_and_recorded() {
@@ -159,4 +161,91 @@ fn a_dataset_s_pyramid_is_built_as_a_job_and_recorded() {
             ["exports/snap.ome.tif".to_owned()].as_slice()
         )
     );
+}
+
+#[test]
+fn a_scan_s_frames_are_composited_into_a_mosaic_as_a_job_and_recorded() {
+    // A `siq-datagen` scan of 2 × 2 tiles of 256 × 192, each at its true corner.
+    let root = tempfile::tempdir().unwrap();
+    let args = siq_datagen::tilescan::TileScanArgs {
+        world: "grains".to_owned(),
+        columns: 2,
+        rows: 2,
+        width: 256,
+        height: 192,
+        overlap: 0.2,
+        stage_error: 2.0,
+        no_mosaic: true,
+    };
+    let out = siq_datagen::Output {
+        data_root: root.path().to_owned(),
+        smoke: false,
+        seed: 2,
+    };
+    let dataset = Dataset::open(siq_datagen::tilescan::tilescan(&args, &out).unwrap()).unwrap();
+    let text = std::fs::read_to_string(dataset.path().join("truth/tilescan.json")).unwrap();
+    let truth: serde_json::Value = serde_json::from_str(&text).unwrap();
+    let pixel = 0.376;
+    let corners = (0..4u32)
+        .map(|p| {
+            let at =
+                |axis: usize| truth["tiles"][p as usize]["true"][axis].as_f64().unwrap() / pixel;
+            let key = FrameKey {
+                t: 0,
+                c: 0,
+                z: 0,
+                p,
+            };
+            (key, [at(0) - 128.0, at(1) - 96.0])
+        })
+        .collect();
+    let path = dataset.zarr_dir().join("mosaic.ome.zarr");
+    let job = kinds::CompositeJob {
+        dataset: dataset.path().to_owned(),
+        image: path.clone(),
+        corners,
+        l: Affine2::scale(1.0 / pixel, 1.0 / pixel),
+        channels: vec![ChannelInfo {
+            label: "frame".to_owned(),
+            colour: [255; 3],
+            window: (0.0, 16_383.0),
+        }],
+        shading: None,
+        options: CompositeOptions::default(),
+    };
+    assert!(job.estimate().ram > 0);
+    let jobs = Scheduler::new(SchedulerConfig::new(14_000_000_000, 0), None).unwrap();
+    let id = jobs.submit(
+        Box::new(job),
+        Priority::Background,
+        Some(dataset.path().to_owned()),
+    );
+    let info = jobs.wait(id, Duration::from_secs(60)).unwrap();
+    assert_eq!(
+        (info.state, info.progress),
+        (JobState::Done, 1.0),
+        "{info:?}"
+    );
+
+    // Two tiles and their overlap a side, the stage's error aside, with its pyramid.
+    let image = ZarrImage::open(&path).unwrap();
+    let size = image.info().size;
+    let across = (256.0 * 1.8) as u64;
+    assert!(
+        size.x.abs_diff(across) <= 12 && size.y.abs_diff((192.0 * 1.8) as u64) <= 12,
+        "{size:?}"
+    );
+    assert_eq!(image.info().levels, 2);
+    assert!((image.info().pixel_size[2] - pixel).abs() < 1e-12);
+    let middle = image
+        .read_region::<u16>(0, (0, 0, 0), RectPx::new(200, 150, 32, 32))
+        .unwrap();
+    assert!(middle.pixels.iter().all(|&v| v > 0));
+    let reopened = Dataset::open(dataset.path()).unwrap();
+    let record = &reopened.manifest().history[0];
+    assert_eq!(
+        (record.kind.as_str(), record.state),
+        ("composite", ProcessingState::Done)
+    );
+    assert_eq!(record.outputs, ["zarr/mosaic.ome.zarr"]);
 }
