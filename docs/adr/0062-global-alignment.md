@@ -68,3 +68,36 @@
   the outliers rejected; a drift ramp removed; disconnected components at their stage means; the
   two solvers within 10⁻⁶ pixels.
 - `solve_on_dataset`.
+
+## Amendment (P8.5, 2026-10-27): weighing the edges by their correlation, and the accuracy suite
+
+- **Each edge weighs `ncc / (1 − ncc) / 19` of `1 / σ_edge²`**, its correlation held within 0.5 and
+  0.95: 1 at 0.95 and above, a fifth at 0.8. Huber's weights temper it as before.
+- **Why:** two noisy views of the same content correlate as signal / (signal + noise), and an
+  offset's variance goes as noise / signal, so as `(1 − ncc) / ncc`. With equal weights, a weak
+  false match won where a tile had only two edges:
+  - in 2 of 30 scans of 3 × 3 tiles of 512 × 384 over grains, a tile's true edge (a correlation of
+    0.995) and its false one (0.806, 18 pixels off) shared their cycle's misclosure evenly;
+  - the stage's prior settled it, toward the false one, which lay nearer where the stage said;
+  - so the true edge was rejected, and the tiles were placed at 5.6 and 4.3 px RMS.
+
+  Weighed by correlation, the same scans were placed within 0.061 and 0.118 px RMS. Over 40 seeds
+  the mean was 0.104, the worst 0.35: the narrow strip of ADR-0061's amendment.
+- **Why not more:** above 0.95, a correlation no longer tells a better match. A false edge 9 pixels
+  off at 0.994 outvoted two true ones at 0.967 and 0.973 when it weighed five times as much.
+  Held at 0.95, true edges count alike, and the majority wins.
+- **Huber's k stays at 1.345.** With every fifth edge 0.8 pixels wrong, under the rejection's
+  pixel, k from 0.5 to unbounded placed the tiles within 0.334 to 0.359 px RMS. 1.345 is the
+  usual 95 % efficiency, and in the middle of them.
+- **The accuracy suite** (`tests/accuracy.rs`) covers 18 scans of 2048 × 1536 tiles:
+  - grains and cells, 3 × 3, 5 × 5 and 10 × 10 at 15 % and 5 µm;
+  - each of a 5 × 5 scan's overlap (10 and 20 %), stage error (2 and 10 µm) and light (a tenth and
+    a fiftieth) either way.
+
+  Every scan was placed within the targets. All were within 0.035 px RMS and 0.067 at worst but
+  one: sparse cells in a fiftieth of the light, at 0.115 RMS and 0.289 at worst, 35 of its 40
+  pairs trusted. The stage alone was 6.5 to 37.5 px RMS. CI runs three small scans, the matrix
+  runs in release in 48 s.
+- **Verification:** `crates/siq-stitch/tests/solve.rs`:
+  `where_a_tile_s_two_edges_disagree_the_better_match_wins`; `crates/siq-stitch/tests/accuracy.rs`;
+  `tune_stitch`.

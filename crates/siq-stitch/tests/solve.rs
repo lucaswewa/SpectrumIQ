@@ -1,6 +1,6 @@
 //! Global alignment (ADR-0062): a `siq-datagen` scan's pairs, with outlier edges injected, solved
 //! within the ground truth's 0.3 px RMS and 1 px at worst, the outliers rejected; a stage's drift
-//! ramp removed; disconnected components each kept at their stage positions; and the dense and
+//! ramp removed; a tile's true edge kept over a false one by their correlations; disconnected components each kept at their stage positions; and the dense and
 //! conjugate-gradient solvers agreeing. REQ-STI-002, REQ-STI-004.
 
 use serde_json::Value;
@@ -101,6 +101,7 @@ fn a_scan_s_pairs_solve_to_its_truth_with_outliers_rejected() {
         height: 384,
         overlap: 0.2,
         stage_error: 5.0,
+        light: 1.0,
         no_mosaic: true,
     };
     let out = Output {
@@ -173,6 +174,31 @@ fn a_drift_ramp_of_the_stage_is_removed() {
         stage_worst > 3.0 && worst < 0.2,
         "{worst} from {stage_worst}"
     );
+}
+
+#[test]
+fn where_a_tile_s_two_edges_disagree_the_better_match_wins() {
+    // A 3 × 3 grid whose top right tile the stage missed by 25 pixels: its edge to the left is a
+    // strong true match, and its edge below a weak false one, where the stage said it was.
+    let mosaic = grid(3, 3);
+    let mut truth: Vec<[f64; 2]> = mosaic.tiles.iter().map(|tile| tile.nominal).collect();
+    truth[2][1] -= 25.0;
+    let mut edges = edges(&mosaic, &truth, 0.05);
+    for edge in &mut edges {
+        match (edge.i, edge.j) {
+            (1, 2) => edge.ncc = 0.995,
+            (2, 5) => {
+                edge.shift = [0, 1].map(|axis| truth[5][axis] - mosaic.tiles[2].nominal[axis]);
+                edge.ncc = 0.81;
+            }
+            _ => {}
+        }
+    }
+    let solution = solve::solve(&mosaic, &edges, &SolveOptions::default());
+    let false_match = edges.iter().position(|edge| (edge.i, edge.j) == (2, 5));
+    assert!(!solution.edges[false_match.unwrap()].used);
+    let (worst, _) = misplaced(&solution.positions, &truth);
+    assert!(worst < 0.2, "{worst} px at worst");
 }
 
 #[test]

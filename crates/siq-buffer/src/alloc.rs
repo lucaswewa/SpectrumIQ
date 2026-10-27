@@ -7,14 +7,17 @@ use std::alloc::{Layout, alloc_zeroed, dealloc};
 use std::io;
 use std::ptr::{NonNull, null};
 use std::sync::{Mutex, PoisonError};
+use std::time::Duration;
 
+use windows_sys::Win32::Foundation::FILETIME;
 use windows_sys::Win32::System::Memory::{
     MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE, VirtualAlloc, VirtualFree, VirtualLock,
     VirtualUnlock,
 };
 use windows_sys::Win32::System::ProcessStatus::{K32GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
 use windows_sys::Win32::System::Threading::{
-    GetCurrentProcess, GetProcessWorkingSetSize, SetProcessWorkingSetSize,
+    GetCurrentProcess, GetProcessIoCounters, GetProcessTimes, GetProcessWorkingSetSize,
+    IO_COUNTERS, SetProcessWorkingSetSize,
 };
 
 /// The boundary every slot starts on, and the unit its size rounds up to: a page. It also suits
@@ -191,6 +194,43 @@ pub fn process_memory() -> io::Result<ProcessMemory> {
         working_set: counters.WorkingSetSize,
         peak_working_set: counters.PeakWorkingSetSize,
         private: counters.PagefileUsage,
+    })
+}
+
+/// The process's work so far: its processors' time, and what it read and wrote by calls.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ProcessUsage {
+    /// The time its threads have run, in user and kernel mode.
+    pub cpu: Duration,
+    /// The bytes it has read by calls such as `ReadFile`: a mapped file's pages, faulted in, are
+    /// not among them.
+    pub read_bytes: u64,
+    /// The bytes it has written by calls.
+    pub written_bytes: u64,
+}
+
+/// The process's work so far.
+pub fn process_usage() -> io::Result<ProcessUsage> {
+    let mut times = [FILETIME::default(); 4];
+    let [created, exited, kernel, user] = &mut times;
+    // SAFETY: the pseudo-handle of the current process, and four valid out-pointers.
+    let ok = unsafe { GetProcessTimes(GetCurrentProcess(), created, exited, kernel, user) };
+    if ok == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    let mut counters = IO_COUNTERS::default();
+    // SAFETY: the pseudo-handle of the current process, and a struct to fill.
+    let ok = unsafe { GetProcessIoCounters(GetCurrentProcess(), &mut counters) };
+    if ok == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    // A FILETIME counts 100 ns.
+    let ticks =
+        |time: &FILETIME| (u64::from(time.dwHighDateTime) << 32) | u64::from(time.dwLowDateTime);
+    Ok(ProcessUsage {
+        cpu: Duration::from_nanos((ticks(&times[2]) + ticks(&times[3])) * 100),
+        read_bytes: counters.ReadTransferCount,
+        written_bytes: counters.WriteTransferCount,
     })
 }
 

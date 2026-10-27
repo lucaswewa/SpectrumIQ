@@ -46,6 +46,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 height,
                 overlap: 0.15,
                 stage_error: 5.0,
+                light: 1.0,
                 no_mosaic: true,
             };
             let out = Output {
@@ -83,7 +84,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let options = PairOptions::default();
     let found = mosaic.overlaps(options.min_overlap_px, options.min_overlap_share);
     let threads = rayon::current_num_threads();
-    let each = pairs::bytes_per_pair(&mosaic, &found);
+    let each = pairs::bytes_per_pair(&mosaic, &found, &options);
     let began = Instant::now();
     let edges = pairs::register(&source, &mosaic, &found, None, &options, threads)?;
     let trusted: Vec<_> = edges.iter().filter(|edge| edge.confident).collect();

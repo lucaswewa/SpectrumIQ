@@ -13,7 +13,8 @@ priority, on threads of below-normal priority, and recorded in their dataset's m
 - **Used by:** `siq-server` (the `jobs` Thing); the jobs of P4.4 and later.
 - **Phase:** P4.3; P4.4 added `kinds::PyramidJob`, P4.5 `kinds::DziExportJob`, P4.6
   `kinds::OmeTiffExportJob`, P4.7 `kinds::ZarrFromRawJob`, P5.3 `kinds::ShadingJob`, P8.3
-  `kinds::CompositeJob`, and P8.4 `kinds::StitchJob` and a job's results.
+  `kinds::CompositeJob`, P8.4 `kinds::StitchJob` and a job's results, and P8.5 the 500 MP
+  benchmark.
 
 ## API
 
@@ -45,8 +46,14 @@ current thread's pseudo-handle, with its `SAFETY` comments.
 | `export_dzi` | A synthetic dataset's pyramid, then its DZI export, through the scheduler, and their records | `cargo run --release -p siq-jobs --example export_dzi` |
 | `export_ometiff` | A synthetic two-channel dataset's pyramid, then its OME-TIFF export, through the scheduler; `--out <folder>` keeps it, to open in Fiji or QuPath | `cargo run --release -p siq-jobs --example export_ometiff` |
 | `estimate_flat` | A `siq-datagen` tile scan of 8 × 6 tiles of 2048 × 1536, with the simulator's vignetting, through the shading job: the flat found against the vignetting, and the seams before and after | `cargo run --release -p siq-jobs --example estimate_flat [-- --out <folder>]` |
+| `bench_stitch_500mp` | The 500 MP benchmark (ADR-0064, amended in P8.5): `siq-datagen`'s 8 × 7 tiles of 4096 × 3072 over cells, their flat estimated, then the stitch job within the 14 GB budget; each stage's wall and processors' time, peak working set and private bytes, and bytes written, and the tiles against the truth; it fails outside the targets | `cargo run --release -p siq-jobs --example bench_stitch_500mp [-- --out <folder>] [--world grains]` |
 
 Every example also runs in smoke mode (`SIQ_SMOKE=1`) in `cargo xtask ci`.
+
+On the 16-thread workstation, `bench_stitch_500mp` stitches its 535 MP in 7.8 s from the flat to
+the pyramid, on the jobs' 8 threads, its working set at most 1.29 GB with the mapped tiles, and
+places the tiles within 0.016 px RMS of the truth. Its stages are told by the job's progress and
+its message, `building the pyramid`, which the composite job now logs as its pyramid begins.
 
 ## Features
 

@@ -166,7 +166,11 @@ Done so far:
     its pyramid built, as a job (`siq-stitch --example composite_dataset`);
   - P8.4, the stitch job: a tile scan stitched by itself when it finishes, or on request, its QA
     report and measures kept with the dataset; the Jobs page, Stitch… on the Datasets page, and the
-    viewer's tile and residual overlays (`examples/python/stitch_dataset.py`).
+    viewer's tile and residual overlays (`examples/python/stitch_dataset.py`);
+  - P8.5, validation and benchmarks: an accuracy suite over generated scans of different sizes,
+    overlaps, stage errors, light and specimens, every one within 0.3 pixels RMS of the truth; the
+    defaults tuned; and 535 MP stitched in 7.8 s from its flat to its pyramid, within 1.3 GB
+    (`siq-jobs --example bench_stitch_500mp`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

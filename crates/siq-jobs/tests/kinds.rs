@@ -175,6 +175,7 @@ fn a_scan_s_frames_are_composited_into_a_mosaic_as_a_job_and_recorded() {
         height: 192,
         overlap: 0.2,
         stage_error: 2.0,
+        light: 1.0,
         no_mosaic: true,
     };
     let out = siq_datagen::Output {

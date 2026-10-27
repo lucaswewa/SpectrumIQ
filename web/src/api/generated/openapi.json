@@ -11475,6 +11475,7 @@
                       "min_overlap_share": 0.05,
                       "stage_sigma_um": 5.0,
                       "reach_sigmas": 4.0,
+                      "search_px": 1024,
                       "min_shared": 0.25,
                       "min_pce": 50.0,
                       "min_ncc": 0.8,
@@ -11501,6 +11502,12 @@
                         "description": "How far the search reaches each way, in standard deviations of a pair's offset.",
                         "default": 4.0,
                         "type": "number"
+                      },
+                      "search_px": {
+                        "description": "The longest side the search correlates at once, in pixels: a larger overlap is searched\nshrunk by the factor that brings it to this, then refined at full resolution in windows\nof it.",
+                        "default": 1024,
+                        "type": "integer",
+                        "minimum": 0
                       },
                       "min_shared": {
                         "description": "The least share of the overlap that a registration's shift may leave in common: a match in\na sliver is chance.",
@@ -11545,7 +11552,7 @@
                         "type": "number"
                       },
                       "edge_sigma_px": {
-                        "description": "An edge's uncertainty per axis, in mosaic pixels: the least of its robust spread.",
+                        "description": "An edge's uncertainty per axis at a correlation of 0.95, in mosaic pixels: the least of\nits robust spread.",
                         "default": 0.25,
                         "type": "number"
                       },

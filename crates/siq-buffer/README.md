@@ -17,12 +17,14 @@ No allocation and no copy happen on the frame path. The designs are in
 
 - **Layer:** L1 Core.
 - **Depends on:** `siq-types` (`FrameMeta`, image views, `Clock`), `siq-telemetry` (metrics),
-  `windows-sys` (`VirtualAlloc`, `VirtualLock`, the working set), `thiserror`.
+  `windows-sys` (`VirtualAlloc`, `VirtualLock`, the working set, the process's counters),
+  `thiserror`.
 - **Used by:**
   - P1.7's simulated camera;
   - P2.1's acquisition engine;
-  - P10.1's Euresys driver.
-- **Phases:** P1.1 (the pool), P1.2 (the fan-out).
+  - P10.1's Euresys driver;
+  - `siq-server`'s memory endpoint, and `siq-jobs`' `bench_stitch_500mp`.
+- **Phases:** P1.1 (the pool), P1.2 (the fan-out); P8.5 added the process's time and bytes.
 
 ## API
 
@@ -38,6 +40,7 @@ No allocation and no copy happen on the frame path. The designs are in
 | `stats()` → `PoolStats` | Free, filling, leased, and the high-water mark |
 | `working_set()` | The process's minimum and maximum working set |
 | `process_memory()` → `ProcessMemory` | The process's working set, its peak, and its private bytes (since P2.4, for `/api/siq/system/memory`) |
+| `process_usage()` → `ProcessUsage` | The process's processors' time, user and kernel, and the bytes it has read and written by calls; a mapped file's pages aren't among them (since P8.5, for `bench_stitch_500mp`) |
 
 With a registry, the pool reports `<name>.free_slots`, `<name>.in_use_high_water` and
 `<name>.lease_ms`.
@@ -82,7 +85,7 @@ None.
 
 ## Testing
 
-`cargo test -p siq-buffer` runs six integration-test binaries:
+`cargo test -p siq-buffer` runs seven integration-test binaries:
 
 | Binary | What |
 |---|---|
@@ -92,6 +95,7 @@ None.
 | `fanout` | Each policy, the filter, unsubscribing with frames in flight, closing, waking threads and async consumers, and a 3000-frame soak with two slow consumers and a lossless one |
 | `no_alloc` | A counting global allocator, which checks itself, sees no allocation in 1000 steady-state pool cycles with metrics on, then in 1000 fan-out cycles through all three policies. It is the test files' one `unsafe` exception, needed for an allocator |
 | `windows_locked` | Real `VirtualLock`, and the working set raised then restored |
+| `process` | The process's processors' time and bytes written grow with a quarter second's arithmetic and 8 MB written; its memory read |
 
 **Miri** could check the Heap backend's unsafe code:
 `cargo +nightly miri test -p siq-buffer --test pool --test state_machine`. It hasn't been run yet,

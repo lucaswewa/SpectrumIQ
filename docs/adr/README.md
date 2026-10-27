@@ -69,7 +69,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0058](0058-wgpu-usage.md) | wgpu usage: backends, buffers and textures, limits, and threading | Accepted | P7.1 |
 | [0059](0059-live-canvas-design.md) | The live canvas: format, paging, blending, and painting policy (amended in P7.3: the viewport, its stream, and the Thing) | Accepted | P7.2 |
 | [0060](0060-mosaic-navigation-ux.md) | Mosaic navigation UX | Accepted | P7.4 |
-| [0061](0061-pairwise-registration-for-mosaics.md) | Pairwise registration for mosaics (amended in P8.2: trusting by correlation and margin) | Accepted | P8.1 |
-| [0062](0062-global-alignment.md) | Global alignment of a mosaic's tiles | Accepted | P8.2 |
-| [0063](0063-blending-and-out-of-core-compositing.md) | Blending and out-of-core compositing | Accepted | P8.3 |
-| [0064](0064-stitch-qa-reprocessing-and-provenance.md) | Stitch QA, re-processing, and provenance | Accepted | P8.4 |
+| [0061](0061-pairwise-registration-for-mosaics.md) | Pairwise registration for mosaics (amended in P8.2: trusting by correlation and margin; in P8.5: the search's size, and narrow overlaps) | Accepted | P8.1 |
+| [0062](0062-global-alignment.md) | Global alignment of a mosaic's tiles (amended in P8.5: edges weighed by their correlation, and the accuracy suite) | Accepted | P8.2 |
+| [0063](0063-blending-and-out-of-core-compositing.md) | Blending and out-of-core compositing (amended in P8.5: the feather, measured) | Accepted | P8.3 |
+| [0064](0064-stitch-qa-reprocessing-and-provenance.md) | Stitch QA, re-processing, and provenance (amended in P8.5: the 500 MP benchmark, and its targets) | Accepted | P8.4 |

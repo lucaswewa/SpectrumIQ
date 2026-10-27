@@ -5444,6 +5444,7 @@ export interface components {
                  *       "min_overlap_share": 0.05,
                  *       "stage_sigma_um": 5,
                  *       "reach_sigmas": 4,
+                 *       "search_px": 1024,
                  *       "min_shared": 0.25,
                  *       "min_pce": 50,
                  *       "min_ncc": 0.8,
@@ -5472,6 +5473,13 @@ export interface components {
                      * @default 4
                      */
                     reach_sigmas?: number;
+                    /**
+                     * @description The longest side the search correlates at once, in pixels: a larger overlap is searched
+                     *     shrunk by the factor that brings it to this, then refined at full resolution in windows
+                     *     of it.
+                     * @default 1024
+                     */
+                    search_px?: number;
                     /**
                      * @description The least share of the overlap that a registration's shift may leave in common: a match in
                      *     a sliver is chance.
@@ -5516,7 +5524,8 @@ export interface components {
                      */
                     stage_sigma_um?: number;
                     /**
-                     * @description An edge's uncertainty per axis, in mosaic pixels: the least of its robust spread.
+                     * @description An edge's uncertainty per axis at a correlation of 0.95, in mosaic pixels: the least of
+                     *     its robust spread.
                      * @default 0.25
                      */
                     edge_sigma_px?: number;

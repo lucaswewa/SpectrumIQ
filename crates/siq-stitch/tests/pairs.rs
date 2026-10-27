@@ -102,6 +102,7 @@ fn scan(root: &std::path::Path, world: &str, columns: u32, rows: u32) -> (Datase
         height: 384,
         overlap: 0.2,
         stage_error: 5.0,
+        light: 1.0,
         no_mosaic: true,
     };
     let out = Output {

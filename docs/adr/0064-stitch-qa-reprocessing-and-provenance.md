@@ -79,3 +79,34 @@
 - `web/tests/unit/jobs/JobsPage.spec.ts`: the jobs running and waiting, Cancel, auto-stitch, and
   the stitch options dialog; `web/tests/unit/overlay/overlay.spec.ts`: a shape's tone.
 - `examples/python/stitch_dataset.py`.
+
+## Amendment (P8.5, 2026-10-27): the 500 MP benchmark, and its targets
+
+- **The benchmark** (`bench_stitch_500mp`): `siq-datagen`'s 8 × 7 tiles of 4096 × 3072 over cells,
+  overlapping by 15 %, the stage off by 5 µm. Their flat is estimated from the frames, then the
+  stitch job runs within the service's 14 GB budget. On the 16-thread workstation, on the jobs'
+  8 threads, with the frames in the system's cache:
+
+  | Stage | Wall | Processors' time | Peak working set, private | Written |
+  |---|---|---|---|---|
+  | The flat | 0.86 s | 0.9 s | | |
+  | The pairs, 97 | 1.11 s | 8.0 s, 91 % | 0.95 GB, 0.40 GB | |
+  | The solve | < 0.01 s | | | |
+  | The composite, 535 MP | 3.98 s | 27.4 s, 86 % | 1.29 GB, 0.10 GB | 0.74 GB |
+  | The pyramid | 1.87 s | 9.3 s, 62 % | 1.26 GB, 0.06 GB | 0.25 GB |
+  | End to end | 7.82 s | 45.5 s, 73 % | 1.29 GB, 0.40 GB | 0.99 GB |
+
+  The tiles were placed within 0.016 px RMS of the truth (0.031 at worst). Over grains, the same
+  took 7.62 s, and placed them within 0.011.
+- **The targets** come from the first measurement, 7.6 s and 1.24 GB with the 512-pixel search,
+  with room for a slower disk or slower processors:
+  - the flat and the stitch within 30 s, against the brief's 3 minutes;
+  - the stitch's working set within 3 GB, mapped tiles included, against the budget's 14 GB;
+  - the tiles within 0.3 px RMS and 1 px.
+
+  The example fails outside them.
+- **The reads are of mapped tiles,** which the process's I/O counters don't count. The 1.41 GB of
+  frames were in the system's cache, as a scan's are when it finishes and auto-stitch begins.
+  Read cold, they add their time at the disk's speed: about 3 s at 500 MB/s.
+- **A scan becomes a mosaic** in seconds, not the minute or so first thought.
+- **Verification:** `bench_stitch_500mp`, in smoke mode in `cargo xtask ci`.

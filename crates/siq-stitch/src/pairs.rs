@@ -28,6 +28,10 @@ pub struct PairOptions {
     pub stage_sigma_um: f64,
     /// How far the search reaches each way, in standard deviations of a pair's offset.
     pub reach_sigmas: f64,
+    /// The longest side the search correlates at once, in pixels: a larger overlap is searched
+    /// shrunk by the factor that brings it to this, then refined at full resolution in windows
+    /// of it.
+    pub search_px: usize,
     /// The least share of the overlap that a registration's shift may leave in common: a match in
     /// a sliver is chance.
     pub min_shared: f64,
@@ -42,14 +46,15 @@ pub struct PairOptions {
 
 impl Default for PairOptions {
     /// 32 pixels and 5 % of a tile; a stage of 5 µm, searched 4 standard deviations of a pair's
-    /// offset out, leaving a quarter of the overlap; and a correlation of 0.8, a margin of 0.3 and
-    /// an energy of 50 to trust.
+    /// offset out in 1024 pixels, leaving a quarter of the overlap; and a correlation of 0.8, a
+    /// margin of 0.3 and an energy of 50 to trust.
     fn default() -> Self {
         Self {
             min_overlap_px: 32.0,
             min_overlap_share: 0.05,
             stage_sigma_um: 5.0,
             reach_sigmas: 4.0,
+            search_px: 1024,
             min_shared: 0.25,
             min_pce: 50.0,
             min_ncc: 0.8,
@@ -120,18 +125,23 @@ impl Crops {
     }
 }
 
-/// The memory one pair's registration holds at most, in bytes, given the largest overlap among
-/// `pairs`: the overlaps flat-corrected as `f32`, the registrar's copies of them, and its FFTs and
-/// refinement windows of up to 512 pixels a side.
-pub fn bytes_per_pair(mosaic: &Mosaic, pairs: &[(usize, usize)]) -> u64 {
+/// The memory one pair's registration with `options` holds at most, in bytes, given the largest
+/// overlap among `pairs`: the overlaps flat-corrected as `f32`, the registrar's copies of them,
+/// and its FFTs and refinement windows of up to `search_px` a side.
+pub fn bytes_per_pair(mosaic: &Mosaic, pairs: &[(usize, usize)], options: &PairOptions) -> u64 {
     let largest = pairs
         .iter()
         .filter_map(|&(i, j)| Crops::of(&mosaic.tiles[i], &mosaic.tiles[j]))
         .map(|crops| u64::from(crops.size[0]) * u64::from(crops.size[1]))
         .max()
         .unwrap_or(0);
-    let fft = 512 * 512 * 4;
-    16 * largest + 12 * fft
+    16 * largest + search_bytes(options)
+}
+
+/// The memory a pair's FFTs and refinement windows hold at most, with `options`, in bytes.
+pub fn search_bytes(options: &PairOptions) -> u64 {
+    let side = options.search_px as u64;
+    12 * side * side * 4
 }
 
 /// Registers each of `pairs` of `mosaic`'s tiles, their pixels from `source`, corrected by
@@ -150,6 +160,7 @@ pub fn register(
     let reach = options.reach_px(mosaic.px_per_um);
     let registrar = Registrar::new(Options {
         reach: Some([reach; 2]),
+        max_size: options.search_px,
         min_overlap: options.min_shared,
         ..Options::default()
     });

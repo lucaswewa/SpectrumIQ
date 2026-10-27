@@ -13,7 +13,8 @@ out of core into OME-Zarr.
 - **Each pair** (`pairs::register`, ADR-0061) is registered by phase correlation (`siq-register`)
   of the two tiles' nominal overlaps, as whole pixels of each:
   - flat-corrected, `(value − dark) × gain`, when a flat is given;
-  - searched shrunk to 512 pixels a side, then refined at full resolution;
+  - searched shrunk to 1024 pixels a side, then refined at full resolution in windows of up to
+    1024 (ADR-0061, amended in P8.5);
   - only within the reach the stage's uncertainty allows: 4 standard deviations of a pair's
     offset, √2 of the stage's 5 µm, each way;
   - only at shifts that leave a quarter of the overlap in common: a sliver matches by chance.
@@ -22,8 +23,9 @@ out of core into OME-Zarr.
   margin of at least 0.3, and an energy of at least 50 (ADR-0061, amended). A pair that doesn't
   register is an edge that isn't trusted.
 - **The solution** (`solve::solve`, ADR-0062) is each tile's corner, by weighted least squares
-  over translations: the trusted edges at a quarter pixel each, and each tile held to its stage
-  position as loosely as the stage's 5 µm. The normal equations are factored below 500 tiles, and
+  over translations: the trusted edges at a quarter pixel each at a correlation of 0.95 or more,
+  less below it (a fifth at 0.8: ADR-0062, amended), and each tile held to its stage position as
+  loosely as the stage's 5 µm. The normal equations are factored below 500 tiles, and
   solved by conjugate gradients beyond. Huber's weights temper the edges that disagree; the edge
   that disagrees most is rejected while it is over 4 robust standard deviations and a pixel, and
   the rest solved again. Each connected component keeps its tiles' mean where the stage put them;
@@ -50,7 +52,7 @@ out of core into OME-Zarr.
   tests and the examples.
 - **Used by:** `siq-jobs`' `CompositeJob` and `StitchJob`; `siq-server`, for the report's overlays.
 - **Phase:** P8.1; P8.2 added the global solve; P8.3 the compositing; P8.4 the report and
-  `StitchOptions`.
+  `StitchOptions`; P8.5 the accuracy suite, the search's size and the edges' correlation weights.
 
 ## API
 
@@ -61,8 +63,8 @@ out of core into OME-Zarr.
 | `Tile` | `key`, `size`, `nominal` (its corner, in mosaic pixels), `sensor` (its first pixel on the sensor) and `binning` |
 | `pairs::register(&source, &mosaic, &pairs, shading, &options, threads)` | Each pair's `Edge`, in order; `shading` the dark level and the flat, or `None` |
 | `Edge` | `i`, `j`, `shift` (`j`'s corner from `i`'s, in mosaic pixels), `pce`, `margin`, `ncc`, `overlap_px`, `confident` |
-| `PairOptions` | `min_overlap_px` (32), `min_overlap_share` (0.05), `stage_sigma_um` (5), `reach_sigmas` (4), `min_shared` (0.25), `min_pce` (50), `min_ncc` (0.8), `min_margin` (0.3); `reach_px(px_per_um)` |
-| `pairs::bytes_per_pair(&mosaic, &pairs)` | The most a pair's registration holds, from the largest overlap |
+| `PairOptions` | `min_overlap_px` (32), `min_overlap_share` (0.05), `stage_sigma_um` (5), `reach_sigmas` (4), `search_px` (1024), `min_shared` (0.25), `min_pce` (50), `min_ncc` (0.8), `min_margin` (0.3); `reach_px(px_per_um)` |
+| `pairs::bytes_per_pair(&mosaic, &pairs, &options)`, `pairs::search_bytes(&options)` | The most a pair's registration holds, from the largest overlap; its FFTs' and windows' share, from `search_px` |
 | `TileSource`, `Pixels` | Where pixels come from, by a tile's index: `pixels(i)` → `Pixels`, borrowed or a mapping held, whose `view()` is the image; `[OwnedImage<u16>]` is one |
 | `MappedTiles::open(&reader, keep)`, `.with_capacity(n)` | A dataset's frames that `keep` takes, and their metadata, mapped as read; at most `n` kept mapped |
 | `composite::composite(&source, &planes, &bounds, &image, shading, &options, &control)` | `planes` written into level 0 of `image`, a block at a time on the calling pool; `control` hears the progress and may stop it |
@@ -84,15 +86,21 @@ out of core into OME-Zarr.
 | `pairs_on_dataset` | A `siq-datagen` scan of 5 × 4 tiles of 2048 × 1536 over cells, or a dataset of yours: its pairs registered, those not trusted, and the offsets against the truth and the stage's own error | `cargo run --release -p siq-stitch --example pairs_on_dataset [-- <dataset folder>]` |
 | `composite_dataset` | A `siq-datagen` scan of 4 × 3 tiles of 2048 × 1536 over cells with its ideal mosaic, or a dataset of yours: registered, solved, its flat estimated from its frames, composited as `zarr/stitched.ome.zarr` with its pyramid, and set against the ideal | `cargo run --release -p siq-stitch --example composite_dataset [-- <dataset folder>]` |
 | `solve_on_dataset` | A `siq-datagen` scan of 6 × 5 tiles of 2048 × 1536 over cells, or a dataset of yours: its pairs registered and solved, the edges rejected, and the tiles' placement against the truth and the stage's | `cargo run --release -p siq-stitch --example solve_on_dataset [-- <dataset folder>]` |
+| `tune_stitch` | The defaults tuned (P8.5): the search's reach and size, Huber's k and the feather, each varied about its default over 5 × 4 tiles of 2048 × 1536 over grains, and over cells in a tenth of the light: the placement against the truth, the pairs trusted and the time; the composite against the ideal mosaic, with the flat and without | `cargo run --release -p siq-stitch --example tune_stitch` |
 
-On the 16-thread workstation, `pairs_on_dataset` registers the 31 pairs of its 20 tiles in 51 ms,
-every one trusted, within 0.025 pixels RMS of the truth (0.054 at worst), where the stage was
-22.7 pixels RMS off. `solve_on_dataset` places its 30 tiles within 0.058 pixels RMS of the truth
-(0.175 at worst), where the stage was 17.2 RMS and 30.6 at worst; the solve takes 39 µs. Smoke
-mode (`SIQ_SMOKE=1`) makes 3 × 3 tiles of 512 × 384: their 57-pixel strips over sparse cells leave
-a pair untrusted, and the solve places the tiles within 0.087 pixels RMS. `composite_dataset`
-composites 30.4 MP in 0.20 s (149 MP/s) and its pyramid in 0.17 s, matching the ideal mosaic at
-35.4 dB once the stage's mean error is taken out.
+On the 16-thread workstation:
+
+- **`pairs_on_dataset`** registers the 31 pairs of its 20 tiles in 86 ms, every one trusted,
+  within 0.018 pixels RMS of the truth (0.033 at worst), where the stage was 22.7 pixels RMS off.
+- **`solve_on_dataset`** places its 30 tiles within 0.013 pixels RMS of the truth (0.039 at
+  worst), where the stage was 17.2 RMS and 30.6 at worst; the solve takes 39 µs. Smoke mode
+  (`SIQ_SMOKE=1`) makes 3 × 3 tiles of 512 × 384: their 57-pixel strips over sparse cells leave a
+  pair untrusted, and the solve places the tiles within 0.087 pixels RMS.
+- **`composite_dataset`** composites 30.4 MP in 0.20 s (154 MP/s) and its pyramid in 0.16 s,
+  matching the ideal mosaic at 35.4 dB once the stage's mean error is taken out.
+- **`tune_stitch`'s** findings are in ADR-0061, ADR-0062 and ADR-0063's P8.5 amendments. In short,
+  the search's 1024 pixels place dim cells within 0.027 px RMS, where 512 placed them within
+  0.064, and the reach, Huber's k and the feather change little about their defaults.
 
 ## Features
 
@@ -112,9 +120,14 @@ None.
 - `tests/memory.rs`: a counting allocator holds the registration within `threads` ×
   `bytes_per_pair`, one pair at a time and two;
 - `tests/solve.rs`: a `siq-datagen` scan's 24 pairs, two made 15 and 9 pixels wrong, solved within
-  0.3 pixels RMS and 1 at worst of the truth (0.071 and 0.142 here), the two rejected; a drift
-  ramp of 3.4 pixels removed to 0.12; disconnected columns each kept at their stage mean, a tile
-  alone at its own; the dense and conjugate-gradient solvers within 10⁻⁶ pixels;
+  0.3 pixels RMS and 1 at worst of the truth, the two rejected; a drift ramp of 3.4 pixels removed
+  to 0.12; a tile's strong true edge kept over its weak false one; disconnected columns each kept
+  at their stage mean, a tile alone at its own; the dense and conjugate-gradient solvers within
+  10⁻⁶ pixels;
+- `tests/accuracy.rs` (P8.5): `siq-datagen` scans over grains and cells, of different sizes,
+  overlaps, stage errors and light, each placed within 0.3 pixels RMS and 1 at worst of the truth:
+  three small ones in CI, and the matrix of 18 scans of 2048 × 1536 tiles with
+  `cargo test --release -p siq-stitch --test accuracy -- --ignored` (48 s);
 - `tests/composite.rs`: a 3 × 3 scan through the simulator's flat, composited at its true corners,
   against the ideal mosaic at 25 dB at least (28.0 here) and 6 dB over the stage's corners (16.2);
   two neighbours composited apart, within 0.5 % of each other in their overlap through the flat
@@ -127,6 +140,10 @@ None.
 - **Translations only,** by design (ADR-0013): a calibration's error shows as residuals.
 - **Sparse overlaps aren't trusted:** cells far apart leave a side with nothing to register; the
   solver leans on the tile's other sides and its stage prior.
+- **Narrow overlaps can mislead:** where a pair's stage error is a large share of its overlap, as
+  15 % of 512 pixels against 5 µm, a smooth specimen's narrow common strip can register a pixel
+  off and still be trusted: one scan in 40 of 3 × 3 such tiles was placed at 0.35 px RMS
+  (ADR-0061, amended in P8.5).
 - **The stage prior is weak, not absent:** it pulls a drifting row's ends toward where the stage
   said, by about a tenth of a pixel over ten tiles.
 - **Bilinear resampling softens** each tile by up to half a pixel's blur; `integer` copies, at

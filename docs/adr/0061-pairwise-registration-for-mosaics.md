@@ -92,3 +92,27 @@
   30).
 - **Verification:** `crates/siq-stitch/tests/solve.rs` uses all 24 pairs of its scan;
   `crates/siq-stitch/tests/pairs.rs` still distrusts noise alone.
+
+## Amendment (P8.5, 2026-10-27): the search's size, and narrow overlaps
+
+- **The search correlates up to 1024 pixels a side** (`PairOptions::search_px`), not the
+  registrar's 512: a longer overlap is searched shrunk to that, then refined at full resolution in
+  windows of up to 1024 a side. `bytes_per_pair` follows the size: its FFTs and windows hold
+  `12 × search_px² × 4` bytes, 50 MB a pair, where 512 held 12.6 MB (`pairs::search_bytes`).
+- **Why:** the refinement's windows are the measurement, and a longer one averages more of the
+  overlap. `tune_stitch` placed 5 × 4 tiles of 2048 × 1536:
+  - over cells in a tenth of the light, within 0.140, 0.064, 0.027 and 0.018 px RMS of the truth
+    at 256, 512, 1024 and 2048, the pairs taking 0.05, 0.07, 0.10 and 0.17 s;
+  - over grains in full light, within 0.032, 0.020, 0.018 and 0.013.
+
+  1024 is the knee: most of the gain, at 1.4 times 512's time, where 2048 takes 2.4 times and
+  holds 200 MB a pair.
+- **The reach stays at 4 standard deviations:** at 2, the dim scan lost a pair; at 3, 4 and 6 the
+  tiles were placed alike. 4 leaves room for a stage worse than it is said to be.
+- **Narrow overlaps:** a smooth specimen can register a pixel off in a narrow common strip, and
+  still be trusted. This happens where a pair's stage error is a large share of its overlap: 15 %
+  of 512 pixels is 77 pixels, against a pair's 19 at 5 µm. One edge, its strip 58 pixels wide,
+  was 1.34 pixels off at a correlation of 0.997. Of 40 scans of 3 × 3 such tiles over grains, that
+  one was placed at 0.35 px RMS (0.72 at worst), the rest within 0.23. At 2048 pixels and more the
+  overlaps are four times wider, and no scan of the accuracy suite came near.
+- **Verification:** `tune_stitch`; `crates/siq-stitch/tests/accuracy.rs`.

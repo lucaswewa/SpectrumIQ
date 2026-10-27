@@ -98,7 +98,7 @@ fn registering_holds_at_most_threads_times_a_pair_s_bytes() {
         sensor: [1024, 768],
         coefficients,
     };
-    let each = pairs::bytes_per_pair(&mosaic, &pairs) as isize;
+    let each = pairs::bytes_per_pair(&mosaic, &pairs, &options) as isize;
     for threads in [1, 2] {
         let before = LIVE.load(Ordering::Relaxed);
         PEAK.store(before, Ordering::Relaxed);

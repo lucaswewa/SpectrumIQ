@@ -90,6 +90,7 @@ impl Scan {
             height: 384,
             overlap: 0.2,
             stage_error: 5.0,
+            light: 1.0,
             no_mosaic: false,
         };
         let out = Output {

@@ -1,7 +1,7 @@
 //! Global alignment (ADR-0062): the tiles' corners that best agree with the trusted edges and,
-//! weakly, with the stage, by weighted least squares over translations. Huber's weights temper
-//! the edges that disagree; the one that disagrees most is rejected, and the rest solved again,
-//! until none is out of bounds.
+//! weakly, with the stage, by weighted least squares over translations. Each edge weighs as its
+//! correlation says, Huber's weights temper the edges that disagree, and the one that disagrees
+//! most is rejected and the rest solved again, until none is out of bounds.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,8 @@ pub struct SolveOptions {
     /// The stage's uncertainty: its error's standard deviation per axis, in µm. Each tile is held
     /// to its stage position this loosely.
     pub stage_sigma_um: f64,
-    /// An edge's uncertainty per axis, in mosaic pixels: the least of its robust spread.
+    /// An edge's uncertainty per axis at a correlation of 0.95, in mosaic pixels: the least of
+    /// its robust spread.
     pub edge_sigma_px: f64,
     /// Huber's threshold, in the edges' standard deviations.
     pub huber_k: f64,
@@ -132,6 +133,7 @@ pub fn solve(mosaic: &Mosaic, edges: &[Edge], options: &SolveOptions) -> Solutio
     let mut used: Vec<bool> = edges.iter().map(|edge| edge.confident).collect();
     let mut weights = vec![1.0; edges.len()];
     let base = options.edge_sigma_px.max(1e-9).powi(-2);
+    let bases: Vec<f64> = edges.iter().map(|edge| base * trust(edge.ncc)).collect();
     let mut deviation = vec![[0.0; 2]; n];
     let mut solves = 0;
     let residual = |d: &[[f64; 2]], k: usize| {
@@ -145,7 +147,7 @@ pub fn solve(mosaic: &Mosaic, edges: &[Edge], options: &SolveOptions) -> Solutio
     for _round in 0..=edges.len() {
         let mut sigma = options.edge_sigma_px;
         for _ in 0..options.iterations.max(1) {
-            let system = System::new(n, edges, &used, &weights, base, prior, &measured);
+            let system = System::new(n, edges, &used, &weights, &bases, prior, &measured);
             let next = match method {
                 Method::Dense => system.dense(),
                 Method::ConjugateGradient => system.conjugate_gradient(),
@@ -274,6 +276,16 @@ fn components(n: usize, edges: &[Edge], used: &[bool]) -> Vec<usize> {
     roots.iter().map(|r| rank[r]).collect()
 }
 
+/// An edge's weight for its correlation, against one of 0.95 (P8.5): two views of the same content,
+/// each with its noise, correlate as signal / (signal + noise), and an offset's variance goes as
+/// noise / signal, so as (1 − ncc) / ncc. Above 0.95 a correlation no longer tells a better match,
+/// and the edges there count alike, so that two true ones outvote a false one; below, the weight
+/// falls to a fifth at 0.8, so that a tile's weak false match gives way to its true one.
+fn trust(ncc: f64) -> f64 {
+    let ncc = ncc.clamp(0.5, 0.95);
+    ncc / (1.0 - ncc) / 19.0
+}
+
 /// The normal equations of the deviations from the stage: `(λI + L) d = B m`, where `L` is the
 /// edges' weighted Laplacian and `B m` gathers each edge's measured deviation at its ends. Both
 /// axes share the matrix.
@@ -292,14 +304,14 @@ impl System {
         edges: &[Edge],
         used: &[bool],
         weights: &[f64],
-        base: f64,
+        bases: &[f64],
         prior: f64,
         measured: &[[f64; 2]],
     ) -> Self {
         let (mut diagonal, mut rhs) = (vec![prior; n], vec![[0.0; 2]; n]);
         let mut links = Vec::new();
         for (k, edge) in edges.iter().enumerate().filter(|&(k, _)| used[k]) {
-            let w = base * weights[k];
+            let w = bases[k] * weights[k];
             diagonal[edge.i] += w;
             diagonal[edge.j] += w;
             for axis in 0..2 {

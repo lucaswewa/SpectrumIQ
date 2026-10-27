@@ -28,6 +28,7 @@ windows-sys = { workspace = true, features = ["Win32_System_Threading"] }
 
 [dev-dependencies]
 siq-datagen = { path = "../../apps/siq-datagen" }
+siq-buffer = { path = "../siq-buffer" }
 siq-types = { path = "../siq-types" }
 tempfile.workspace = true
 tiff.workspace = true

@@ -75,3 +75,20 @@
   half the mosaic.
 - `crates/siq-jobs/tests/kinds.rs`: a scan composited as a job, with its pyramid, and recorded.
 - `composite_dataset`.
+
+## Amendment (P8.5, 2026-10-27): the feather, measured
+
+- **The feather stays at 128 pixels.** `tune_stitch` composited 5 × 4 tiles of 2048 × 1536,
+  overlapping by 307 and 230 pixels, at their solved corners, and set each against the ideal
+  mosaic.
+  - **Through the simulator's flat,** feathers of 32 to 256 pixels came within 0.1 dB of each
+    other: 33.69 to 33.59 dB over dim cells, and 29.19 over grains. The steps between neighbouring
+    16-pixel blocks of what was left came within 1 %: 2.15 to 2.17 ADU.
+  - **Without the flat,** a wider feather hides a little more: steps of 4.33, 4.17, 4.05 and
+    3.99 ADU, and 27.47 to 27.80 dB.
+
+  128 is near the best either way, and within every overlap of the accuracy suite.
+- **At 500 MP** (`bench_stitch_500mp`, ADR-0064's amendment): 535 MP composited in 3.8 to 4.0 s on
+  the jobs' 8 threads (134 to 141 MP/s), holding 0.10 GB of private memory; its pyramid in 1.8 to
+  1.9 s.
+- **Verification:** `tune_stitch`; `bench_stitch_500mp`.

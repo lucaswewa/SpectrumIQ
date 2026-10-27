@@ -41,6 +41,9 @@ pub struct TileScanArgs {
     /// The stage's error: a standard deviation, per axis, in µm.
     #[arg(long, default_value_t = 2.0)]
     pub stage_error: f64,
+    /// The light, as a share of the camera's usual: less is noisier.
+    #[arg(long, default_value_t = 1.0)]
+    pub light: f64,
     /// Leaves out the ideal mosaic.
     #[arg(long)]
     pub no_mosaic: bool,
@@ -78,6 +81,9 @@ pub fn tilescan(args: &TileScanArgs, out: &Output) -> anyhow::Result<PathBuf> {
     if !(0.0..1.0).contains(&args.overlap) || args.columns == 0 || args.rows == 0 {
         bail!("a scan needs a tile, and an overlap from 0 to less than 1");
     }
+    if args.light.is_nan() || args.light <= 0.0 {
+        bail!("a scan needs some light");
+    }
     let world = match args.world.as_str() {
         "cells" => WorldInfo::Cells(CellsParams {
             seed: out.seed,
@@ -90,7 +96,8 @@ pub fn tilescan(args: &TileScanArgs, out: &Output) -> anyhow::Result<PathBuf> {
         other => bail!("the world is cells or grains, not {other}"),
     };
     let built = world.build()?;
-    let camera = Camera::new((args.width, args.height), out.seed);
+    let mut camera = Camera::new((args.width, args.height), out.seed);
+    camera.optics.flux *= args.light;
     let [width, height] = camera.field();
     let step = [width, height].map(|field| field * (1.0 - args.overlap));
     let (dataset, truth) = dataset(out, "tilescan", serde_json::to_value(args)?)?;

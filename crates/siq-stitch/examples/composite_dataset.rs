@@ -52,6 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 height,
                 overlap: 0.15,
                 stage_error: 5.0,
+                light: 1.0,
                 no_mosaic: false,
             };
             let out = Output {

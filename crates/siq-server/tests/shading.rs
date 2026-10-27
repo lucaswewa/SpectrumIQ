@@ -49,6 +49,7 @@ async fn a_dark_and_a_flat_are_captured_kept_and_shown_and_a_scan_s_flat_is_esti
         height: 192,
         overlap: 0.15,
         stage_error: 2.0,
+        light: 1.0,
         no_mosaic: true,
     };
     let output = siq_datagen::Output {

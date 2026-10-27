@@ -610,6 +610,7 @@ impl CompositeJob {
                 })
                 .map_err(stopped)?;
         }
+        ctx.log("building the pyramid");
         let part = Part {
             ctx,
             from: from + 0.8 * share,
@@ -724,7 +725,8 @@ impl Job for StitchJob {
         // The pairs first, each holding 16 bytes a pixel of an overlap of up to half a frame and
         // its FFTs; then the composite and the pyramid.
         let pixels = frame_bytes(&self.dataset) / 2;
-        let pairs = threads as u64 * (16 * pixels / 2 + (12 << 20));
+        let search = pairs::search_bytes(&self.options.pairs);
+        let pairs = threads as u64 * (16 * pixels / 2 + search);
         let composing = CompositeJob {
             dataset: self.dataset.clone(),
             image: PathBuf::new(),
