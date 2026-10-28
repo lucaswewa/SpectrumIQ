@@ -68,6 +68,15 @@ async fn probe(shell: State<'_, Shell>) -> Result<Health, String> {
         .map_err(|error| error.to_string())
 }
 
+/// The local console's secret, which the web app exchanges for a session (ADR-0066).
+#[tauri::command]
+async fn local_secret(shell: State<'_, Shell>) -> Result<String, String> {
+    let server = shell.server()?;
+    server::local_secret(server, PROBE_TIMEOUT)
+        .await
+        .map_err(|error| error.to_string())
+}
+
 /// Opens a web or mail link in the system's browser or mail program.
 #[tauri::command]
 fn open_link(app: AppHandle, url: String) -> Result<(), String> {
@@ -170,6 +179,7 @@ fn handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
         app_info,
         probe,
+        local_secret,
         open_link,
         save_file,
         service_state,
@@ -181,5 +191,5 @@ fn handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
 
 #[cfg(not(debug_assertions))]
 fn handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
-    tauri::generate_handler![app_info, probe, open_link, save_file]
+    tauri::generate_handler![app_info, probe, local_secret, open_link, save_file]
 }

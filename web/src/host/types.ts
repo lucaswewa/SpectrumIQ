@@ -54,4 +54,9 @@ export interface HostAdapter {
    * browser tab doesn't; the Tauri desktop shell can (P3.5).
    */
   readonly service?: ServiceControl
+  /**
+   * The local console's one-time secret, which logs the app in without a password (ADR-0066), if
+   * this host is on the instrument's computer: the desktop shell reads it; a browser tab can't.
+   */
+  localSecret?(): Promise<string>
 }

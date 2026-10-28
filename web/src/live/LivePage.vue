@@ -66,7 +66,7 @@ function setZoom(next: 1 | 2) {
 
 <template>
   <div class="live-page">
-    <ControlPane width="wide">
+    <ControlPane need="operate" width="wide">
       <AppAccordion v-model="sections">
         <AccordionSection value="camera" title="Camera"><CameraControls /></AccordionSection>
         <AccordionSection value="stage" title="Stage and focus">

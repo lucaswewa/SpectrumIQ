@@ -98,3 +98,14 @@ decide what a caller may do (P9.2), it has to know who is calling.
   limit with `Retry-After`; another site's changes refused on SpectrumIQ's and teta-wot's routes;
   the CLI's changes reaching a session at once.
 - `siq-auth --example user_cli`.
+
+## Amendment (P9.4, 2026-10-28): the first admin, and the web app's login
+
+- **While there is no admin, a user added is one.** The service makes the local console's user
+  itself (ADR-0066, amended), so the first user added was no longer the first user. The service
+  warns at start while there is no admin.
+- **`GET /api/siq/auth/me`'s 401 says `"enforced"`:** the web app asks for a login only where the
+  service enforces one (ADR-0068).
+- **The users over HTTP, an admin's:** `GET` and `POST /api/siq/users`, and `PUT` and `DELETE
+  /api/siq/users/{name}`. A new password and a removal end the user's sessions; a new role
+  applies to them at once. The last admin stays, as with the CLI.

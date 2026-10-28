@@ -96,3 +96,13 @@
   - the Calibration page's rows and gate, and a task from it, turning the turret.
 - `web/tests/unit/calibration/gating.spec.ts`: blocked, warned, and stale.
 - **`/#/dev/calibration`:** the page and the wizard against a fake instrument.
+
+## Amendment (P9.4, 2026-10-28): the first-run prompt, for a session that may calibrate
+
+- **The wizard opens by itself only for a session that may change the instrument** (ADR-0068): an
+  operator or an admin holding the control token, or anyone where the service doesn't enforce.
+  An objective lacking a calibration is offered when that becomes true, such as when an operator
+  takes control. A viewer is never asked.
+- **The Calibration page's buttons** need control of the instrument, as the calibrations do.
+- `web/tests/unit/calibration/wizard.spec.ts`: no prompt for an operator without the token, then
+  the welcome once it holds it.

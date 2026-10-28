@@ -1,10 +1,11 @@
-// REQ-SEC-004, REQ-STG-001, REQ-DEV-001: the stage, the focus and the peripherals on the Live
-// page, and STOP in every state (ADR-0039).
+// REQ-SEC-004, REQ-STG-001, REQ-DEV-001, REQ-SEC-002: the stage, the focus and the peripherals on
+// the Live page, and STOP in every state (ADR-0039), for anyone but a viewer (ADR-0068).
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { WotClient } from '@/api/wot/client'
+import { useSessionStore } from '@/auth/session'
 import LivePage from '@/live/LivePage.vue'
 import { useConnectionStore } from '@/stores/connection'
 
@@ -147,6 +148,19 @@ describe('STOP', () => {
     expect(stop.attributes('disabled')).toBeUndefined()
     await stop.trigger('click')
     expect(posts).toEqual([])
+  })
+
+  it('is disabled for a viewer, with why, and Esc with it', async () => {
+    const page = await showPage()
+    const me = { name: 'vic', role: 'viewer', local: false, since: '', expires: '' } as const
+    useSessionStore().$patch({ enforced: true, checked: true, me: { ...me, holds_token: false } })
+    await flushPromises()
+    const stop = page.get('.stop-button')
+    expect(stop.attributes('disabled')).toBeDefined()
+    expect(stop.attributes('title')).toBe('View only: your role is viewer.')
+    press('Escape')
+    await flushPromises()
+    expect(halts()).toEqual([])
   })
 
   it('is Esc, even while a confirmation is open, and Home is only after one', async () => {

@@ -1,7 +1,7 @@
 //! The service's audit trail (ADR-0067), with `[auth] enforce`: logins, failed ones, the token's
 //! changes, a change with its parameters and its answer, a refusal, a logout, a job's end and a
-//! workflow's run all recorded, by whom and from where; the query an admin's; and the trail's chain
-//! intact. REQ-SEC-003, REQ-NFR-006.
+//! workflow's run all recorded, by whom and from where, but not a read that is a POST; the query
+//! an admin's; and the trail's chain intact. REQ-SEC-003, REQ-NFR-006.
 
 mod common;
 
@@ -114,6 +114,8 @@ async fn who_did_what_is_recorded_and_an_admin_reads_it() {
     assert!(status.is_success());
     let (status, _, _) = send(&routes, exposure, Some(json!(5.0)), Some(&vic)).await;
     assert_eq!(status, StatusCode::FORBIDDEN);
+    let summary = ("POST", "/api/v1/datasets/summary");
+    send(&routes, summary, Some(json!({})), Some(&vic)).await;
     send(&routes, ("POST", "/api/siq/auth/logout"), None, Some(&olga)).await;
     // A job, and a workflow's run of one snap.
     let id = instrument
@@ -161,6 +163,7 @@ async fn who_did_what_is_recorded_and_an_admin_reads_it() {
     assert!(change["session"].as_str().unwrap().len() == 8);
     let refused = find(&|e| e["kind"] == "refused" && e["user"] == "vic").unwrap();
     assert_eq!(refused["detail"]["status"], 403);
+    assert!(find(&|e| e["detail"]["path"] == summary.1).is_none());
     assert!(find(&|e| e["kind"] == "logout" && e["user"] == "olga").is_some());
     assert!(find(&|e| e["kind"] == "token" && e["detail"]["reason"]["kind"] == "ended").is_some());
     let job = find(&|e| {

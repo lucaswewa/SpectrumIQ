@@ -79,3 +79,13 @@ with the file can edit it.
   query an admin's; no password anywhere; the chain intact.
 - `crates/siq-jobs/tests/scheduler.rs`: `every_transition_is_told_as_it_happens`.
 - `siq-auth --example audit_verify`.
+
+## Amendment (P9.4, 2026-10-28): a read by its class, and the users' passwords
+
+- **A read is told by its class, not its method:** a `POST` that reads, such as a dataset's
+  summary or a scan's estimate (`Class::Read`, ADR-0066), isn't recorded. The Datasets page asks
+  for a summary each time it opens, by anyone.
+- **The users routes are recorded** (ADR-0065, amended) with any `password` or `secret` in their
+  parameters cut to "…".
+- `crates/siq-server/tests/audit.rs`: a viewer's summary not recorded; `tests/authz.rs`: the users'
+  changes recorded, and not their passwords.

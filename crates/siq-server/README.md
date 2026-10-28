@@ -24,8 +24,9 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
   `snap_to_dataset`, the `workflow` actions other than its runs, and `mosaic_live` bypass it. A
   run holds it throughout.
 - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`; under
-  `/api/siq/auth/`, `login`, `logout` and `me` (ADR-0065); under `/api/siq/data/`, a dataset's
-  manifest and thumbnail, and its images' tiles. teta-wot's router is the fallback (ADR-0003,
+  `/api/siq/auth/`, `login`, `logout`, `me` and `local` (ADR-0065); under `/api/siq/users`, an
+  admin's management of the users (ADR-0068); under `/api/siq/data/`, a dataset's manifest and
+  thumbnail, and its images' tiles. teta-wot's router is the fallback (ADR-0003,
   amended).
 - **The session layer** (ADR-0065, ADR-0066), around every route, teta-wot's included:
   - a request other than `GET`, `HEAD` or `OPTIONS` whose `Origin` isn't the service's own, or
@@ -39,7 +40,7 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
   login use.
 - **The audit trail** (ADR-0067), in `[server] audit`: the layer records every change, with its
   parameters and its answer, and every refusal, but the logins' own requests, the token's
-  heartbeat and the live mosaic's viewport; the logins and logouts, the token's changes, every
+  heartbeat, the live mosaic's viewport, and a read, though it be a `POST` (by its class); the logins and logouts, the token's changes, every
   job's transitions, every workflow run's start and end, and every dataset deleted are recorded
   where they happen. `GET /api/siq/audit` is an admin's query of it.
 - **Who may do what** (`authz`, ADR-0066): `classify(method, path)` gives every route a class,
@@ -73,7 +74,8 @@ This is the only crate that depends on teta-wot.
   flats, and the previews' correction; P6.5 the `workflow` Thing; P7.3 the `mosaic_live` Thing,
   and the GPU of `[gpu]`; P8.4 stitching: `jobs.stitch`, auto-stitch, and the QA overlays; P9.1
   the sessions: the auth routes and the layer; P9.2 the authorization, the control token and its
-  Thing, and the local console's login; P9.3 the audit trail and its query.
+  Thing, and the local console's login; P9.3 the audit trail and its query; P9.4 the users
+  routes, the local console's user made at start, and where its secret is.
 
 ## API
 
@@ -127,13 +129,16 @@ the objective and the channel in the same way.
 
 ### The session routes (ADR-0065)
 
-The users are in `users.json` in `[server] settings`, managed with `spectrumiq-server user`.
+The users are in `users.json` in `[server] settings`, managed with `spectrumiq-server user` or the
+users routes. The service makes `[auth] local_user` at start if it is missing: an operator with a
+random password no one is told, who logs in by the local secret only.
 
 | Route | What |
 |---|---|
 | `POST /api/siq/auth/login` | With `{"name", "password"}`: `{"name", "role", "since", "expires"}` and the cookie `siq_session` (`HttpOnly`, `SameSite=Strict`, `Path=/`, `Max-Age` the session's lifetime); 401 if the name or the password is wrong; 429 with `Retry-After` past `max_failures` |
 | `POST /api/siq/auth/logout` | 204: the session ended, and its cookie cleared |
 | `GET /api/siq/auth/me` | `{"name", "role", "local", "since", "expires", "holds_token"}` of the cookie's session; 401 without a live one |
+| `GET /api/siq/auth/local` | From this computer: `{"file"}`, where the local console's secret is, for the desktop shell to read; 403 from another computer, 404 without a local user |
 | `POST /api/siq/auth/local` | With `{"secret"}`, the one in `local-login` in `[server] settings`, from this computer: a session of the local console as `[auth] local_user`, and its cookie; the next secret written. 403 from another computer, 404 without a local user, 401 for another secret |
 | `GET /api/siq/control` | `{"holder": {"user", "since", "local"}}`, or `{"holder": null}` |
 | `POST /api/siq/control/request` | The token for the session if it is free: who holds it now; 409 if another does, saying who |
@@ -141,6 +146,10 @@ The users are in `users.json` in `[server] settings`, managed with `spectrumiq-s
 | `POST /api/siq/control/heartbeat` | 204: the holder's sign of life, though any of its requests is one; 409 for another session |
 | `POST /api/siq/control/take_over` | The token from whoever holds it, for an admin or the local console; 403 for others |
 | `GET /api/siq/audit?from&to&user&kind&offset&limit` | An admin's query of the audit trail: `{"entries", "total"}`, newest first, 100 at most by default (ADR-0067) |
+| `GET /api/siq/users` | An admin's: the users, `[{"name", "role", "created"}]`, without their hashes |
+| `POST /api/siq/users` | An admin's: with `{"name", "password", "role"}`, 201 and the user; 400 for a bad name or a password under 8 characters, 409 if the name is taken |
+| `PUT /api/siq/users/{name}` | An admin's: with `{"role"}`, `{"password"}` or both, the user. A new role applies to the user's sessions at once; a new password ends them. 404 for no such user, 409 for the last admin's role |
+| `DELETE /api/siq/users/{name}` | An admin's: 204, the user's sessions ended; 404 for no such user, 409 for the last admin |
 
 `Auth` is `Instrument::auth`: its `users`, `sessions`, `control` and `local`, and
 `session(&headers)`, the live session of a request's cookie. The `control` Thing observes the
@@ -259,13 +268,17 @@ viewer and the local console's user:
   take-over, after which the first operator is refused; release by the holder only;
 - a holder's requests half a second apart keeping the token, then 2.5 s of silence losing it, on
   the `control` Thing too;
-- the local console refused from another computer, logging in from this one, refused the same
-  secret twice, logging in with the next, and taking the token over from an operator.
+- the local console's file named to this computer only; the console refused from another
+  computer, logging in from this one as the operator the service made, refused the same secret
+  twice, logging in with the next, and taking the token over from an operator;
+- the users listed without their hashes to an admin and refused to a viewer; one added, refused
+  a second time, given a role that applies to her session at once and a password that ends it,
+  and removed; the last admin kept; no password in the trail.
 
 `audit` (P9.3), with `[auth] enforce`: a failed login, three logins, the token requested, a change
 with its parameters, a viewer's refusal, a logout ending the token, a job's end and a workflow's
-run of one snap, all recorded by whom and from where; the query refused to a viewer and given to
-an admin; no password in the trail; its chain intact.
+run of one snap, all recorded by whom and from where; a read that is a `POST` not recorded; the
+query refused to a viewer and given to an admin; no password in the trail; its chain intact.
 
 `peripherals`:
 

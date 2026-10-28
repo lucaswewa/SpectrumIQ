@@ -127,3 +127,36 @@ async fn an_error_another_program_or_silence_is_not_a_healthy_service() {
         Err(ProbeError::Unreachable(url.to_string()))
     );
 }
+
+#[tokio::test]
+async fn the_local_secret_is_read_from_the_file_the_service_names_and_no_other() {
+    let folder = std::env::temp_dir().join(format!("siq-shell-local-{}", std::process::id()));
+    std::fs::create_dir_all(&folder).unwrap();
+    let secret = "0123456789abcdef".repeat(4);
+    let file = folder.join("local-login");
+    std::fs::write(&file, format!("{secret}\n")).unwrap();
+    let elsewhere = folder.join("notes.txt");
+    std::fs::write(&elsewhere, &secret).unwrap();
+    let naming = |path: &std::path::Path| -> &'static str {
+        let body = serde_json::json!({ "file": path }).to_string();
+        Box::leak(
+            format!(
+                "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n{body}",
+                body.len()
+            )
+            .into_boxed_str(),
+        )
+    };
+    let (url, asked) = answering(naming(&file)).await;
+    assert_eq!(local_secret(&url, SECOND).await.unwrap(), secret);
+    assert!(
+        asked
+            .await
+            .unwrap()
+            .starts_with("GET /api/siq/auth/local HTTP/1.1\r\n")
+    );
+    // Another file, however named the service says it is, isn't read.
+    let (url, _) = answering(naming(&elsewhere)).await;
+    assert!(local_secret(&url, SECOND).await.is_err());
+    std::fs::remove_dir_all(&folder).unwrap();
+}

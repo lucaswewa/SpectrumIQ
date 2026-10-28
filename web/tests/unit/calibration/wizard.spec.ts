@@ -1,11 +1,12 @@
 // The calibration wizard's state machine and the Calibration page (ADR-0051), against a fake
 // server: the first-run prompt for the objective in use, Back, Next and Skip, a calibration
-// accepted or run again, no second prompt, closing early, and the page's own tasks.
-// REQ-CAL-001, REQ-CAL-002.
+// accepted or run again, no second prompt, none until the session may change the instrument
+// (ADR-0068), closing early, and the page's own tasks. REQ-CAL-001, REQ-CAL-002, REQ-SEC-002.
 import { flushPromises, type VueWrapper } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { WotClient } from '@/api/wot/client'
+import { useSessionStore, type Me } from '@/auth/session'
 import { allNeeded, neededFor, summary } from '@/calibration/tasks'
 import { useConnectionStore } from '@/stores/connection'
 
@@ -134,8 +135,10 @@ async function settle() {
   await flushPromises()
 }
 
-async function open(path: string) {
+/** The app at `path`, as `me` if given, against a server that enforces who may do what. */
+async function open(path: string, me?: Me) {
   ;({ wrapper } = await mountApp(path))
+  if (me) useSessionStore().$patch({ enforced: true, me })
   const client = new WotClient({ baseUrl: `${BASE}api/v1/`, webSocket: null })
   await useConnectionStore().start(client.baseUrl, client)
   await settle()
@@ -238,6 +241,22 @@ describe('the calibration wizard', () => {
     await vi.advanceTimersByTimeAsync(10_000)
     await settle()
     expect(wizard()).toBeNull()
+  })
+
+  it('opens only once the session may change the instrument', async () => {
+    const me: Omit<Me, 'holds_token'> = {
+      name: 'olga',
+      role: 'operator',
+      local: false,
+      since: '',
+      expires: '',
+    }
+    await open('/live', { ...me, holds_token: false })
+    expect(wizard()).toBeNull()
+    // It takes control, as a reload finds it held.
+    useSessionStore().me = { ...me, holds_token: true }
+    await settle()
+    expect(title()).toBe('Welcome to SpectrumIQ')
   })
 
   it('asks before closing early', async () => {

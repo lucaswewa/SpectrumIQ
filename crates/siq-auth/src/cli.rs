@@ -1,5 +1,6 @@
 //! The `spectrumiq-server user` commands, apart from their parsing, so that a script, or the
-//! `user_cli` example, runs what the CLI runs. The first user is an admin, who manages the rest.
+//! `user_cli` example, runs what the CLI runs. While there is no admin, the user added is one: the
+//! first admin manages the rest.
 
 use std::io::{self, Write};
 
@@ -8,7 +9,7 @@ use crate::users::{Role, UserError, UserStore};
 /// A command on the users.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UserCommand {
-    /// Adds a user: an admin if it is the first, a viewer if no role is given.
+    /// Adds a user: an admin while there is none, a viewer otherwise, if no role is given.
     Add {
         /// Its name.
         name: String,
@@ -48,8 +49,8 @@ pub enum CliError {
     /// The password and its repetition differ.
     #[error("the passwords differ")]
     Mismatch,
-    /// The first user would not be an admin, and no one could manage the users.
-    #[error("the first user must be an admin, to manage the rest: --role admin")]
+    /// There is no admin, and the user wouldn't be one: no one could manage the users.
+    #[error("there is no admin yet, and the first must be one, to manage the rest: --role admin")]
     FirstAdmin,
 }
 
@@ -75,7 +76,7 @@ pub fn run(
 ) -> Result<(), CliError> {
     match command {
         UserCommand::Add { name, role } => {
-            let first = store.is_empty()?;
+            let first = !store.list()?.iter().any(|user| user.role == Role::Admin);
             let role = match (role, first) {
                 (Some(role), true) if *role != Role::Admin => return Err(CliError::FirstAdmin),
                 (Some(role), _) => *role,

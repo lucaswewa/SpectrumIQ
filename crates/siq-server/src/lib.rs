@@ -60,6 +60,7 @@ pub mod mosaic;
 pub mod peripherals;
 mod stitch;
 pub mod things;
+mod users;
 pub mod webapp;
 pub mod workflow;
 
@@ -412,6 +413,7 @@ impl Service {
         routes(&self.instrument)
             .merge(auth::routes(&auth))
             .merge(audit::routes(&auth.audit))
+            .merge(users::routes(&auth))
             .merge(data::routes(&self.instrument))
             .merge(webapp::routes(self.webapp.clone()))
             .fallback_service(self.server.router())

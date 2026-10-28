@@ -154,7 +154,7 @@ const status = computed(() => {
 
 <template>
   <div class="mosaic-page">
-    <ControlPane>
+    <ControlPane need="operate">
       <h1 class="mosaic-page__title">Mosaic</h1>
       <AppToggle
         :model-value="mosaic.enabled ?? false"

@@ -65,7 +65,7 @@ export const DESTINATIONS: readonly Destination[] = [
     planned: 'M5',
   },
   { id: 'settings', label: 'Settings', icon: settings, group: 'bottom', requires: [] },
-  { id: 'admin', label: 'Admin', icon: admin, group: 'bottom', requires: [], planned: 'M9' },
+  { id: 'admin', label: 'Admin', icon: admin, group: 'bottom', requires: [] },
   { id: 'logging', label: 'Logging', icon: logging, group: 'bottom', requires: [] },
   { id: 'about', label: 'About', icon: about, group: 'bottom', requires: [] },
 ]

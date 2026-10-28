@@ -1,14 +1,17 @@
 <script setup lang="ts">
 // STOP: halts the stage and the focus, and forgets every move still to come (ADR-0039). Never
 // disabled, whatever is moving or busy: halting passes the global lock, and halting nothing is
-// harmless. Esc does the same from anywhere on the page.
+// harmless. Only a viewer may not stop: disabled for one, with why (ADR-0068). Esc does the same
+// from anywhere on the page.
 import stop from '@material-symbols/svg-400/outlined/stop_circle-fill.svg?raw'
 
+import { useGate } from '@/auth/gate'
 import AppButton from '@/ui/AppButton.vue'
 
 import { useMotion } from './useJog'
 
 const motion = useMotion()
+const refused = useGate(() => 'process')
 </script>
 
 <template>
@@ -17,7 +20,8 @@ const motion = useMotion()
     variant="danger"
     :icon="stop"
     aria-keyshortcuts="Escape"
-    title="Halt the stage and the focus (Esc)"
+    :disabled="refused !== undefined"
+    :title="refused ?? 'Halt the stage and the focus (Esc)'"
     @click="motion.stop()"
   >
     STOP

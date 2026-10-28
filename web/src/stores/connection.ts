@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { computed, ref, shallowRef } from 'vue'
 
 import { WotClient } from '@/api/wot/client'
+import { ApiError } from '@/api/wot/errors'
+import { useSessionStore } from '@/auth/session'
 import type { ThingDescription } from '@/api/wot/td'
 
 /**
@@ -98,6 +100,11 @@ export const useConnectionStore = defineStore('connection', () => {
   }
 
   function lose(failure: unknown) {
+    // The session ended: the login asks again, and the connection waits for it.
+    if (failure instanceof ApiError && failure.status === 401) {
+      useSessionStore().expire()
+      return stop()
+    }
     error.value = failure
     state.value = 'lost'
     schedule(() => {

@@ -3,6 +3,7 @@
 Start the service first, with the simulated instrument at full size and rate:
 
     cargo run --release -p spectrumiq-server -- -c config/sim.toml
+    set SIQ_USER=<a user>& set SIQ_PASSWORD=<its password>   (siq_session.py)
 
 then, from the repository:
 
@@ -18,6 +19,8 @@ import sys
 import threading
 import time
 import urllib.request
+
+import siq_session
 
 ROOT = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:5000").rstrip("/")
 SECONDS = float(sys.argv[2]) if len(sys.argv) > 2 else 600.0
@@ -80,4 +83,5 @@ def main():
 
 
 if __name__ == "__main__":
+    siq_session.login(ROOT, control=True)
     sys.exit(main())

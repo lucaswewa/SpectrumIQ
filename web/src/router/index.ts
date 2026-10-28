@@ -18,8 +18,10 @@ import AboutPage from '@/system/AboutPage.vue'
 import ViewerPage from '@/viewer2d/ViewerPage.vue'
 
 /** The pages that are built; every other destination shows what will come (`PlannedPage`). */
-const PAGES: Record<string, Component> = {
+const PAGES: Record<string, Component | (() => Promise<{ default: Component }>)> = {
   about: AboutPage,
+  // An admin's alone, with its table: loaded when first opened.
+  admin: () => import('@/admin/AdminPage.vue'),
   calibration: CalibrationPage,
   datasets: DatasetsPage,
   jobs: JobsPage,
@@ -89,6 +91,11 @@ const devRoutes: RouteRecordRaw[] = import.meta.env.DEV
         path: '/dev/mosaic',
         name: 'dev-mosaic',
         component: () => import('@/views/dev/MosaicDemoView.vue'),
+      },
+      {
+        path: '/dev/admin',
+        name: 'dev-admin',
+        component: () => import('@/views/dev/AdminDemoView.vue'),
       },
     ]
   : []

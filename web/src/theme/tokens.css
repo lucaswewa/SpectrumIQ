@@ -123,6 +123,8 @@
   --z-rail: 10;
   --z-dropdown: 100;
   --z-dialog: 1000;
+  /* An alert dialog, which a dialog can ask before it closes. */
+  --z-alert: 1010;
   /* Menus and selects, which can open from a dialog. */
   --z-menu: 1050;
   --z-toast: 1100;

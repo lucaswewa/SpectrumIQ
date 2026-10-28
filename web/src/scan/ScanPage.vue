@@ -97,7 +97,7 @@ async function startSequence() {
 
 <template>
   <div class="scan-page">
-    <ControlPane width="wide">
+    <ControlPane need="operate" width="wide">
       <h1 class="scan-page__title">Scan</h1>
       <div role="group" aria-label="What to run" class="scan-page__tools">
         <AppButton

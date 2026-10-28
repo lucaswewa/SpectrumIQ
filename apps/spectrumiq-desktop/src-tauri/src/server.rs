@@ -1,4 +1,4 @@
-//! Where the local service is, and whether it answers.
+//! Where the local service is, whether it answers, and the local console's secret (ADR-0066).
 
 use std::time::Duration;
 
@@ -11,6 +11,10 @@ use url::Url;
 pub const DEFAULT_SERVER: &str = "http://127.0.0.1:5000/";
 /// The route the shell probes: `spectrumiq-server`'s health.
 pub const HEALTH_PATH: &str = "/api/siq/system/health";
+/// The route that names the local console's secret file, to this computer.
+pub const LOCAL_PATH: &str = "/api/siq/auth/local";
+/// The secret file's name: the shell reads no other.
+pub const LOCAL_FILE: &str = "local-login";
 
 /// Why an address isn't one the shell can load.
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
@@ -83,16 +87,45 @@ pub enum ProbeError {
     NotSpectrumIq(String, String),
 }
 
-/// Asks the service at `base` for its health, giving up after `timeout`. One HTTP/1.1 request
-/// over loopback, which needs no HTTP client.
+/// Asks the service at `base` for its health, giving up after `timeout`.
 pub async fn probe(base: &Url, timeout: Duration) -> Result<Health, ProbeError> {
+    let at = base.to_string();
+    let body = get(base, HEALTH_PATH, timeout).await?;
+    serde_json::from_str(body.trim())
+        .map_err(|error| ProbeError::NotSpectrumIq(at, error.to_string()))
+}
+
+/// The local console's secret (ADR-0066): the service names its file to this computer, and the
+/// shell, run as the service's account, reads it. Only a file called `local-login` is read, and
+/// only 64 hexadecimal digits are given back, so no page can make the shell read another file.
+pub async fn local_secret(base: &Url, timeout: Duration) -> Result<String, ProbeError> {
+    let at = base.to_string();
+    let refused = |why: &str| ProbeError::NotSpectrumIq(at.clone(), why.to_owned());
+    let body = get(base, LOCAL_PATH, timeout).await?;
+    let named: serde_json::Value =
+        serde_json::from_str(body.trim()).map_err(|error| refused(&error.to_string()))?;
+    let file = std::path::PathBuf::from(named["file"].as_str().unwrap_or_default());
+    if file.file_name().and_then(|name| name.to_str()) != Some(LOCAL_FILE) {
+        return Err(refused("the secret's file isn't `local-login`"));
+    }
+    let secret = std::fs::read_to_string(&file).map_err(|error| refused(&error.to_string()))?;
+    let secret = secret.trim();
+    if secret.len() != 64 || !secret.chars().all(|c| c.is_ascii_hexdigit()) {
+        return Err(refused("the secret isn't 64 hexadecimal digits"));
+    }
+    Ok(secret.to_owned())
+}
+
+/// `GET path` of the service at `base`, giving up after `timeout`: the body of a 200. One HTTP/1.1
+/// request over loopback, which needs no HTTP client.
+async fn get(base: &Url, path: &str, timeout: Duration) -> Result<String, ProbeError> {
     let at = base.to_string();
     let host = base.host_str().unwrap_or("127.0.0.1");
     let address = format!("{host}:{}", base.port_or_known_default().unwrap_or(80));
     let exchange = async {
         let mut stream = TcpStream::connect(&address).await?;
         let request = format!(
-            "GET {HEALTH_PATH} HTTP/1.1\r\nHost: {address}\r\nAccept: application/json\r\n\
+            "GET {path} HTTP/1.1\r\nHost: {address}\r\nAccept: application/json\r\n\
              Connection: close\r\n\r\n"
         );
         stream.write_all(request.as_bytes()).await?;
@@ -100,24 +133,18 @@ pub async fn probe(base: &Url, timeout: Duration) -> Result<Health, ProbeError> 
         stream.read_to_end(&mut answer).await?;
         Ok::<_, std::io::Error>(answer)
     };
-    match tokio::time::timeout(timeout, exchange).await {
-        Ok(Ok(answer)) => health(&at, &answer),
-        Ok(Err(_)) | Err(_) => Err(ProbeError::Unreachable(at)),
-    }
-}
-
-/// The health in an HTTP answer: a 200, with SpectrumIQ's JSON as its body.
-fn health(at: &str, answer: &[u8]) -> Result<Health, ProbeError> {
-    let text = String::from_utf8_lossy(answer);
-    let not_ours = |why: &str| ProbeError::NotSpectrumIq(at.to_owned(), why.to_owned());
-    let (head, body) = text
-        .split_once("\r\n\r\n")
-        .ok_or_else(|| not_ours("no HTTP answer"))?;
+    let answer = match tokio::time::timeout(timeout, exchange).await {
+        Ok(Ok(answer)) => answer,
+        Ok(Err(_)) | Err(_) => return Err(ProbeError::Unreachable(at)),
+    };
+    let text = String::from_utf8_lossy(&answer);
+    let (head, body) = (text.split_once("\r\n\r\n"))
+        .ok_or_else(|| ProbeError::NotSpectrumIq(at.clone(), "no HTTP answer".to_owned()))?;
     let status = head.lines().next().unwrap_or_default();
     if status.split_whitespace().nth(1) != Some("200") {
-        return Err(ProbeError::Status(at.to_owned(), status.to_owned()));
+        return Err(ProbeError::Status(at, status.to_owned()));
     }
-    serde_json::from_str(body.trim()).map_err(|error| not_ours(&error.to_string()))
+    Ok(body.to_owned())
 }
 
 #[cfg(test)]

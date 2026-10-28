@@ -1,6 +1,7 @@
 import { inject, onBeforeUnmount, onMounted, provide, type InjectionKey } from 'vue'
 
 import { useShortcut } from '@/app/shortcuts'
+import { useGate } from '@/auth/gate'
 import { useFocusStore } from '@/stores/focus'
 import { useStageStore } from '@/stores/stage'
 
@@ -41,7 +42,7 @@ const motionKey: InjectionKey<Motion> = Symbol('motion')
 /**
  * The page's motion, for the calling component and those inside it (`useMotion`). While it is
  * mounted, the arrow keys and PgUp/PgDn jog the stage, and Esc is STOP wherever the keyboard is,
- * dialogs included. Losing the window's focus, hiding the page or leaving it releases every key,
+ * dialogs included, for any but a viewer (ADR-0068). Losing the window's focus, hiding the page or leaving it releases every key,
  * since their key-ups would be missed. Without `keys`, the arrow keys and PgUp/PgDn are left to
  * the page: for a d-pad in a dialog over it.
  */
@@ -84,8 +85,9 @@ export function useJog({ keys = true }: { keys?: boolean } = {}): Motion {
       },
     })),
   )
+  const stopRefused = useGate(() => 'process')
   const onEscape = (event: KeyboardEvent) => {
-    if (event.key === 'Escape') motion.stop()
+    if (event.key === 'Escape' && !stopRefused.value) motion.stop()
   }
   const onKeyup = (event: KeyboardEvent) => controller.release(event.key)
   const releaseAll = () => controller.releaseAll()

@@ -23,6 +23,9 @@ pub fn config() -> InstrumentConfig {
     config.memory.pool_slots = 6;
     // Not the repository's: a calibration made there by hand would be stamped on the frames.
     config.server.settings = Path::new(env!("CARGO_TARGET_TMPDIR")).join("no-settings");
+    // Open, unless a test enforces; no local console, whose user would be made in the settings.
+    config.auth.enforce = false;
+    config.auth.local_user = None;
     // Each service its own audit trail, out of the repository.
     static TRAILS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let trail = TRAILS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);

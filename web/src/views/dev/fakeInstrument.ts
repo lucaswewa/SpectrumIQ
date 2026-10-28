@@ -3,7 +3,7 @@
 // and peripherals of `fakeMotion.ts`, which the drawing follows, the calibrations of
 // `fakeCalibration.ts`, the workflows of `fakeWorkflow.ts`, and the live mosaic of
 // `fakeMosaic.ts`. For development only (`/#/dev/live`, `/#/dev/control`, `/#/dev/calibration`,
-// `/#/dev/scan`, `/#/dev/run`, `/#/dev/mosaic`).
+// `/#/dev/scan`, `/#/dev/run`, `/#/dev/mosaic`, `/#/dev/admin`).
 import type { Pinia } from 'pinia'
 import { createApp, defineComponent, h, type Component } from 'vue'
 

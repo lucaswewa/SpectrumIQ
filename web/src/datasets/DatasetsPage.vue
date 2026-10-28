@@ -3,7 +3,7 @@
 // kind and by name. The list is read when the page opens, on
 // Refresh, and whenever a dataset is made. Details shows a dataset's manifest beside the cards:
 // where it came from, and what made its images, with its exports, and Stitch for a scan's frames
-// (ADR-0064). View opens the viewer.
+// (ADR-0064), which need an operator (ADR-0068). View opens the viewer.
 import refreshIcon from '@material-symbols/svg-400/outlined/refresh.svg?raw'
 import { computed, ref, shallowRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
@@ -14,6 +14,7 @@ import { useDatasetsStore, type DatasetEntry } from '@/stores/datasets'
 import AppButton from '@/ui/AppButton.vue'
 import AppPagination from '@/ui/AppPagination.vue'
 import FormField from '@/ui/FormField.vue'
+import GatedFields from '@/ui/GatedFields.vue'
 import MainView from '@/ui/MainView.vue'
 import MultiSelect from '@/ui/MultiSelect.vue'
 import { useToast } from '@/ui/overlays'
@@ -171,24 +172,26 @@ async function exportAs(kind: 'OME-TIFF' | 'DZI', entry: DatasetEntry, image: st
           </template>
         </template>
       </dl>
-      <AppButton v-if="selected.frames > 1" size="sm" @click="stitching = true">
-        Stitch…
-      </AppButton>
-      <StitchDialog v-model:open="stitching" :entry="selected" />
-      <SectionHeading :level="3">History</SectionHeading>
-      <ol v-if="manifest?.history.length" class="datasets-page__history">
-        <li v-for="record in manifest.history" :key="record.id">{{ step(record) }}</li>
-      </ol>
-      <p v-else class="datasets-page__empty">Nothing has been done to it yet.</p>
-      <template v-for="image in selected.images" :key="image">
-        <SectionHeading :level="3">{{ image }}</SectionHeading>
-        <div class="datasets-page__exports">
-          <AppButton size="sm" @click="exportAs('OME-TIFF', selected, image)">
-            Export OME-TIFF
-          </AppButton>
-          <AppButton size="sm" @click="exportAs('DZI', selected, image)">Export DZI</AppButton>
-        </div>
-      </template>
+      <GatedFields need="process">
+        <AppButton v-if="selected.frames > 1" size="sm" @click="stitching = true">
+          Stitch…
+        </AppButton>
+        <StitchDialog v-model:open="stitching" :entry="selected" />
+        <SectionHeading :level="3">History</SectionHeading>
+        <ol v-if="manifest?.history.length" class="datasets-page__history">
+          <li v-for="record in manifest.history" :key="record.id">{{ step(record) }}</li>
+        </ol>
+        <p v-else class="datasets-page__empty">Nothing has been done to it yet.</p>
+        <template v-for="image in selected.images" :key="image">
+          <SectionHeading :level="3">{{ image }}</SectionHeading>
+          <div class="datasets-page__exports">
+            <AppButton size="sm" @click="exportAs('OME-TIFF', selected, image)">
+              Export OME-TIFF
+            </AppButton>
+            <AppButton size="sm" @click="exportAs('DZI', selected, image)">Export DZI</AppButton>
+          </div>
+        </template>
+      </GatedFields>
     </aside>
   </div>
 </template>

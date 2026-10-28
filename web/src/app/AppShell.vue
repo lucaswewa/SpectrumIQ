@@ -3,6 +3,7 @@ import { onScopeDispose } from 'vue'
 import { RouterView } from 'vue-router'
 
 import CalibrationWizard from '@/calibration/CalibrationWizard.vue'
+import TokenBar from '@/control/TokenBar.vue'
 import { bindToaster } from '@/stores/thing'
 import { useToast } from '@/ui/overlays'
 
@@ -26,6 +27,7 @@ onScopeDispose(() => bindToaster(undefined))
         This interface is designed for a wide, landscape window. Some controls may not fit until it
         is wider.
       </p>
+      <TokenBar />
       <RouterView />
     </div>
     <ShortcutHelp />

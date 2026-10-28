@@ -8,6 +8,7 @@
   },
   "permissions": [
     "allow-app-info",
+    "allow-local-secret",
     "allow-open-link",
     "allow-save-file",
     "allow-service-state",

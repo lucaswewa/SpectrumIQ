@@ -124,7 +124,7 @@ export const TOKEN_GROUPS = {
     '--annotation-stroke-width',
     '--annotation-halo-width',
   ],
-  layer: ['--z-rail', '--z-dropdown', '--z-dialog', '--z-menu', '--z-toast'],
+  layer: ['--z-rail', '--z-dropdown', '--z-dialog', '--z-alert', '--z-menu', '--z-toast'],
   elevation: ['--shadow-sm', '--shadow-md', '--shadow-lg'],
   motion: ['--duration-fast', '--duration-normal', '--easing-standard'],
 } as const

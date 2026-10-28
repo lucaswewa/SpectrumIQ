@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, shallowRef, watch } from 'vue'
 
+import { useGate } from '@/auth/gate'
 import { useCalibrationStore } from '@/stores/calibration'
 import { usePeripheralsStore } from '@/stores/peripherals'
 
@@ -9,7 +10,8 @@ import { allNeeded, FINAL, neededFor, WELCOME, type WizardTask } from './tasks'
 /**
  * Whether the calibration wizard is open, and with which tasks (ADR-0051). It opens by itself,
  * with a welcome, once in each page's life for each objective that comes into use lacking a
- * calibration: the objective at the turret, or the only one configured. The Calibration page
+ * calibration: the objective at the turret, or the only one configured; and only while the session
+ * may change the instrument (ADR-0068), as an operator holding the token. The Calibration page
  * opens it with the tasks it chooses.
  */
 export const useCalibrationWizard = defineStore('calibration-wizard', () => {
@@ -18,6 +20,7 @@ export const useCalibrationWizard = defineStore('calibration-wizard', () => {
   const open = ref(false)
   const tasks = shallowRef<WizardTask[]>([])
   const offered = new Set<number>()
+  const refused = useGate(() => 'operate')
 
   /** Opens with `chosen`, after a welcome if `welcome`: not at all, if there is nothing. */
   function start(chosen: WizardTask[], welcome = false) {
@@ -34,9 +37,9 @@ export const useCalibrationWizard = defineStore('calibration-wizard', () => {
     return status?.length === 1 ? status[0] : undefined
   })
   watch(
-    inUse,
-    (entry) => {
-      if (!entry || open.value || offered.has(entry.objective)) return
+    [inUse, refused],
+    ([entry]) => {
+      if (!entry || refused.value || open.value || offered.has(entry.objective)) return
       offered.add(entry.objective)
       start(neededFor(entry), true)
     },

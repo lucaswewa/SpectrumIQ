@@ -5,6 +5,7 @@ fn main() {
     let commands = tauri_build::AppManifest::new().commands(&[
         "app_info",
         "probe",
+        "local_secret",
         "open_link",
         "save_file",
         "service_state",

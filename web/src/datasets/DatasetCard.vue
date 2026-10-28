@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // One dataset in the browser (ADR-0041, amended): its thumbnail, or a placeholder if it has no
 // image yet or the thumbnail won't load, which opens the viewer; its name, when it was made, and
-// what it holds; View, Details, and Delete, which asks first.
+// what it holds; View, Details, and Delete, which asks first and is an admin's (ADR-0068).
 import imageIcon from '@material-symbols/svg-400/outlined/image.svg?raw'
 import { computed, ref } from 'vue'
 
+import { useGate } from '@/auth/gate'
 import { useConnectionStore } from '@/stores/connection'
 import { useDatasetsStore, type DatasetEntry } from '@/stores/datasets'
 import AppButton from '@/ui/AppButton.vue'
@@ -18,6 +19,7 @@ const emit = defineEmits<{ view: []; details: [] }>()
 const connection = useConnectionStore()
 const datasets = useDatasetsStore()
 const confirm = useConfirm()
+const refused = useGate(() => 'admin')
 
 const unloadable = ref(false)
 const thumbnail = computed(() =>
@@ -61,7 +63,9 @@ async function remove() {
         View
       </AppButton>
       <AppButton :aria-pressed="selected" @click="emit('details')">Details</AppButton>
-      <AppButton @click="remove">Delete</AppButton>
+      <AppButton :disabled="refused !== undefined" :title="refused" @click="remove">
+        Delete
+      </AppButton>
     </div>
   </AppCard>
 </template>

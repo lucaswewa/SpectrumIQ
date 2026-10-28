@@ -81,10 +81,10 @@ function onOpenAutoFocus(event: Event) {
 <template>
   <DialogRoot v-model:open="open">
     <DialogPortal>
-      <DialogOverlay class="app-dialog__overlay" />
+      <DialogOverlay class="app-dialog__overlay" :class="{ 'app-dialog--alert': alert }" />
       <DialogContent
         class="app-dialog"
-        :class="`app-dialog--${size}`"
+        :class="[`app-dialog--${size}`, { 'app-dialog--alert': alert }]"
         v-bind="contentAttributes"
         @escape-key-down="dismiss"
         @pointer-down-outside="dismiss($event, closeOnOutsideClick)"
@@ -168,6 +168,11 @@ function onOpenAutoFocus(event: Event) {
 
 .app-dialog:focus-visible {
   outline: none;
+}
+
+/* Above the dialog it may be asked from, whichever was mounted first. */
+.app-dialog--alert {
+  z-index: var(--z-alert);
 }
 
 .app-dialog__header {

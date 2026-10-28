@@ -41,9 +41,9 @@ Which role may do what, route by route, is `siq-server`'s (`authz`).
   synced to disk, timed when it was recorded. `verify` names the first line edited, removed or
   moved; `query` filters by time, user and kind, newest first. The control token records its own
   changes in it, with the holder before and after.
-- **The CLI** (`cli::run`): the `spectrumiq-server user` commands, apart from their parsing. The
-  first user is an admin. Passwords are asked for twice through `read_password`, without echo at
-  a console, or as lines from a pipe.
+- **The CLI** (`cli::run`): the `spectrumiq-server user` commands, apart from their parsing.
+  While there is no admin, a new user is one, to manage the rest. Passwords are asked for twice
+  through `read_password`, without echo at a console, or as lines from a pipe.
 
 **Unsafe code** (ADR-0007):
 
@@ -62,7 +62,7 @@ Which role may do what, route by route, is `siq-server`'s (`authz`).
 - **Used by:** `siq-server` (the routes and the layer); `spectrumiq-server` (the `user`
   commands).
 - **Phase:** P9.1; P9.2 added the control token and the local console's login; P9.3 the audit
-  trail.
+  trail; P9.4 the CLI's first admin, made while there is none.
 
 ## API
 

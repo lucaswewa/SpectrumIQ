@@ -1,12 +1,15 @@
 <script setup lang="ts">
 // The Calibration page (ADR-0051): each objective, with its turret position, its parfocal offset,
 // its stage–camera calibration in force and whether scans may run with it; each objective and
-// channel's dark and flat; and the wizard, for any of them or for everything missing.
+// channel's dark and flat; and the wizard, for any of them or for everything missing. Its buttons
+// need control of the instrument (ADR-0068).
 import { computed } from 'vue'
 
+import { useGate } from '@/auth/gate'
 import { useCalibrationStore, type ObjectiveStatus } from '@/stores/calibration'
 import { usePeripheralsStore } from '@/stores/peripherals'
 import AppButton from '@/ui/AppButton.vue'
+import GatedFields from '@/ui/GatedFields.vue'
 import MainView from '@/ui/MainView.vue'
 import SectionHeading from '@/ui/SectionHeading.vue'
 
@@ -17,6 +20,7 @@ import { useCalibrationWizard } from './wizard'
 const calibration = useCalibrationStore()
 const peripherals = usePeripheralsStore()
 const wizard = useCalibrationWizard()
+const refused = useGate(() => 'operate')
 
 const date = (created: string) => new Date(created).toLocaleDateString()
 
@@ -43,12 +47,14 @@ const value = (facts: [string, string][]) => facts.map(([, fact]) => fact).join(
   <MainView class="calibration-page">
     <header class="calibration-page__header">
       <h1>Calibration</h1>
-      <AppButton variant="primary" @click="wizard.openNeeded()">Calibrate what's missing</AppButton>
+      <AppButton variant="primary" :disabled="refused !== undefined" @click="wizard.openNeeded()">
+        Calibrate what's missing
+      </AppButton>
     </header>
     <p v-if="!calibration.status" class="calibration-page__empty">
       The calibrations appear here once the server answers.
     </p>
-    <template v-else>
+    <GatedFields v-else need="operate">
       <section>
         <SectionHeading>Objectives</SectionHeading>
         <table class="calibration-page__table">
@@ -132,7 +138,7 @@ const value = (facts: [string, string][]) => facts.map(([, fact]) => fact).join(
           </tbody>
         </table>
       </section>
-    </template>
+    </GatedFields>
   </MainView>
 </template>
 

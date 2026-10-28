@@ -59,7 +59,7 @@ pub fn classify(method: &Method, path: &str) -> Option<Class> {
     {
         return Some(Class::Public);
     }
-    if path == "/api/siq/audit" {
+    if path == "/api/siq/audit" || path == "/api/siq/users" || path.starts_with("/api/siq/users/") {
         return Some(Class::Admin);
     }
     if matches!(*method, Method::GET | Method::HEAD) {

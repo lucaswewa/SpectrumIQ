@@ -18,8 +18,8 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use siq_auth::{
     AuditLog, ControlError, ControlManager, Kind, LocalLogin, LoginLimiter, Role, Session,
-    SessionPolicy, SessionStore, USERS_FILE, UserStore, clear_cookie, same_origin, session_cookie,
-    set_cookie,
+    SessionId, SessionPolicy, SessionStore, USERS_FILE, UserStore, clear_cookie, same_origin,
+    session_cookie, set_cookie,
 };
 use siq_config::model::InstrumentConfig;
 use siq_types::Clock;
@@ -33,7 +33,7 @@ use teta_wot::http::axum::{Json, Router};
 use tracing::{info, warn};
 
 use crate::audit::{audited, event, summary};
-use crate::authz;
+use crate::authz::{self, Class};
 
 /// The local console's secret, in `[server] settings`.
 pub const LOCAL_LOGIN_FILE: &str = "local-login";
@@ -62,19 +62,28 @@ impl Auth {
     pub fn open(config: &InstrumentConfig, clock: Arc<dyn Clock>) -> anyhow::Result<Self> {
         let auth = &config.auth;
         let users = UserStore::open(config.server.settings.join(USERS_FILE))?;
-        if users.is_empty()? {
+        if !users.list()?.iter().any(|user| user.role == Role::Admin) {
             warn!(
                 file = %users.path().display(),
-                "no users yet: add the first admin with `spectrumiq-server user add <name> --role admin -c <config>`"
+                "no admin yet: add the first with `spectrumiq-server user add <name> --role admin -c <config>`"
             );
         }
         if !auth.enforce {
             warn!("[auth] enforce is off: every request is allowed");
         }
         let local = match &auth.local_user {
-            Some(_) => Some(LocalLogin::create(
-                config.server.settings.join(LOCAL_LOGIN_FILE),
-            )?),
+            Some(name) => {
+                // The local console's user, made the first time: an operator whose password no
+                // one knows, as it logs in by its secret.
+                if users.get(name)?.is_none() {
+                    let password = SessionId::random().map_err(anyhow::Error::msg)?;
+                    users.add(name, password.as_str(), Role::Operator)?;
+                    info!(user = %name, "made the local console's user");
+                }
+                Some(LocalLogin::create(
+                    config.server.settings.join(LOCAL_LOGIN_FILE),
+                )?)
+            }
             None => None,
         };
         let minutes = |m: u32| Duration::from_secs(60 * u64::from(m));
@@ -168,7 +177,7 @@ fn refuse(status: StatusCode, why: impl Into<String>) -> Response {
 /// - where `[auth] enforce`, a request its caller may not make is refused: 401 without a
 ///   session, 403 for a role or a missing token (ADR-0066);
 /// - a change, its parameters and its answer, and a refusal, go into the audit trail
-///   (ADR-0067).
+///   (ADR-0067); not a read, though it be a POST, as a dataset's summary.
 pub(crate) async fn layer(State(auth): State<Arc<Auth>>, request: Request, next: Next) -> Response {
     let reading = matches!(
         *request.method(),
@@ -176,7 +185,8 @@ pub(crate) async fn layer(State(auth): State<Arc<Auth>>, request: Request, next:
     );
     let address = (request.extensions().get::<ConnectInfo<SocketAddr>>()).map(|c| c.0.ip());
     let (method, path) = (request.method().clone(), request.uri().path().to_owned());
-    let audit = !reading && audited(&path);
+    let class = authz::classify(&method, &path);
+    let audit = !reading && class != Some(Class::Read) && audited(&path);
     let refused = |session: Option<&Session>, status: StatusCode, why: String| {
         if audit {
             let detail = json!({ "method": method.as_str(), "path": path, "status": status.as_u16(), "why": why });
@@ -200,7 +210,6 @@ pub(crate) async fn layer(State(auth): State<Arc<Auth>>, request: Request, next:
     }
     let session = auth.session(request.headers());
     let holds = (session.as_ref()).is_some_and(|session| auth.control.heartbeat(&session.id));
-    let class = authz::classify(&method, &path);
     if auth.enforce
         && let Err((status, why)) = authz::decide(class, session.as_ref(), holds)
     {
@@ -244,7 +253,7 @@ pub(crate) fn routes(auth: &Arc<Auth>) -> Router {
         .route("/api/siq/auth/login", post(login))
         .route("/api/siq/auth/logout", post(logout))
         .route("/api/siq/auth/me", get(me))
-        .route("/api/siq/auth/local", post(local))
+        .route("/api/siq/auth/local", get(local_file).post(local))
         .route("/api/siq/control", get(control))
         .route("/api/siq/control/request", post(request_token))
         .route("/api/siq/control/release", post(release))
@@ -318,6 +327,25 @@ async fn login(State(auth): State<Arc<Auth>>, request: Request) -> Response {
     auth.audit
         .record(event(Kind::Login, Some(&session), address, detail));
     auth.opened(&session)
+}
+
+/// `GET /api/siq/auth/local`, from this computer: `{ "file" }`, where the local console's secret
+/// is, for the desktop shell to read; 403 from another computer, 404 without a local user.
+async fn local_file(State(auth): State<Arc<Auth>>, request: Request) -> Response {
+    let address = (request.extensions().get::<ConnectInfo<SocketAddr>>()).map(|c| c.0.ip());
+    if !address.is_some_and(|address| address.is_loopback()) {
+        return refuse(
+            StatusCode::FORBIDDEN,
+            "the local console logs in from this computer only",
+        );
+    }
+    match &auth.local {
+        Some(login) => Json(json!({ "file": login.path() })).into_response(),
+        None => refuse(
+            StatusCode::NOT_FOUND,
+            "the local console has no user: set [auth] local_user",
+        ),
+    }
 }
 
 /// A local login's body.
@@ -400,11 +428,15 @@ async fn logout(State(auth): State<Arc<Auth>>, request: Request) -> Response {
     response
 }
 
-/// `GET /api/siq/auth/me`: who the session is, and when it ends; 401 without one.
+/// `GET /api/siq/auth/me`: who the session is, and when it ends; 401 without one, saying whether
+/// logins are `enforced`, so that a client knows whether to ask for one.
 async fn me(State(auth): State<Arc<Auth>>, request: Request) -> Response {
     match request.extensions().get::<Session>() {
         Some(session) => Json(auth.describe(session)).into_response(),
-        None => refuse(StatusCode::UNAUTHORIZED, "not logged in"),
+        None => {
+            let body = json!({ "detail": "not logged in", "enforced": auth.enforce });
+            (StatusCode::UNAUTHORIZED, Json(body)).into_response()
+        }
     }
 }
 

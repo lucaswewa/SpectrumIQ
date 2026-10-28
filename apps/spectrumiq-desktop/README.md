@@ -22,7 +22,11 @@ SPECTRUMIQ_SERVER=http://127.0.0.1:<port>               the same, when --server 
   - links open in the system's browser;
   - files save through a save dialog;
   - full screen is the window's;
-  - in development builds, the service can be started, stopped and restarted.
+  - in development builds, the service can be started, stopped and restarted;
+  - the local console's secret (`localSecret`, ADR-0066, ADR-0068), which logs the desktop in by
+    itself: the service names the file to this computer only (`GET /api/siq/auth/local`), and the
+    shell reads it if it is called `local-login`, giving back only its 64 hexadecimal digits. A
+    page can't make the shell read any other file.
 - **One window:** a second launch shows the first window instead. The window's size and place
   are kept between runs.
 
@@ -40,13 +44,14 @@ SPECTRUMIQ_SERVER=http://127.0.0.1:<port>               the same, when --server 
   | Path                      | What                                                                                      |
   | ------------------------- | ----------------------------------------------------------------------------------------- |
   | `src-tauri/`              | The Rust crate, a workspace member by name, since the `apps/*` glob stops above it        |
-  | `src-tauri/src/server.rs` | The service's address, and its health probe: one HTTP/1.1 request over loopback           |
+  | `src-tauri/src/server.rs` | The service's address, its health probe, and the local secret: HTTP/1.1 over loopback     |
   | `src-tauri/src/child.rs`  | The development builds' simulated instrument                                              |
   | `src-tauri/capabilities/` | `connect`, the bundled page's commands; `remote`, the web app's, for `http://127.0.0.1:*` |
   | `connect/`                | The connect page: HTML, CSS and a script, with no build step                              |
   | `package.json`            | Tauri's command line, `@tauri-apps/cli`                                                   |
 
-- **Phase:** P3.5. The fast local paths follow in P14.4 and P14.5, and the installer in P15.1.
+- **Phase:** P3.5; P9.4 added the local secret. The fast local paths follow in P14.4 and P14.5,
+  and the installer in P15.1.
 
 ## Running it
 

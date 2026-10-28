@@ -2,6 +2,7 @@ import { computed, shallowRef, watch, type ShallowRef } from 'vue'
 
 import type { components } from '@/api/generated/schema'
 import { ApiError } from '@/api/wot/errors'
+import { useSessionStore } from '@/auth/session'
 import type { Toaster } from '@/ui/overlays'
 
 import { useConnectionStore } from './connection'
@@ -42,6 +43,8 @@ export function notify(kind: 'success' | 'info' | 'error', message: string) {
 export function notifyFailure(what: string, failure: unknown) {
   const error = ApiError.fromFailure(failure)
   if (error.kind === 'cancelled') return
+  // The session ended: the login asks again, rather than a toast.
+  if (error.status === 401) return useSessionStore().expire()
   toaster?.error(`${what}: ${error.message}`, { details: error.body ?? error.message })
 }
 

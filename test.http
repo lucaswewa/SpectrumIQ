@@ -77,6 +77,9 @@ POST {{host}}/api/siq/control/release
 ### Take it over from whoever holds it (an admin or the local console)
 POST {{host}}/api/siq/control/take_over
 
+### Where the local console's secret is, from this computer only: `{ "file" }`
+GET {{host}}/api/siq/auth/local
+
 ### The local console's login, from this computer: the secret in `[server] settings`/local-login
 POST {{host}}/api/siq/auth/local
 Content-Type: application/json
@@ -85,6 +88,34 @@ Content-Type: application/json
 
 ### The control Thing: its holder, observed
 GET {{api}}/control/holder
+
+# ============================== The users ==============================
+# An admin's (ADR-0068). A new password, or a removal, ends the user's sessions; a new role
+# applies to them at once. The last admin can't be removed or made another role (409).
+
+### The users, by name, without their hashes
+GET {{host}}/api/siq/users
+
+### Add an operator: 201 (400 for a password under 8 characters; 409 if the name is taken)
+POST {{host}}/api/siq/users
+Content-Type: application/json
+
+{ "name": "olga", "password": "correct horse", "role": "operator" }
+
+### Make her a viewer
+PUT {{host}}/api/siq/users/olga
+Content-Type: application/json
+
+{ "role": "viewer" }
+
+### Give her a new password
+PUT {{host}}/api/siq/users/olga
+Content-Type: application/json
+
+{ "password": "battery staple" }
+
+### Remove her: 204 (404 if there is no such user)
+DELETE {{host}}/api/siq/users/olga
 
 # ============================== The audit trail ==============================
 # Who did what, hash-chained, a file a month in `[server] audit` (ADR-0067). Check it with

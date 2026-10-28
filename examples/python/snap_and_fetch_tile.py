@@ -4,6 +4,7 @@ the HTTP API.
 Start the service first, with the simulated instrument:
 
     cargo run --release -p spectrumiq-server -- -c config/sim.toml
+    set SIQ_USER=<a user>& set SIQ_PASSWORD=<its password>   (siq_session.py)
 
 then, from the repository:
 
@@ -22,6 +23,8 @@ import re
 import sys
 import time
 import urllib.request
+
+import siq_session
 
 ROOT = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:5000").rstrip("/")
 CHANNELS = [int(channel) for channel in sys.argv[2:]]
@@ -97,4 +100,5 @@ def main():
 
 
 if __name__ == "__main__":
+    siq_session.login(ROOT, control=True)
     sys.exit(main())

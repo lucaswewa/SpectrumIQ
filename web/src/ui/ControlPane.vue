@@ -2,13 +2,23 @@
 // The fixed-width column of controls beside a page's main view: narrow
 // (Settings) or wide (Control, Slide Scan, Sequence). It scrolls when its
 // controls are taller than it, so they keep their heights even where a page
-// lays them out in a flex column.
-withDefaults(defineProps<{ width?: 'narrow' | 'wide' }>(), { width: 'narrow' })
+// lays them out in a flex column. With `need`, its controls are disabled, with
+// the reason, while the session may not do that (ADR-0068).
+import type { Need } from '@/auth/session'
+
+import GatedFields from './GatedFields.vue'
+
+withDefaults(defineProps<{ width?: 'narrow' | 'wide'; need?: Need }>(), {
+  width: 'narrow',
+  need: undefined,
+})
 </script>
 
 <template>
   <aside class="control-pane" :class="`control-pane--${width}`">
-    <slot />
+    <GatedFields :need="need">
+      <slot />
+    </GatedFields>
   </aside>
 </template>
 
@@ -24,7 +34,7 @@ withDefaults(defineProps<{ width?: 'narrow' | 'wide' }>(), { width: 'narrow' })
 }
 
 /* A flex column's children would otherwise shrink to fit, buttons too. */
-.control-pane > :slotted(*) {
+.control-pane :deep(.gated-fields > *) {
   flex-shrink: 0;
 }
 

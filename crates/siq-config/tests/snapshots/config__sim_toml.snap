@@ -30,9 +30,9 @@ expression: config
     "keep_days": 30
   },
   "auth": {
-    "enforce": false,
+    "enforce": true,
     "control_timeout_s": 30,
-    "local_user": null,
+    "local_user": "console",
     "idle_minutes": 60,
     "session_hours": 12,
     "max_failures": 5,

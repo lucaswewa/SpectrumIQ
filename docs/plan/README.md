@@ -234,8 +234,8 @@ A phase is Done once it is merged.
 |---|---|---|---|---|
 | P9.1 | Accounts and sessions | 850 | P2.3 | Done |
 | P9.2 | Authorization layer and Hardware Control Token | 850 | P9.1, P6.5 | Done |
-| P9.3 | Audit trail | 600 | P9.2 | Review |
-| P9.4 | Frontend: login, roles, control token, admin | 900 | P9.2, P9.3, P3.5 | — |
+| P9.3 | Audit trail | 600 | P9.2 | Done |
+| P9.4 | Frontend: login, roles, control token, admin | 900 | P9.2, P9.3, P3.5 | Review |
 | P9.5 | End-to-end tests and soak tool | 500 | P9.4 | — |
 
 ### M10 — Hardware bring-up ([brief](milestones/M10-hardware-bringup.md))

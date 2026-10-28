@@ -2,8 +2,9 @@
 //! classified; the decision for each class and caller is architecture §10's matrix; and, over
 //! HTTP with `[auth] enforce`, a viewer reads but doesn't change, an operator changes the
 //! instrument only with the control token, stops without it, and can't take it from another; an
-//! admin takes it over; a silent holder loses it; and the local console logs in once per secret,
-//! from this computer only. REQ-SEC-002, REQ-SEC-004.
+//! admin takes it over; a silent holder loses it; the local console logs in once per secret,
+//! from this computer only, which alone is told where the secret is; and an admin manages the
+//! users. REQ-SEC-001, REQ-SEC-002, REQ-SEC-004.
 
 mod common;
 
@@ -140,8 +141,8 @@ fn the_decision_is_architecture_s_matrix() {
     );
 }
 
-/// The service with `[auth] enforce`, a token timeout of a second, and an admin, two operators,
-/// a viewer and the local console's user; its Things started.
+/// The service with `[auth] enforce`, a token timeout of a second, and an admin, two operators
+/// and a viewer; the local console's user it makes itself; its Things started.
 async fn rig() -> (Router, (TestClient, tempfile::TempDir)) {
     let settings = tempfile::tempdir().unwrap();
     let mut config = common::config();
@@ -155,7 +156,6 @@ async fn rig() -> (Router, (TestClient, tempfile::TempDir)) {
         ("olga", Role::Operator),
         ("otto", Role::Operator),
         ("vic", Role::Viewer),
-        ("console", Role::Operator),
     ] {
         users.add(name, "correct horse", role).unwrap();
     }
@@ -355,6 +355,15 @@ async fn a_silent_holder_loses_the_token() {
 async fn the_local_console_logs_in_once_a_secret_from_this_computer() {
     let (routes, (_things, settings)) = rig().await;
     let file = settings.path().join("local-login");
+    // Where the secret is, told to this computer only: the desktop shell reads it.
+    let named = ("GET", "/api/siq/auth/local");
+    assert_eq!(
+        send(&routes, named, None, None, LAN).await.0,
+        StatusCode::FORBIDDEN
+    );
+    let (status, told, _) = send(&routes, named, None, None, "127.0.0.1").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(std::path::Path::new(told["file"].as_str().unwrap()), file);
     let local = ("POST", "/api/siq/auth/local");
     let secret = std::fs::read_to_string(&file).unwrap();
     let body = Some(json!({ "secret": secret }));
@@ -365,6 +374,10 @@ async fn the_local_console_logs_in_once_a_secret_from_this_computer() {
     assert_eq!(
         (me["name"].as_str(), me["local"].as_bool()),
         (Some("console"), Some(true))
+    );
+    assert_eq!(
+        me["role"], "operator",
+        "made by the service, as an operator"
     );
     // Used once: the file holds the next secret.
     let (status, _, _) = send(&routes, local, body, None, "127.0.0.1").await;
@@ -389,4 +402,85 @@ async fn the_local_console_logs_in_once_a_secret_from_this_computer() {
         ),
         (Some("console"), Some(true))
     );
+}
+
+#[tokio::test]
+async fn users_are_managed_by_an_admin_and_their_passwords_not_audited() {
+    let (routes, _kept) = rig().await;
+    let [ada, vic] = [login(&routes, "ada").await, login(&routes, "vic").await];
+    let users = ("GET", "/api/siq/users");
+    assert_eq!(
+        send(&routes, users, None, Some(&vic), LAN).await.0,
+        StatusCode::FORBIDDEN
+    );
+    let (status, listed, _) = send(&routes, users, None, Some(&ada), LAN).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        listed
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|u| u.get("hash").is_none())
+    );
+
+    let add = ("POST", "/api/siq/users");
+    let new = json!({ "name": "nina", "password": "a long secret", "role": "viewer" });
+    let (status, added, _) = send(&routes, add, Some(new.clone()), Some(&ada), LAN).await;
+    assert_eq!(
+        (status, added["role"].as_str()),
+        (StatusCode::CREATED, Some("viewer"))
+    );
+    assert_eq!(
+        send(&routes, add, Some(new), Some(&ada), LAN).await.0,
+        StatusCode::CONFLICT
+    );
+    let body = json!({ "name": "nina", "password": "a long secret" });
+    let (_, _, nina) = send(
+        &routes,
+        ("POST", "/api/siq/auth/login"),
+        Some(body),
+        None,
+        LAN,
+    )
+    .await;
+    let nina = nina.unwrap();
+    // A new role at once; a new password ends her sessions.
+    let change = ("PUT", "/api/siq/users/nina");
+    let role = Some(json!({ "role": "operator" }));
+    assert_eq!(
+        send(&routes, change, role, Some(&ada), LAN).await.0,
+        StatusCode::OK
+    );
+    let me = ("GET", "/api/siq/auth/me");
+    assert_eq!(
+        send(&routes, me, None, Some(&nina), LAN).await.1["role"],
+        "operator"
+    );
+    let password = Some(json!({ "password": "another secret" }));
+    assert_eq!(
+        send(&routes, change, password, Some(&ada), LAN).await.0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        send(&routes, me, None, Some(&nina), LAN).await.0,
+        StatusCode::UNAUTHORIZED
+    );
+    // The last admin stays; another goes.
+    let last = ("DELETE", "/api/siq/users/ada");
+    assert_eq!(
+        send(&routes, last, None, Some(&ada), LAN).await.0,
+        StatusCode::CONFLICT
+    );
+    let remove = ("DELETE", "/api/siq/users/nina");
+    assert_eq!(
+        send(&routes, remove, None, Some(&ada), LAN).await.0,
+        StatusCode::NO_CONTENT
+    );
+
+    // The trail has the changes, and not their passwords.
+    let query = ("GET", "/api/siq/audit?limit=100");
+    let (_, page, _) = send(&routes, query, None, Some(&ada), LAN).await;
+    let text = page.to_string();
+    assert!(!text.contains("a long secret") && !text.contains("another secret"));
+    assert!(text.contains("/api/siq/users/nina"));
 }

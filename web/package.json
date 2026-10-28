@@ -24,6 +24,7 @@
     "api:types": "openapi-typescript src/api/generated/openapi.json -o src/api/generated/schema.d.ts --default-non-nullable false"
   },
   "dependencies": {
+    "@tanstack/vue-table": "^9.3.1",
     "@tauri-apps/api": "^2.12.2",
     "openseadragon": "^6.1.1",
     "pinia": "^4.0.3",

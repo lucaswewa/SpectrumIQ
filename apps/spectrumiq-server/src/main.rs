@@ -17,8 +17,8 @@
 //! the build compiled in, or the folder `--webapp-dir` gives. Shutting down stops live view, then
 //! motion, then the Things.
 //!
-//! The first user added is an admin, who manages the rest; a password is asked for twice, without
-//! being shown, or read as two lines of standard input from a pipe.
+//! While there is no admin, the user added is one, to manage the rest; a password is asked for
+//! twice, without being shown, or read as two lines of standard input from a pipe.
 
 use std::path::PathBuf;
 use std::process::ExitCode;

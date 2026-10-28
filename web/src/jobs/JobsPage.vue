@@ -1,12 +1,14 @@
 <script setup lang="ts">
 // The Jobs page (ADR-0043, ADR-0064): the background jobs running, with their progress, and those
 // waiting, in the order they will be considered, each with Cancel; and whether a tile scan is
-// stitched by itself when it finishes. The server's lists are followed as they change.
+// stitched by itself when it finishes. The server's lists are followed as they change. Changing
+// them needs an operator (ADR-0068).
 import { computed } from 'vue'
 
 import { useJobsStore, type JobInfo } from '@/stores/jobs'
 import AppButton from '@/ui/AppButton.vue'
 import AppToggle from '@/ui/AppToggle.vue'
+import GatedFields from '@/ui/GatedFields.vue'
 import MainView from '@/ui/MainView.vue'
 import ProgressBar from '@/ui/ProgressBar.vue'
 import SectionHeading from '@/ui/SectionHeading.vue'
@@ -39,31 +41,33 @@ const sections = computed(() => [
 <template>
   <MainView class="jobs-page">
     <h1 class="jobs-page__title">Jobs</h1>
-    <AppToggle
-      :model-value="jobs.autoStitch ?? false"
-      label="Stitch tile scans when they finish"
-      :disabled="jobs.autoStitch === undefined"
-      @update:model-value="jobs.setAutoStitch"
-    />
-    <section v-for="section in sections" :key="section.title" :aria-label="section.title">
-      <SectionHeading>{{ section.title }}</SectionHeading>
-      <p v-if="!section.list.length" class="jobs-page__empty">{{ section.empty }}</p>
-      <ul v-else class="jobs-page__list">
-        <li v-for="job in section.list" :key="job.id" class="jobs-page__job">
-          <div class="jobs-page__head">
-            <span class="jobs-page__name">{{ named(job) }}</span>
-            <span class="jobs-page__when">{{ job.priority }}, since {{ since(job) }}</span>
-            <AppButton size="sm" @click="jobs.cancel(job.id)">Cancel</AppButton>
-          </div>
-          <ProgressBar
-            v-if="job.state === 'running'"
-            :value="Math.round(job.progress * 100)"
-            :label="`${named(job)}'s progress`"
-          />
-          <p v-if="job.message" class="jobs-page__message">{{ job.message }}</p>
-        </li>
-      </ul>
-    </section>
+    <GatedFields need="process">
+      <AppToggle
+        :model-value="jobs.autoStitch ?? false"
+        label="Stitch tile scans when they finish"
+        :disabled="jobs.autoStitch === undefined"
+        @update:model-value="jobs.setAutoStitch"
+      />
+      <section v-for="section in sections" :key="section.title" :aria-label="section.title">
+        <SectionHeading>{{ section.title }}</SectionHeading>
+        <p v-if="!section.list.length" class="jobs-page__empty">{{ section.empty }}</p>
+        <ul v-else class="jobs-page__list">
+          <li v-for="job in section.list" :key="job.id" class="jobs-page__job">
+            <div class="jobs-page__head">
+              <span class="jobs-page__name">{{ named(job) }}</span>
+              <span class="jobs-page__when">{{ job.priority }}, since {{ since(job) }}</span>
+              <AppButton size="sm" @click="jobs.cancel(job.id)">Cancel</AppButton>
+            </div>
+            <ProgressBar
+              v-if="job.state === 'running'"
+              :value="Math.round(job.progress * 100)"
+              :label="`${named(job)}'s progress`"
+            />
+            <p v-if="job.message" class="jobs-page__message">{{ job.message }}</p>
+          </li>
+        </ul>
+      </section>
+    </GatedFields>
   </MainView>
 </template>
 

@@ -57,6 +57,7 @@ fn the_web_app_gets_the_host_commands_and_the_connect_page_only_its_own() {
     let remote = permissions(&remote);
     for command in [
         "allow-app-info",
+        "allow-local-secret",
         "allow-open-link",
         "allow-save-file",
         "allow-service-state",

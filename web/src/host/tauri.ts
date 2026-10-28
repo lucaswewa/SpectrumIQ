@@ -28,6 +28,8 @@ export async function createTauriHost(): Promise<HostAdapter> {
       void invoke('open_link', { url })
     },
 
+    localSecret: () => invoke<string>('local_secret'),
+
     async saveFile(name, data) {
       // The bytes go as the request's raw body, not as JSON.
       const bytes = new Uint8Array(await data.arrayBuffer())

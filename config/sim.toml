@@ -11,7 +11,7 @@ settings = "../settings"   # the calibrations, the users
 audit = "../audit"         # who did what, a file a month
 
 [auth]                      # accounts, sessions and the control token (ADR-0065, ADR-0066)
-enforce = false            # open until the web app and the desktop log in (P9.4)
+local_user = "console"     # the desktop logs in as it, by its secret
 
 [memory]                    # the 32 GB / 8 GB workstation (ADR-0005)
 pool_slots = 12             # 12 × 200 MB, locked

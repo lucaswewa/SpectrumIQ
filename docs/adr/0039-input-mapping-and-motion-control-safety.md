@@ -145,3 +145,11 @@
   - a double-click moved as far as the travel allowed;
   - STOP halted a running jog;
   - no console errors.
+
+## Amendment (P9.4, 2026-10-28): STOP, for any but a viewer
+
+- **A viewer may not stop** (ADR-0066), so STOP is disabled for a viewer, with the reason, and Esc
+  halts nothing. For anyone who may stop, it stays enabled whatever is moving or busy, as above
+  (ADR-0068).
+- `web/tests/unit/control/control.spec.ts`: STOP disabled for a viewer, with its reason, and Esc
+  sending no halt.

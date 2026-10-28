@@ -46,8 +46,8 @@ pub(crate) fn event(
     }
 }
 
-/// A request's parameters, for the trail: its JSON body with each string cut to 120 characters;
-/// past 4 KB, its size and its keys; not JSON, its size.
+/// A request's parameters, for the trail: its JSON body with each string cut to 120 characters
+/// and any password or secret left out; past 4 KB, its size and its keys; not JSON, its size.
 pub(crate) fn summary(body: &[u8]) -> Value {
     if body.is_empty() {
         return Value::Null;
@@ -71,9 +71,14 @@ fn cut(value: Value) -> Value {
             Value::String(text.chars().take(LONGEST).chain(['…']).collect())
         }
         Value::Array(items) => Value::Array(items.into_iter().map(cut).collect()),
-        Value::Object(fields) => {
-            Value::Object(fields.into_iter().map(|(k, v)| (k, cut(v))).collect())
-        }
+        Value::Object(fields) => Value::Object(
+            (fields.into_iter())
+                .map(|(k, v)| match k.as_str() {
+                    "password" | "secret" => (k, Value::String("…".to_owned())),
+                    _ => (k, cut(v)),
+                })
+                .collect(),
+        ),
         other => other,
     }
 }

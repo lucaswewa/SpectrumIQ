@@ -47,7 +47,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0036](0036-serving-and-embedding-the-web-app.md) | Serving and embedding the web app | Accepted | P3.1 |
 | [0037](0037-observations-over-websocket-and-the-stream-budget.md) | Observations over WebSocket, and the stream budget | Accepted | P3.2 |
 | [0038](0038-live-view-layout-and-stream-rules.md) | The Live view's layout, and when its streams open and close | Accepted | P3.3 |
-| [0039](0039-input-mapping-and-motion-control-safety.md) | Input mapping and safety rules for motion control | Accepted | P3.4 |
+| [0039](0039-input-mapping-and-motion-control-safety.md) | Input mapping and safety rules for motion control (amended in P9.4: STOP, for any but a viewer) | Accepted | P3.4 |
 | [0040](0040-desktop-shell-loads-the-local-service-s-web-app.md) | The desktop shell loads the web app from the local service | Accepted | P3.5 |
 | [0041](0041-dataset-layout-and-raw-scratch-format.md) | Dataset layout, and the raw scratch format | Accepted | P4.1 |
 | [0042](0042-the-ome-zarr-profile.md) | The OME-Zarr profile | Accepted | P4.2 |
@@ -59,7 +59,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0048](0048-the-registration-method.md) | The registration method | Accepted | P5.1 |
 | [0049](0049-the-stage-camera-calibration.md) | The stage–camera calibration: its model, storage and versioning | Accepted | P5.2 |
 | [0050](0050-the-shading-correction.md) | The shading correction, and the BaSiC simplification | Accepted | P5.3 |
-| [0051](0051-calibration-ux-and-gating.md) | The calibration UX, and the gating rules | Accepted | P5.4 |
+| [0051](0051-calibration-ux-and-gating.md) | The calibration UX, and the gating rules (amended in P9.4: the first-run prompt, for a session that may calibrate) | Accepted | P5.4 |
 | [0052](0052-the-workflow-engine.md) | The workflow engine (amended in P6.7: asking) | Accepted | P6.1 |
 | [0053](0053-the-scan-planning-model.md) | The scan planning model | Accepted | P6.2 |
 | [0054](0054-autofocus-and-focus-surfaces.md) | The autofocus algorithm and the focus surface model | Accepted | P6.3 |
@@ -73,6 +73,7 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0062](0062-global-alignment.md) | Global alignment of a mosaic's tiles (amended in P8.5: edges weighed by their correlation, and the accuracy suite) | Accepted | P8.2 |
 | [0063](0063-blending-and-out-of-core-compositing.md) | Blending and out-of-core compositing (amended in P8.5: the feather, measured) | Accepted | P8.3 |
 | [0064](0064-stitch-qa-reprocessing-and-provenance.md) | Stitch QA, re-processing, and provenance (amended in P8.5: the 500 MP benchmark, and its targets) | Accepted | P8.4 |
-| [0065](0065-authentication-and-sessions.md) | Authentication and sessions | Accepted | P9.1 |
-| [0066](0066-authorization-matrix-and-control-token.md) | The authorization matrix and the Hardware Control Token | Accepted | P9.2 |
-| [0067](0067-audit-trail-format.md) | The audit trail format, kept IVD-ready | Accepted | P9.3 |
+| [0065](0065-authentication-and-sessions.md) | Authentication and sessions (amended in P9.4: the first admin, the web app's login, and the users over HTTP) | Accepted | P9.1 |
+| [0066](0066-authorization-matrix-and-control-token.md) | The authorization matrix and the Hardware Control Token (amended in P9.4: enforced on the simulator, and the desktop's secret) | Accepted | P9.2 |
+| [0067](0067-audit-trail-format.md) | The audit trail format, kept IVD-ready (amended in P9.4: a read by its class, and the users' passwords) | Accepted | P9.3 |
+| [0068](0068-multi-client-ux-rules.md) | Multi-client UX rules | Accepted | P9.4 |

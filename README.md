@@ -11,10 +11,9 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In progress:** Milestone 4, storage, jobs and the 2D deep-zoom viewer. P4.5 is the latest:
-deep-zoom tiles, rendered on demand from a dataset's OME-Zarr levels with the LUT asked for, cached,
-and served under `/api/siq/data/` for OpenSeadragon, and a static DZI export as a job
-(`cargo run --release -p siq-jobs --example export_dzi`).
+**In progress:** Milestone 9, multi-client use: accounts, the control token and the audit trail.
+P9.4 is the latest: the web app's login, its controls disabled by role and token with the reason,
+the control token's bar, and the Admin page (`/#/dev/admin`).
 
 Done so far:
 
@@ -184,7 +183,11 @@ Done so far:
     one-time secret (`python examples/python/two_clients.py`);
   - P9.3, the audit trail: logins, the token's changes, every change and refusal with its caller,
     and the jobs' and runs' lifecycles, hash-chained in a file a month, checked by
-    `spectrumiq-server audit verify` and read by admins (`siq-auth --example audit_verify`).
+    `spectrumiq-server audit verify` and read by admins (`siq-auth --example audit_verify`);
+  - P9.4, the web app's side: a login where the service asks for one, the desktop logged in by
+    itself, every control disabled with the reason where the role or the token is missing, the
+    control token's bar above every page, and the Admin page for the users and the audit trail;
+    the examples log in with `SIQ_USER` (`/#/dev/admin`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

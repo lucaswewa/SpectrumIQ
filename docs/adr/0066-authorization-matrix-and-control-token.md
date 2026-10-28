@@ -101,3 +101,18 @@ conflicting stage moves. Three facts shape this:
   paused clock; the local secret's rotation, and its file's single access entry, read by
   `icacls`.
 - `examples/python/two_clients.py`.
+
+## Amendment (P9.4, 2026-10-28): enforced on the simulator, and the desktop's secret
+
+- **`config/sim.toml` enforces,** now that the web app and the desktop log in (ADR-0068). The
+  examples log in by `SIQ_USER` and `SIQ_PASSWORD`.
+- **The local console's user is the service's own:** made at start if it is missing, as an
+  operator, with a random password that no one is told. It logs in only by the secret.
+- **The desktop shell reads the secret:**
+  - `GET /api/siq/auth/local` names the file, to this computer only: `{"file"}`.
+  - The shell reads it only if it is called `local-login`, and gives the page back only 64
+    hexadecimal digits.
+  - The shell runs as the interactive user, as the service does in development. The service run
+    as another account (M15) adds that user's entry to the file's access list.
+- `crates/siq-server/tests/authz.rs`: the file named to this computer only, and the local user an
+  operator; `apps/spectrumiq-desktop`'s `server` tests: no other file read.
