@@ -86,6 +86,16 @@ Content-Type: application/json
 ### The control Thing: its holder, observed
 GET {{api}}/control/holder
 
+# ============================== The audit trail ==============================
+# Who did what, hash-chained, a file a month in `[server] audit` (ADR-0067). Check it with
+# `spectrumiq-server audit verify -c config/sim.toml`.
+
+### The newest 20 entries (an admin's, where `[auth] enforce`)
+GET {{host}}/api/siq/audit?limit=20
+
+### An operator's changes on a day, a page at a time
+GET {{host}}/api/siq/audit?user=olga&kind=request&from=2026-10-28T00:00:00Z&to=2026-10-29T00:00:00Z&offset=0&limit=50
+
 # ============================== The camera ==============================
 
 ### The camera's Thing Description

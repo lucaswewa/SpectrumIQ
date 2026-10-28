@@ -93,6 +93,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config/sim.toml");
     let mut config = siq_config::load(&path)?;
     config.server.settings = folders[0].path().to_owned();
+    config.server.audit = folders[0].path().join("audit");
     config.server.data_root = folders[1].path().to_owned();
     config.server.min_free_gb = 0.0;
     let CameraConfig::Sim(camera) = &mut config.camera else {

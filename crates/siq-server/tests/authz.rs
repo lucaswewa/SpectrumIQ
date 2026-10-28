@@ -23,7 +23,7 @@ use teta_wot::testing::TestClient;
 use tower::ServiceExt;
 
 /// SpectrumIQ's own routes, with their parameters filled in.
-const OWN: [(&str, &str); 19] = [
+const OWN: [(&str, &str); 20] = [
     ("GET", "/"),
     ("GET", "/index.html"),
     ("GET", "/assets/index.js"),
@@ -37,6 +37,7 @@ const OWN: [(&str, &str); 19] = [
     ("POST", "/api/siq/auth/local"),
     ("GET", "/api/siq/auth/me"),
     ("GET", "/api/siq/control"),
+    ("GET", "/api/siq/audit"),
     ("POST", "/api/siq/control/request"),
     ("POST", "/api/siq/control/release"),
     ("POST", "/api/siq/control/heartbeat"),

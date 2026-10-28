@@ -23,7 +23,7 @@ pub enum Class {
     /// Changing the instrument: its devices, the display, the live mosaic, the workflows and
     /// the calibrations. Operators and admins holding the token.
     Hardware,
-    /// Deleting data, managing users. Admins.
+    /// Deleting data, managing users, reading the audit trail. Admins.
     Admin,
 }
 
@@ -58,6 +58,9 @@ pub fn classify(method: &Method, path: &str) -> Option<Class> {
         || *method == Method::OPTIONS
     {
         return Some(Class::Public);
+    }
+    if path == "/api/siq/audit" {
+        return Some(Class::Admin);
     }
     if matches!(*method, Method::GET | Method::HEAD) {
         return Some(Class::Read);

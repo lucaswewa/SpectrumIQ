@@ -37,6 +37,11 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
 
   The service is served with each connection's address, which the login's limit and the local
   login use.
+- **The audit trail** (ADR-0067), in `[server] audit`: the layer records every change, with its
+  parameters and its answer, and every refusal, but the logins' own requests, the token's
+  heartbeat and the live mosaic's viewport; the logins and logouts, the token's changes, every
+  job's transitions, every workflow run's start and end, and every dataset deleted are recorded
+  where they happen. `GET /api/siq/audit` is an admin's query of it.
 - **Who may do what** (`authz`, ADR-0066): `classify(method, path)` gives every route a class,
   public, read, stop, processing, control, hardware or admin, and `decide` the matrix of
   architecture §10. A change to a route without a class is refused.
@@ -68,7 +73,7 @@ This is the only crate that depends on teta-wot.
   flats, and the previews' correction; P6.5 the `workflow` Thing; P7.3 the `mosaic_live` Thing,
   and the GPU of `[gpu]`; P8.4 stitching: `jobs.stitch`, auto-stitch, and the QA overlays; P9.1
   the sessions: the auth routes and the layer; P9.2 the authorization, the control token and its
-  Thing, and the local console's login.
+  Thing, and the local console's login; P9.3 the audit trail and its query.
 
 ## API
 
@@ -135,6 +140,7 @@ The users are in `users.json` in `[server] settings`, managed with `spectrumiq-s
 | `POST /api/siq/control/release` | 204: the token given back; 409 if the session doesn't hold it |
 | `POST /api/siq/control/heartbeat` | 204: the holder's sign of life, though any of its requests is one; 409 for another session |
 | `POST /api/siq/control/take_over` | The token from whoever holds it, for an admin or the local console; 403 for others |
+| `GET /api/siq/audit?from&to&user&kind&offset&limit` | An admin's query of the audit trail: `{"entries", "total"}`, newest first, 100 at most by default (ADR-0067) |
 
 `Auth` is `Instrument::auth`: its `users`, `sessions`, `control` and `local`, and
 `session(&headers)`, the live session of a request's cookie. The `control` Thing observes the
@@ -255,6 +261,11 @@ viewer and the local console's user:
   the `control` Thing too;
 - the local console refused from another computer, logging in from this one, refused the same
   secret twice, logging in with the next, and taking the token over from an operator.
+
+`audit` (P9.3), with `[auth] enforce`: a failed login, three logins, the token requested, a change
+with its parameters, a viewer's refusal, a logout ending the token, a job's end and a workflow's
+run of one snap, all recorded by whom and from where; the query refused to a viewer and given to
+an admin; no password in the trail; its chain intact.
 
 `peripherals`:
 

@@ -46,6 +46,7 @@ use tokio::net::TcpListener;
 use tower::ServiceExt;
 use tracing::{info, warn};
 
+mod audit;
 pub mod auth;
 pub mod authz;
 pub mod calibration;
@@ -377,6 +378,8 @@ impl Service {
         };
         calibration::stamp(&instrument);
         instrument.on_dataset_complete(Arc::new(stitch::AutoStitch));
+        // The jobs' lifecycles go into the audit trail (ADR-0067); the token records its own.
+        audit::record_jobs(&instrument.jobs, Arc::clone(&instrument.auth.audit));
         let server = things(camera, fitted).service(instrument.clone()).build()?;
         let webapp = webapp::WebApp::Embedded;
         Ok(Self {
@@ -408,6 +411,7 @@ impl Service {
         let auth = Arc::clone(&self.instrument.auth);
         routes(&self.instrument)
             .merge(auth::routes(&auth))
+            .merge(audit::routes(&auth.audit))
             .merge(data::routes(&self.instrument))
             .merge(webapp::routes(self.webapp.clone()))
             .fallback_service(self.server.router())

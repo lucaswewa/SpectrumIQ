@@ -1,5 +1,6 @@
 //! The scheduler (ADR-0043): admission within the budgets, priority and the starvation guard,
-//! cancellation, a job's record in its dataset, an estimate exceeded, and below-normal threads.
+//! cancellation, every transition told to a listener, a job's record in its dataset, an estimate
+//! exceeded, and below-normal threads.
 //! REQ-3D-005, REQ-NFR-002.
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -190,6 +191,32 @@ fn a_job_bigger_than_the_budget_runs_alone() {
     assert_eq!(state(&jobs, huge), JobState::Running);
     go_huge.store(true, Ordering::Release);
     assert_eq!(jobs.wait(huge, WAIT).unwrap().state, JobState::Done);
+}
+
+#[test]
+fn every_transition_is_told_as_it_happens() {
+    let jobs = scheduler(4 * GB, 0, Duration::from_secs(60));
+    let told = Arc::new(Mutex::new(Vec::new()));
+    let heard = told.clone();
+    jobs.on_transition(move |info| heard.lock().unwrap().push((info.kind.clone(), info.state)));
+    let (first, go) = held("first", 3 * GB);
+    let (second, _) = held("second", 3 * GB);
+    let first = jobs.submit(Box::new(first), Priority::Normal, None);
+    let second = jobs.submit(Box::new(second), Priority::Normal, None);
+    assert!(jobs.cancel(second), "it waited, as both don't fit");
+    go.store(true, Ordering::SeqCst);
+    jobs.wait(first, WAIT).unwrap();
+    let told: Vec<(String, JobState)> = told.lock().unwrap().clone();
+    let expected = [
+        ("first", JobState::Queued),
+        ("first", JobState::Running),
+        ("second", JobState::Queued),
+        ("second", JobState::Cancelled),
+        ("first", JobState::Done),
+    ];
+    let expected: Vec<(String, JobState)> =
+        expected.iter().map(|(k, s)| (k.to_string(), *s)).collect();
+    assert_eq!(told, expected);
 }
 
 #[test]

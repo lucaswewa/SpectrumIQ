@@ -616,6 +616,9 @@ impl Workflow {
         let control = RunControl::new();
         *self.control.lock().unwrap_or_else(PoisonError::into_inner) = Some(control.clone());
         let _ = (self.state.set(RunState::Running), self.progress.set(None));
+        let audit = &instrument.auth.audit;
+        let started = serde_json::json!({ "run": plan.name, "state": "started" });
+        audit.record(siq_auth::Event::new(siq_auth::Kind::Workflow, started));
         let observe = |event: RunEvent| match event {
             RunEvent::Progress { progress } => {
                 let _ = self.progress.set(Some(progress));
@@ -661,6 +664,19 @@ impl Workflow {
         };
         *self.control.lock().unwrap_or_else(PoisonError::into_inner) = None;
         let _ = (self.state.set(RunState::Idle), self.problem.set(None));
+        let ended = match &ran {
+            Ok(report) => serde_json::json!({
+                "run": plan.name,
+                "state": report.outcome,
+                "dataset": report.dataset,
+                "frames": report.frames,
+                "error": report.error,
+            }),
+            Err(error) => {
+                serde_json::json!({ "run": plan.name, "state": "failed", "error": error.to_string() })
+            }
+        };
+        audit.record(siq_auth::Event::new(siq_auth::Kind::Workflow, ended));
         let report = ran.map_err(ActionError::handled)?;
         for hook in instrument.hooks() {
             hook.on_dataset_complete(instrument, &report);

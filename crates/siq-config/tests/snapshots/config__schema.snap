@@ -17,6 +17,7 @@ expression: schema
         "data_root": "data",
         "scratch": "scratch",
         "settings": "settings",
+        "audit": "audit",
         "min_free_gb": 20.0
       }
     },
@@ -164,6 +165,11 @@ expression: schema
           "description": "The settings the service keeps: the calibrations, versioned (ADR-0049).",
           "type": "string",
           "default": "settings"
+        },
+        "audit": {
+          "description": "The audit trail: a file a month of who did what (ADR-0067).",
+          "type": "string",
+          "default": "audit"
         },
         "min_free_gb": {
           "description": "The disk space to keep free where datasets are recorded, in GB: recording won't start\nbelow it, and stops before a frame would go below it (ADR-0041).",

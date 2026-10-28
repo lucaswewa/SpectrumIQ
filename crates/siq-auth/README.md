@@ -2,7 +2,8 @@
 
 Who is calling (ADR-0065), and who operates (ADR-0066): local accounts with argon2id hashes and a
 role each, browser sessions that end when idle or old, a limit on failed logins, the same-origin
-check that mutating requests pass, the Hardware Control Token, and the local console's login.
+check that mutating requests pass, the Hardware Control Token, the local console's login, and the
+audit trail (ADR-0067).
 Which role may do what, route by route, is `siq-server`'s (`authz`).
 
 - **Accounts** (`UserStore`): a JSON file, `users.json` in `[server] settings`.
@@ -34,6 +35,12 @@ Which role may do what, route by route, is `siq-server`'s (`authz`).
 - **The local console** (`LocalLogin`): a 256-bit secret in a file whose access list holds one
   entry, the service's account, with nothing inherited. Each secret works once: the exchange
   writes the next, into a file restricted before it holds anything.
+- **The audit trail** (`AuditLog`, `audit::verify`): JSON Lines, a file a month (`YYYY-MM.jsonl`),
+  each line's `hash` the SHA-256 of the line without it, which holds the line before's as
+  `prev_hash`. `record` doesn't wait: a thread of its own numbers, chains and writes each entry,
+  synced to disk, timed when it was recorded. `verify` names the first line edited, removed or
+  moved; `query` filters by time, user and kind, newest first. The control token records its own
+  changes in it, with the holder before and after.
 - **The CLI** (`cli::run`): the `spectrumiq-server user` commands, apart from their parsing. The
   first user is an admin. Passwords are asked for twice through `read_password`, without echo at
   a console, or as lines from a pipe.
@@ -50,12 +57,12 @@ Which role may do what, route by route, is `siq-server`'s (`authz`).
 
 - **Layer:** L4 Engines.
 - **Depends on:** `siq-types` (the `Clock`); `argon2`, `getrandom`, `serde`, `serde_json`,
-  `schemars`, `chrono`, `thiserror`, `tokio` (`watch`), `windows-sys` (the console, the token's
-  account and the access list); `tempfile` in the tests.
+  `schemars`, `chrono`, `thiserror`, `sha2` (the trail's chain), `tokio` (`watch`), `windows-sys`
+  (the console, the token's account and the access list); `tempfile` in the tests.
 - **Used by:** `siq-server` (the routes and the layer); `spectrumiq-server` (the `user`
   commands).
-- **Phase:** P9.1; P9.2 added the control token and the local console's login. P9.3 adds the
-  audit.
+- **Phase:** P9.1; P9.2 added the control token and the local console's login; P9.3 the audit
+  trail.
 
 ## API
 
@@ -79,6 +86,11 @@ Which role may do what, route by route, is `siq-server`'s (`authz`).
 | `control.request(&session)`, `release(&id)`, `take_over(&session)` | `Holder` (`user`, `since`, `local`, `session`), or a `ControlError` (`Held(holder)`, `NotHolder`) |
 | `control.heartbeat(&id)`, `holder()`, `session_ended(&id)`, `expire()`, `watch()` | A sign of life, saying whether the session holds it; its holder; a logout; a timeout's check; its `ControlState` (`holder`, `reason`: `start`, `requested`, `released`, `taken_over`, `timed_out`, `ended`) as it changes |
 | `LocalLogin::create(path)`, `exchange(secret)`, `path()` | A fresh secret in a private file; whether a secret is the current one, the next written if so |
+| `AuditLog::open(folder, clock)`, `record(event)`, `flush()`, `query(&filter)`, `folder()` | The trail of `folder`, continued from its last entry; an `Event` (`kind`, `user`, `session`, `address`, `detail`) recorded, timed now; every entry so far on disk; a `Page` (`entries`, newest first, and `total`) of a `Filter` (`from`, `to`, `user`, `kind`, `offset`, `limit`, 100 if 0) |
+| `Event::new(kind, detail)`, `.by(user, session, address)` | An entry; as a user's, its session shortened to 8 digits |
+| `Kind` | `login`, `login_failed`, `login_refused`, `logout`, `token`, `request`, `refused`, `job`, `workflow`, `dataset_deleted` |
+| `audit::verify(folder)` | `Verified` (`entries`, `files`, `head`, the last hash) or `Broken` (`file`, `line`, `why`) |
+| `ControlManager::with_audit(audit)` | The token, its every change recorded |
 | `cli::run(&store, &command, ask, out)` | Runs a `UserCommand` (`Add`, `Passwd`, `Role`, `List`, `Remove`); `CliError` |
 | `read_password(prompt)` | A line from standard input, not echoed at a console |
 | `USERS_FILE`, `MIN_PASSWORD` | `users.json`; 8 |
@@ -87,6 +99,7 @@ Which role may do what, route by route, is `siq-server`'s (`authz`).
 
 | Example | What it shows | Run |
 |---|---|---|
+| `audit_verify` | A trail written across a month's end, verified, then edited, cut and reordered, each found at its line; or a trail of yours verified | `cargo run -p siq-auth --example audit_verify [-- <audit folder>]` |
 | `user_cli` | A scripted session of the user commands: the first admin, an operator and a viewer, a role and a password changed, a removal, the refusals of the last admin's removal and of a short password; then a login, its session, and failed logins past the limit | `cargo run -p siq-auth --example user_cli [-- --keep <folder>]` |
 
 ## Features
@@ -100,6 +113,9 @@ None.
 - `users`: users added, verified, changed and removed; the file holding argon2id at
   `m=19456,t=2,p=1` with a 16-byte salt and a 32-byte hash, and no password; another process's
   changes read again; the last admin kept; bad names and short passwords refused;
+- `audit`: entries chained, verified, and queried by user, kind and time in pages; an edit, a
+  removal, a reordering and an edit with its hash recomputed each found at its line; a month's
+  file chaining to the last month's, across a restart, and a missing month found;
 - `control`, on a paused clock: the token requested, refused to another with its holder,
   released, taken over by an admin, and let go at a logout, each change watched; kept by a
   heartbeat every 25 s, lost after 30 s of silence; a local session's token marked local; the
@@ -119,3 +135,5 @@ None.
   still travels in the clear between the proxy and the service.
 - **Two processes changing the users at once** could lose one change: the CLI and the service's
   admin routes (P9.4) are rarely used together.
+- **The audit trail's newest entries,** cut off, leave no trace in the chain: keep its last hash,
+  which `verify` prints, elsewhere.

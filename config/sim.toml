@@ -7,7 +7,8 @@ bind = "127.0.0.1"         # this computer only; "0.0.0.0" for the LAN
 port = 5000
 data_root = "../data"
 scratch = "../scratch"
-settings = "../settings"   # the calibrations
+settings = "../settings"   # the calibrations, the users
+audit = "../audit"         # who did what, a file a month
 
 [auth]                      # accounts, sessions and the control token (ADR-0065, ADR-0066)
 enforce = false            # open until the web app and the desktop log in (P9.4)

@@ -24,6 +24,7 @@ priority, on threads of below-normal priority, and recorded in their dataset's m
 | `JobOutput` | `outputs`, the paths written, and `results`, what it found: the dataset's record keeps both |
 | `JobCtx` | `dataset`, `pool` (below normal priority), `check` (`Err(Cancelled)` once cancelled), `progress`, `log`, `used` |
 | `Scheduler` | `new(SchedulerConfig, registry)`; `submit(job, Priority, dataset)` → `JobId`; `cancel`, `info`, `wait`, `snapshot`, `watch` (a `JobsSnapshot` of `queued` and `running` `JobInfo`s), `in_use`, `estimates_exceeded`, `shutdown` |
+| `scheduler.on_transition(listener)` | `listener` told of every job's transition as it happens, queued, started and ended, none missed, unlike `watch`: for the audit trail (P9.3) |
 | `SchedulerConfig` | The RAM and VRAM budgets, the pool's threads (half the processors), the starvation guard (60 s), the finished jobs kept (100) |
 | `Resources` | `ram`, `vram`, `gpu`, `threads` |
 | `this_thread_priority` | The calling thread's priority: −1 is below normal |
@@ -62,8 +63,8 @@ None.
 ## Testing
 
 `cargo test -p siq-jobs`: admission and backfill, the GPU rule, priority and submission order, the
-starvation guard, a job bigger than the budget, cancelling queued and running jobs, the dataset's
-record, an exceeded estimate, below-normal threads, and shutting down. The jobs of `kinds`: a
+starvation guard, a job bigger than the budget, cancelling queued and running jobs, every
+transition told to a listener, the dataset's record, an exceeded estimate, below-normal threads, and shutting down. The jobs of `kinds`: a
 dataset's pyramid, then its DZI and OME-TIFF exports, each recorded. `siq-server`'s `shading`
 test runs the shading job on a tile scan.
 

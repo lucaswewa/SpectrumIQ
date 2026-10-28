@@ -50,6 +50,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config/sim.toml");
     let mut config = siq_config::load(&path)?;
     config.server.settings = kept.unwrap_or_else(|| temporary.path().to_owned());
+    config.server.audit = temporary.path().join("audit");
     let CameraConfig::Sim(camera) = &mut config.camera else {
         return Err("config/sim.toml has a simulated camera".into());
     };

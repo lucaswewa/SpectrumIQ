@@ -181,7 +181,10 @@ Done so far:
   - P9.2, who may do what: every route classified, viewers reading, operators processing and
     stopping, the instrument changed only by the holder of the Hardware Control Token, which an
     admin or the local console takes over and a silent holder loses; the local console's
-    one-time secret (`python examples/python/two_clients.py`).
+    one-time secret (`python examples/python/two_clients.py`);
+  - P9.3, the audit trail: logins, the token's changes, every change and refusal with its caller,
+    and the jobs' and runs' lifecycles, hash-chained in a file a month, checked by
+    `spectrumiq-server audit verify` and read by admins (`siq-auth --example audit_verify`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

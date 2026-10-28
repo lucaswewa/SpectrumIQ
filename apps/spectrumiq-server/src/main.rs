@@ -9,6 +9,8 @@
 //! spectrumiq-server user add <name> [--role R] -c config/sim.toml
 //!                   user passwd|remove <name>, user role <name> <role>, user list
 //!                                              the users of `[server] settings` (ADR-0065)
+//! spectrumiq-server audit verify -c config/sim.toml
+//!                                              the audit trail's chain checked (ADR-0067)
 //! ```
 //!
 //! It listens where `[server]` says, 127.0.0.1:5000 by default, and serves the web app at `/`:
@@ -60,6 +62,17 @@ enum Command {
         #[command(subcommand)]
         command: UserArgs,
     },
+    /// The audit trail of `[server] audit`.
+    Audit {
+        #[command(subcommand)]
+        command: AuditArgs,
+    },
+}
+
+#[derive(Subcommand)]
+enum AuditArgs {
+    /// Check that no entry was edited, removed or moved: exit code 1 where one was.
+    Verify,
 }
 
 #[derive(Subcommand)]
@@ -118,11 +131,26 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
         .config
         .context("the configuration is missing: give -c <config.toml>")?;
     let config = siq_config::load(&path)?;
-    if let Some(Command::User { command }) = cli.command {
-        let store = UserStore::open(config.server.settings.join(USERS_FILE))?;
-        let mut ask = siq_auth::read_password;
-        siq_auth::cli::run(&store, &command.into(), &mut ask, &mut std::io::stdout())?;
-        return Ok(());
+    match cli.command {
+        Some(Command::User { command }) => {
+            let store = UserStore::open(config.server.settings.join(USERS_FILE))?;
+            let mut ask = siq_auth::read_password;
+            siq_auth::cli::run(&store, &command.into(), &mut ask, &mut std::io::stdout())?;
+            return Ok(());
+        }
+        Some(Command::Audit {
+            command: AuditArgs::Verify,
+        }) => {
+            let folder = &config.server.audit;
+            let verified = siq_auth::audit::verify(folder)
+                .with_context(|| format!("the audit trail in {}", folder.display()))?;
+            println!(
+                "{} entries in {} file(s), the chain intact; its last hash {}",
+                verified.entries, verified.files, verified.head
+            );
+            return Ok(());
+        }
+        Some(Command::Run) | None => {}
     }
     let _logs = siq_telemetry::init(&config.log)?;
     let address = (config.server.bind, cli.port.unwrap_or(config.server.port));

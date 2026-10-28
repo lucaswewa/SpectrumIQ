@@ -40,7 +40,7 @@ The shipped files are the reference:
 
 | Section | Keys (default) |
 |---|---|
-| `[server]` | `bind` (`127.0.0.1`), `port` (5000), `data_root` (`data`), `scratch` (`scratch`), `settings` (`settings`, the calibrations, P5.2), `min_free_gb` (20) |
+| `[server]` | `bind` (`127.0.0.1`), `port` (5000), `data_root` (`data`), `scratch` (`scratch`), `settings` (`settings`, the calibrations, P5.2, and the users, P9.1), `audit` (`audit`, the audit trail, P9.3), `min_free_gb` (20) |
 | `[memory]` | `pool_slots` (12), `job_ram_gb` (14), `job_vram_gb` (4), `tile_cache_mb` (1024) |
 | `[gpu]` | `enabled` (true), `software` (false), `mosaic_vram_gb` (2): the live mosaic's GPU and its pages' budget |
 | `[log]` | `filter` (`info`), `console` (true), `directory` (none), `keep_days` (30) |

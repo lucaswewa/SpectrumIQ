@@ -1,6 +1,8 @@
 //! The Hardware Control Token (ADR-0066): at most one session holds it, and only its holder changes
 //! the instrument. It is requested, released, or taken over; it goes by itself when its holder
-//! has been silent for the timeout, without stopping what the holder started.
+//! has been silent for the timeout, without stopping what the holder started. Each change is
+//! recorded in the audit trail as it happens, if there is one (ADR-0067): a watch keeps only the
+//! latest.
 
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
@@ -8,9 +10,11 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 use schemars::JsonSchema;
 use serde::Serialize;
+use serde_json::json;
 use siq_types::{Clock, Timestamp};
 use tokio::sync::watch;
 
+use crate::audit::{AuditLog, Event, Kind};
 use crate::sessions::{Session, SessionId};
 
 /// Who holds the token.
@@ -83,6 +87,7 @@ pub struct ControlManager {
     timeout: Duration,
     held: Mutex<Option<Held>>,
     changes: watch::Sender<ControlState>,
+    audit: Option<Arc<AuditLog>>,
 }
 
 impl ControlManager {
@@ -97,7 +102,14 @@ impl ControlManager {
             timeout,
             held: Mutex::new(None),
             changes: watch::Sender::new(start),
+            audit: None,
         }
+    }
+
+    /// The token, its every change recorded in `audit`.
+    pub fn with_audit(mut self, audit: Arc<AuditLog>) -> Self {
+        self.audit = Some(audit);
+        self
     }
 
     /// Its state as it changes: for the `control` Thing.
@@ -112,14 +124,30 @@ impl ControlManager {
         if held
             .as_ref()
             .is_some_and(|h| now.saturating_since(h.seen) >= self.timeout)
+            && let Some(gone) = held.take()
         {
-            *held = None;
-            self.announce(None, Reason::TimedOut);
+            self.announce(Some(&gone.holder), None, Reason::TimedOut);
         }
         held
     }
 
-    fn announce(&self, holder: Option<Holder>, reason: Reason) {
+    /// Tells the watchers and the audit trail that the token went from `previous` to `holder`.
+    fn announce(&self, previous: Option<&Holder>, holder: Option<Holder>, reason: Reason) {
+        if let Some(audit) = &self.audit {
+            // A change is its new holder's, or, as it goes, its old one's.
+            let whose = holder.as_ref().or(previous);
+            let detail = json!({
+                "holder": holder.as_ref().map(|h| &h.user),
+                "from": previous.map(|h| &h.user),
+                "local": whose.is_some_and(|h| h.local),
+                "reason": reason,
+            });
+            let mut event = Event::new(Kind::Token, detail);
+            if let Some(whose) = whose {
+                event = event.by(&whose.user, Some(whose.session.as_str()), None);
+            }
+            audit.record(event);
+        }
         self.changes.send_replace(ControlState { holder, reason });
     }
 
@@ -131,11 +159,15 @@ impl ControlManager {
             local: session.local,
             session: session.id.clone(),
         };
-        *held = Some(Held {
+        let previous = held.replace(Held {
             holder: holder.clone(),
             seen: now,
         });
-        self.announce(Some(holder.clone()), reason);
+        self.announce(
+            previous.as_ref().map(|p| &p.holder),
+            Some(holder.clone()),
+            reason,
+        );
         holder
     }
 
@@ -175,8 +207,9 @@ impl ControlManager {
         if !held.as_ref().is_some_and(|h| &h.holder.session == session) {
             return Err(ControlError::NotHolder);
         }
-        *held = None;
-        self.announce(None, Reason::Released);
+        if let Some(gone) = held.take() {
+            self.announce(Some(&gone.holder), None, Reason::Released);
+        }
         Ok(())
     }
 
@@ -197,9 +230,10 @@ impl ControlManager {
     /// Lets go of the token if `session`, which has ended, held it.
     pub fn session_ended(&self, session: &SessionId) {
         let mut held = self.lock();
-        if held.as_ref().is_some_and(|h| &h.holder.session == session) {
-            *held = None;
-            self.announce(None, Reason::Ended);
+        if held.as_ref().is_some_and(|h| &h.holder.session == session)
+            && let Some(gone) = held.take()
+        {
+            self.announce(Some(&gone.holder), None, Reason::Ended);
         }
     }
 

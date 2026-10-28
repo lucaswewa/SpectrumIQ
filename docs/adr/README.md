@@ -75,3 +75,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0064](0064-stitch-qa-reprocessing-and-provenance.md) | Stitch QA, re-processing, and provenance (amended in P8.5: the 500 MP benchmark, and its targets) | Accepted | P8.4 |
 | [0065](0065-authentication-and-sessions.md) | Authentication and sessions | Accepted | P9.1 |
 | [0066](0066-authorization-matrix-and-control-token.md) | The authorization matrix and the Hardware Control Token | Accepted | P9.2 |
+| [0067](0067-audit-trail-format.md) | The audit trail format, kept IVD-ready | Accepted | P9.3 |

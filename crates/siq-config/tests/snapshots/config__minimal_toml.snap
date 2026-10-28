@@ -9,6 +9,7 @@ expression: config
     "data_root": "data",
     "scratch": "scratch",
     "settings": "settings",
+    "audit": "audit",
     "min_free_gb": 20.0
   },
   "memory": {

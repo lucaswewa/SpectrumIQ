@@ -139,6 +139,7 @@ fn resolve_paths(config: &mut InstrumentConfig, base: &Path) {
         &mut config.server.data_root,
         &mut config.server.scratch,
         &mut config.server.settings,
+        &mut config.server.audit,
     ];
     let optional = [config.log.directory.as_mut(), optional, dialect, world];
     paths

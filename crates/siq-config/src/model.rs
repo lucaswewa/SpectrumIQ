@@ -66,6 +66,8 @@ pub struct ServerConfig {
     pub scratch: PathBuf,
     /// The settings the service keeps: the calibrations, versioned (ADR-0049).
     pub settings: PathBuf,
+    /// The audit trail: a file a month of who did what (ADR-0067).
+    pub audit: PathBuf,
     /// The disk space to keep free where datasets are recorded, in GB: recording won't start
     /// below it, and stops before a frame would go below it (ADR-0041).
     pub min_free_gb: f64,
@@ -79,6 +81,7 @@ impl Default for ServerConfig {
             data_root: "data".into(),
             scratch: "scratch".into(),
             settings: "settings".into(),
+            audit: "audit".into(),
             min_free_gb: 20.0,
         }
     }

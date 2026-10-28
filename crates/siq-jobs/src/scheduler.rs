@@ -77,7 +77,11 @@ struct Inner {
     exceeded: Arc<Counter>,
     // One manifest update at a time, for jobs on the same dataset.
     manifests: Mutex<()>,
+    listeners: Mutex<Vec<Listener>>,
 }
+
+/// What is told of every job's transitions: see [`Scheduler::on_transition`].
+type Listener = Box<dyn Fn(&JobInfo) + Send + Sync>;
 
 #[derive(Default)]
 struct State {
@@ -125,6 +129,7 @@ impl Scheduler {
                 snapshot: watch::Sender::new(JobsSnapshot::default()),
                 exceeded,
                 manifests: Mutex::new(()),
+                listeners: Mutex::default(),
             }),
         })
     }
@@ -165,6 +170,7 @@ impl Scheduler {
             info.finished = Some(Utc::now());
             inner.retire(&mut state, info);
         } else {
+            inner.tell(&entry.info);
             state.queued.push(entry);
             inner.admit(&mut state);
         }
@@ -243,6 +249,19 @@ impl Scheduler {
     /// The resources the running jobs' estimates add up to.
     pub fn in_use(&self) -> Resources {
         self.inner.lock().used
+    }
+
+    /// Tells `listener` of every job's transitions from now on, as they happen: queued, started,
+    /// and done, failed or cancelled. Unlike [`Scheduler::watch`], which keeps the latest, none
+    /// is missed: for the audit trail (ADR-0067). It is called with the scheduler's lock held,
+    /// so it must be quick and mustn't call the scheduler.
+    pub fn on_transition(&self, listener: impl Fn(&JobInfo) + Send + Sync + 'static) {
+        let mut listeners = self
+            .inner
+            .listeners
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        listeners.push(Box::new(listener));
     }
 
     /// Stops: the queued jobs are cancelled, the running ones asked to stop and waited for.
@@ -330,6 +349,7 @@ impl Inner {
         state.used.gpu |= need.gpu;
         entry.info.state = JobState::Running;
         entry.info.started = Some(Utc::now());
+        self.tell(&entry.info);
         let id = entry.info.id;
         let ctx = JobCtx {
             id,
@@ -478,8 +498,20 @@ impl Inner {
         self.publish(&state);
     }
 
+    /// Tells the listeners of `info`'s transition.
+    fn tell(&self, info: &JobInfo) {
+        let listeners = self
+            .listeners
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        for listener in listeners.iter() {
+            listener(info);
+        }
+    }
+
     /// Keeps a finished job's info, and wakes those waiting for it.
     fn retire(&self, state: &mut State, info: JobInfo) {
+        self.tell(&info);
         state.finished.push_back(info);
         while state.finished.len() > self.config.history {
             state.finished.pop_front();

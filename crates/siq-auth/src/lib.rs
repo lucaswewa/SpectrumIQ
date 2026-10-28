@@ -16,9 +16,13 @@
 //!   released or taken over, and goes by itself when its holder is silent for the timeout.
 //! - **The local console** ([`LocalLogin`]): a one-time secret in a file only the service's
 //!   account can open, exchanged for a session that may take the token over.
+//! - **The audit trail** ([`AuditLog`], [`audit::verify`]): hash-chained JSON Lines, a file a
+//!   month, of logins, token changes, changing requests, and job and workflow lifecycles
+//!   (ADR-0067).
 //! - **The CLI** ([`cli`]): `spectrumiq-server user add|passwd|role|list|remove`, and
 //!   [`read_password`], a password typed without being shown.
 
+pub mod audit;
 pub mod cli;
 mod console;
 mod control;
@@ -28,6 +32,7 @@ mod origin;
 mod sessions;
 mod users;
 
+pub use audit::{AuditLog, Event, Kind};
 pub use console::read_password;
 pub use control::{ControlError, ControlManager, ControlState, Holder, Reason};
 pub use limit::LoginLimiter;

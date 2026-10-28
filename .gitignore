@@ -35,3 +35,4 @@ rustc-ice-*.txt
 /scratch/
 /settings/
 /logs/
+/audit/

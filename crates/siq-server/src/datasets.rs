@@ -312,7 +312,14 @@ impl Datasets {
             let why = anyhow!("job {} ({}) is working on it", job.id.0, job.kind);
             return Err(why.into());
         }
-        Ok(instrument.catalog.delete(dataset)?)
+        let deleted = instrument.catalog.delete(dataset)?;
+        if deleted {
+            let detail =
+                serde_json::json!({ "id": dataset, "name": summary.name, "path": summary.path });
+            let event = siq_auth::Event::new(siq_auth::Kind::DatasetDeleted, detail);
+            instrument.auth.audit.record(event);
+        }
+        Ok(deleted)
     }
 }
 

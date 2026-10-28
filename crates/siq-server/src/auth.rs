@@ -7,7 +7,8 @@
 //! - the layer every request passes: it refuses a mutating request from another site's page,
 //!   gives a request with a live session's cookie its [`Session`], counts a request of the
 //!   token's holder as its heartbeat, and, where `[auth] enforce`, refuses what the caller's role
-//!   and token don't allow (`authz`).
+//!   and token don't allow (`authz`); every change and every refusal goes into the audit trail
+//!   (ADR-0067), as do the logins.
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -16,12 +17,13 @@ use std::time::Duration;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use siq_auth::{
-    ControlError, ControlManager, LocalLogin, LoginLimiter, Role, Session, SessionPolicy,
-    SessionStore, USERS_FILE, UserStore, clear_cookie, same_origin, session_cookie, set_cookie,
+    AuditLog, ControlError, ControlManager, Kind, LocalLogin, LoginLimiter, Role, Session,
+    SessionPolicy, SessionStore, USERS_FILE, UserStore, clear_cookie, same_origin, session_cookie,
+    set_cookie,
 };
 use siq_config::model::InstrumentConfig;
 use siq_types::Clock;
-use teta_wot::http::axum::body::to_bytes;
+use teta_wot::http::axum::body::{Body, to_bytes};
 use teta_wot::http::axum::extract::{ConnectInfo, Request, State};
 use teta_wot::http::axum::http::{HeaderMap, HeaderValue, Method, StatusCode, header};
 use teta_wot::http::axum::middleware::Next;
@@ -30,6 +32,7 @@ use teta_wot::http::axum::routing::{get, post};
 use teta_wot::http::axum::{Json, Router};
 use tracing::{info, warn};
 
+use crate::audit::{audited, event, summary};
 use crate::authz;
 
 /// The local console's secret, in `[server] settings`.
@@ -43,6 +46,8 @@ pub struct Auth {
     pub sessions: Arc<SessionStore>,
     /// The Hardware Control Token (ADR-0066).
     pub control: Arc<ControlManager>,
+    /// The audit trail, in `[server] audit` (ADR-0067).
+    pub audit: Arc<AuditLog>,
     /// The local console's secret, `local-login` in `[server] settings`, if `[auth] local_user`
     /// names its user.
     pub local: Option<LocalLogin>,
@@ -74,6 +79,7 @@ impl Auth {
         };
         let minutes = |m: u32| Duration::from_secs(60 * u64::from(m));
         let timeout = Duration::from_secs(u64::from(auth.control_timeout_s));
+        let audit = Arc::new(AuditLog::open(&config.server.audit, clock.clone())?);
         let policy = SessionPolicy {
             idle: minutes(auth.idle_minutes),
             absolute: minutes(60 * auth.session_hours),
@@ -81,7 +87,10 @@ impl Auth {
         Ok(Self {
             users: Arc::new(users),
             sessions: Arc::new(SessionStore::new(clock.clone(), policy)),
-            control: Arc::new(ControlManager::new(clock.clone(), timeout)),
+            control: Arc::new(
+                ControlManager::new(clock.clone(), timeout).with_audit(Arc::clone(&audit)),
+            ),
+            audit,
             local,
             local_user: auth.local_user.clone(),
             enforce: auth.enforce,
@@ -157,16 +166,25 @@ fn refuse(status: StatusCode, why: impl Into<String>) -> Response {
 /// - a request with a live session's cookie carries its [`Session`] in its extensions, and is
 ///   its holder's heartbeat if the session holds the token;
 /// - where `[auth] enforce`, a request its caller may not make is refused: 401 without a
-///   session, 403 for a role or a missing token (ADR-0066).
-pub(crate) async fn layer(
-    State(auth): State<Arc<Auth>>,
-    mut request: Request,
-    next: Next,
-) -> Response {
+///   session, 403 for a role or a missing token (ADR-0066);
+/// - a change, its parameters and its answer, and a refusal, go into the audit trail
+///   (ADR-0067).
+pub(crate) async fn layer(State(auth): State<Arc<Auth>>, request: Request, next: Next) -> Response {
     let reading = matches!(
         *request.method(),
         Method::GET | Method::HEAD | Method::OPTIONS
     );
+    let address = (request.extensions().get::<ConnectInfo<SocketAddr>>()).map(|c| c.0.ip());
+    let (method, path) = (request.method().clone(), request.uri().path().to_owned());
+    let audit = !reading && audited(&path);
+    let refused = |session: Option<&Session>, status: StatusCode, why: String| {
+        if audit {
+            let detail = json!({ "method": method.as_str(), "path": path, "status": status.as_u16(), "why": why });
+            auth.audit
+                .record(event(Kind::Refused, session, address, detail));
+        }
+        refuse(status, why)
+    };
     if !reading {
         let headers = request.headers();
         let text = |name| {
@@ -176,24 +194,48 @@ pub(crate) async fn layer(
         };
         let host = text(header::HOST).or_else(|| request.uri().authority().map(|a| a.as_str()));
         if !same_origin(text(header::ORIGIN), host, &auth.allowed_origins) {
-            return refuse(
-                StatusCode::FORBIDDEN,
-                "a change must come from the service's own pages",
-            );
+            let why = "a change must come from the service's own pages";
+            return refused(None, StatusCode::FORBIDDEN, why.to_owned());
         }
     }
     let session = auth.session(request.headers());
     let holds = (session.as_ref()).is_some_and(|session| auth.control.heartbeat(&session.id));
-    if auth.enforce {
-        let class = authz::classify(request.method(), request.uri().path());
-        if let Err((status, why)) = authz::decide(class, session.as_ref(), holds) {
-            return refuse(status, why);
-        }
+    let class = authz::classify(&method, &path);
+    if auth.enforce
+        && let Err((status, why)) = authz::decide(class, session.as_ref(), holds)
+    {
+        return refused(session.as_ref(), status, why);
     }
-    if let Some(session) = session {
-        request.extensions_mut().insert(session);
+    // A change's body, read for its summary, and given back.
+    let (mut parts, body) = request.into_parts();
+    let (body, params) = if audit {
+        let Ok(bytes) = to_bytes(body, 2 << 20).await else {
+            let why = "a request's body is 2 MiB at most".to_owned();
+            return refused(session.as_ref(), StatusCode::PAYLOAD_TOO_LARGE, why);
+        };
+        let params = summary(&bytes);
+        (Body::from(bytes), params)
+    } else {
+        (body, Value::Null)
+    };
+    if let Some(session) = &session {
+        parts.extensions.insert(session.clone());
     }
-    next.run(request).await
+    let query = parts.uri.query().map(str::to_owned);
+    let response = next.run(Request::from_parts(parts, body)).await;
+    if audit {
+        let detail = json!({
+            "method": method.as_str(),
+            "path": path,
+            "query": query,
+            "class": class.map(|c| format!("{c:?}").to_lowercase()),
+            "params": params,
+            "status": response.status().as_u16(),
+        });
+        auth.audit
+            .record(event(Kind::Request, session.as_ref(), address, detail));
+    }
+    response
 }
 
 /// The session routes.
@@ -234,6 +276,9 @@ async fn login(State(auth): State<Arc<Auth>>, request: Request) -> Response {
     if let Some(wait) = auth.limiter.wait(&name, address) {
         let seconds = wait.as_secs_f64().ceil() as u64;
         warn!(name, ?address, "a login refused: too many failures");
+        let detail = json!({ "name": name, "wait_s": seconds });
+        auth.audit
+            .record(event(Kind::LoginRefused, None, address, detail));
         let mut refused = refuse(
             StatusCode::TOO_MANY_REQUESTS,
             format!("too many failed logins: try again in {seconds} s"),
@@ -252,6 +297,9 @@ async fn login(State(auth): State<Arc<Auth>>, request: Request) -> Response {
         Ok(Ok(None)) => {
             auth.limiter.failed(&name, address);
             info!(name, ?address, "a failed login");
+            let detail = json!({ "name": name });
+            auth.audit
+                .record(event(Kind::LoginFailed, None, address, detail));
             return refuse(
                 StatusCode::UNAUTHORIZED,
                 "the name or the password is wrong",
@@ -266,6 +314,9 @@ async fn login(State(auth): State<Arc<Auth>>, request: Request) -> Response {
         Err(error) => return refuse(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
     };
     info!(user = %user.name, role = %user.role, ?address, "logged in");
+    let detail = json!({ "role": user.role, "local": false });
+    auth.audit
+        .record(event(Kind::Login, Some(&session), address, detail));
     auth.opened(&session)
 }
 
@@ -303,6 +354,9 @@ async fn local(State(auth): State<Arc<Auth>>, request: Request) -> Response {
         Ok(true) => {}
         Ok(false) => {
             warn!(?address, "a local login with another secret");
+            let detail = json!({ "local": true });
+            auth.audit
+                .record(event(Kind::LoginFailed, None, address, detail));
             return refuse(StatusCode::UNAUTHORIZED, "that isn't the local secret");
         }
         Err(error) => return refuse(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
@@ -320,6 +374,9 @@ async fn local(State(auth): State<Arc<Auth>>, request: Request) -> Response {
     match auth.sessions.create_local(&user, address) {
         Ok(session) => {
             info!(user = %user.name, "the local console logged in");
+            let detail = json!({ "role": user.role, "local": true });
+            auth.audit
+                .record(event(Kind::Login, Some(&session), address, detail));
             auth.opened(&session)
         }
         Err(error) => refuse(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()),
@@ -332,6 +389,9 @@ async fn logout(State(auth): State<Arc<Auth>>, request: Request) -> Response {
         auth.sessions.remove(&session.id);
         auth.control.session_ended(&session.id);
         info!(user = %session.user, "logged out");
+        let detail = json!({});
+        auth.audit
+            .record(event(Kind::Logout, Some(session), None, detail));
     }
     let mut response = StatusCode::NO_CONTENT.into_response();
     if let Ok(cookie) = HeaderValue::from_str(&clear_cookie()) {

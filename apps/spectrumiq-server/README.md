@@ -14,6 +14,8 @@ spectrumiq-server user add <name> [--role R] -c config/sim.toml
 spectrumiq-server user passwd <name>         a new password
 spectrumiq-server user role <name> <role>    viewer, operator or admin
 spectrumiq-server user list | remove <name>  the users; the last admin stays
+spectrumiq-server audit verify -c config/sim.toml
+                                             the audit trail's chain checked: exit code 1 if broken
 ```
 
 - **Where it listens:** `[server] bind` and `port`, 127.0.0.1:5000 by default, or `--port`.
@@ -42,5 +44,5 @@ The script moves the stage, and saves an overview frame before and after.
 - **Depends on:** `siq-server`, `siq-auth`, `siq-config`, `siq-telemetry`, `clap`, `tokio`,
   `anyhow`.
 - **Phase:** P2.3; P3.1 added the web app, `--port` and `--webapp-dir`; P9.1 the `user`
-  commands. The Windows service mode
+  commands; P9.3 `audit verify`. The Windows service mode
   follows in P15.1.
