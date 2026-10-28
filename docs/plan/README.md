@@ -225,14 +225,14 @@ A phase is Done once it is merged.
 | P8.2 | Global alignment | 700 | P8.1 | Done |
 | P8.3 | Out-of-core compositing | 850 | P8.2, P4.2, P4.4 | Done |
 | P8.4 | Stitch job, auto-stitch and QA UI | 800 | P8.3, P6.5, P4.8 | Done |
-| P8.5 | Ground-truth validation and benchmarks | 400 | P8.4, P4.9 | Review |
+| P8.5 | Ground-truth validation and benchmarks | 400 | P8.4, P4.9 | Done |
 | P8.6 | (Optional) Feature-based fallback | 850 | P8.5 | — |
 
 ### M9 — Multi-client, accounts, control token and audit ([brief](milestones/M09-multi-client-security.md))
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P9.1 | Accounts and sessions | 850 | P2.3 | — |
+| P9.1 | Accounts and sessions | 850 | P2.3 | Review |
 | P9.2 | Authorization layer and Hardware Control Token | 850 | P9.1, P6.5 | — |
 | P9.3 | Audit trail | 600 | P9.2 | — |
 | P9.4 | Frontend: login, roles, control token, admin | 900 | P9.2, P9.3, P3.5 | — |

@@ -42,6 +42,22 @@ GET {{host}}/.well-known/wot
 ### The Things, with their descriptions
 GET {{api}}/things/
 
+# ============================== Accounts and sessions ==============================
+# Add a user first: `spectrumiq-server user add ada --role admin -c config/sim.toml`. The REST
+# Client keeps the session's cookie for the requests after the login.
+
+### Log in: a session cookie, and who it is (401 if wrong; 429 after 5 failures in 5 minutes)
+POST {{host}}/api/siq/auth/login
+Content-Type: application/json
+
+{ "name": "ada", "password": "correct horse" }
+
+### Who the session is, and when it ends (401 without one)
+GET {{host}}/api/siq/auth/me
+
+### Log out: the session ended, its cookie cleared
+POST {{host}}/api/siq/auth/logout
+
 # ============================== The camera ==============================
 
 ### The camera's Thing Description

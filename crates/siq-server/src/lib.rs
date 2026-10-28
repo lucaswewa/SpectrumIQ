@@ -20,6 +20,7 @@
 //! This is the only crate that depends on teta-wot.
 
 use std::future::{Future, IntoFuture};
+use std::net::SocketAddr;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, OnceLock, PoisonError, RwLock};
 use std::time::Instant;
@@ -37,6 +38,7 @@ use siq_telemetry::Registry;
 use siq_types::{Clock, SystemClock};
 use teta_wot::http::axum::body::Body;
 use teta_wot::http::axum::http::Request;
+use teta_wot::http::axum::middleware;
 use teta_wot::http::axum::routing::get;
 use teta_wot::http::axum::{self, Json, Router};
 use teta_wot::server::{ThingServer, ThingServerBuilder};
@@ -44,6 +46,7 @@ use tokio::net::TcpListener;
 use tower::ServiceExt;
 use tracing::{info, warn};
 
+pub mod auth;
 pub mod calibration;
 mod data;
 pub mod datasets;
@@ -59,6 +62,7 @@ pub mod workflow;
 
 pub use teta_wot::server::shutdown_signal;
 
+use auth::Auth;
 use calibration::Calibration;
 use datasets::Datasets;
 use devices::Peripherals;
@@ -121,6 +125,8 @@ pub struct Instrument {
     pub shading: Arc<ShadingRegistry>,
     /// The clock the drivers, the acquisition and the workflows keep time on.
     pub clock: Arc<dyn Clock>,
+    /// The accounts and sessions (ADR-0065).
+    pub auth: Arc<Auth>,
     pub(crate) gpu: OnceLock<Compute>,
     /// Whether a finished tile scan is stitched by itself: `jobs.auto_stitch`.
     pub(crate) auto_stitch: AtomicBool,
@@ -331,6 +337,7 @@ impl Service {
         let tiles = Arc::new(TileService::new(budgets.tile_cache_mb as usize * 1_000_000));
         let calibrations = Arc::new(CalibrationRegistry::open(&config.server.settings)?);
         let shading = Arc::new(ShadingRegistry::open(&config.server.settings)?);
+        let auth = Arc::new(Auth::open(&config, clock.clone())?);
         let instrument = Arc::new(Instrument {
             config,
             camera: devices.camera,
@@ -348,6 +355,7 @@ impl Service {
             calibrations,
             shading,
             clock,
+            auth,
             gpu: OnceLock::new(),
             auto_stitch: AtomicBool::new(true),
             hooks: RwLock::default(),
@@ -391,12 +399,15 @@ impl Service {
     }
 
     /// Every route: SpectrumIQ's and the web app's first, and teta-wot's for any request they
-    /// don't match.
+    /// don't match; all behind the session layer (ADR-0065).
     pub fn router(&self) -> Router {
+        let auth = Arc::clone(&self.instrument.auth);
         routes(&self.instrument)
+            .merge(auth::routes(&auth))
             .merge(data::routes(&self.instrument))
             .merge(webapp::routes(self.webapp.clone()))
             .fallback_service(self.server.router())
+            .layer(middleware::from_fn_with_state(auth, auth::layer))
     }
 
     /// Starts the Things, serves on `listener` until `shutdown` completes, then shuts down: live
@@ -420,6 +431,8 @@ impl Service {
         info!("serving on http://{}", listener.local_addr()?);
 
         let (stop, mut stopped) = tokio::sync::watch::channel(false);
+        // Each request knows its client's address: the login's limit counts by it.
+        let router = router.into_make_service_with_connect_info::<SocketAddr>();
         let serving = axum::serve(listener, router).with_graceful_shutdown(async move {
             let _ = stopped.wait_for(|stop| *stop).await;
         });

@@ -9,12 +9,20 @@ spectrumiq-server [run] -c config/sim.toml   serve the instrument; run is the de
     [--webapp-dir web/dist]                  the web app from a folder, not the build compiled in
 spectrumiq-server --print-openapi            the Things' OpenAPI document, for client types
 spectrumiq-server --print-config-schema      the configuration's JSON Schema
+spectrumiq-server user add <name> [--role R] -c config/sim.toml
+                                             a user; the first is an admin
+spectrumiq-server user passwd <name>         a new password
+spectrumiq-server user role <name> <role>    viewer, operator or admin
+spectrumiq-server user list | remove <name>  the users; the last admin stays
 ```
 
 - **Where it listens:** `[server] bind` and `port`, 127.0.0.1:5000 by default, or `--port`.
 - **The web app** is at `/` (ADR-0036). A release build embeds `web/dist`, so build the web app
   first (`npm run build` in `web/`). Without a build, `/` says how to make one.
 - **Logging:** `[log]`, to the console and to daily files.
+- **Users** (ADR-0065) are in `users.json` in `[server] settings`. A password is asked for twice,
+  without being shown, or read as two lines of standard input from a pipe. The service warns at
+  start while there are none, and reads the file again when the commands change it.
 - **Shutting down** stops live view, then motion, then the Things.
 - **Exit codes:** 0 on a clean stop, 1 on an error, such as a configuration or a device that won't
   open. The message says which.
@@ -31,6 +39,8 @@ The script moves the stage, and saves an overview frame before and after.
 ## Place in the architecture
 
 - **Layer:** App.
-- **Depends on:** `siq-server`, `siq-config`, `siq-telemetry`, `clap`, `tokio`, `anyhow`.
-- **Phase:** P2.3; P3.1 added the web app, `--port` and `--webapp-dir`. The Windows service mode
+- **Depends on:** `siq-server`, `siq-auth`, `siq-config`, `siq-telemetry`, `clap`, `tokio`,
+  `anyhow`.
+- **Phase:** P2.3; P3.1 added the web app, `--port` and `--webapp-dir`; P9.1 the `user`
+  commands. The Windows service mode
   follows in P15.1.

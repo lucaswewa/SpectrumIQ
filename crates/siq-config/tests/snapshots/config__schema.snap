@@ -49,6 +49,17 @@ expression: schema
         "keep_days": 30
       }
     },
+    "auth": {
+      "description": "Accounts and sessions (ADR-0065).",
+      "$ref": "#/$defs/AuthConfig",
+      "default": {
+        "idle_minutes": 60,
+        "session_hours": 12,
+        "max_failures": 5,
+        "failure_minutes": 5,
+        "allowed_origins": []
+      }
+    },
     "camera": {
       "description": "The camera.",
       "$ref": "#/$defs/CameraConfig"
@@ -246,6 +257,49 @@ expression: schema
           "minimum": 0,
           "maximum": 65535,
           "default": 30
+        }
+      },
+      "additionalProperties": false
+    },
+    "AuthConfig": {
+      "description": "Accounts and sessions (ADR-0065). The users are in `users.json` in `[server] settings`.",
+      "type": "object",
+      "properties": {
+        "idle_minutes": {
+          "description": "A session ends after this long without a request, in minutes.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 60
+        },
+        "session_hours": {
+          "description": "And after this long however busy, in hours: the session cookie's lifetime.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 12
+        },
+        "max_failures": {
+          "description": "The failed logins a name may have within `failure_minutes` before more are refused, even\nwith the right password; an address may have four times as many.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 5
+        },
+        "failure_minutes": {
+          "description": "The time failed logins are counted over, in minutes.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 5
+        },
+        "allowed_origins": {
+          "description": "The origins, besides the service's own, whose pages may change things, as\n`http://host:port`: a development server's that doesn't proxy, say.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
         }
       },
       "additionalProperties": false

@@ -132,7 +132,7 @@ These requirements come from [goals.md](goals.md) and from the planning decision
 
 | ID | Requirement | Source | Phases | Verified by |
 |---|---|---|---|---|
-| REQ-SEC-001 | Local user accounts with the roles Viewer, Operator and Admin. | Q | P9.1, P9.4 | |
+| REQ-SEC-001 | Local user accounts with the roles Viewer, Operator and Admin. | Q | P9.1, P9.4 | The accounts and sessions, in P9.1 (ADR-0065): users with argon2id hashes and roles in `users.json`, managed by `spectrumiq-server user`, the last admin kept (`siq-auth` `tests/users.rs`); sessions in `HttpOnly`, `SameSite=Strict` cookies ending when idle and when old, failed logins limited, and mutations from another site refused (`tests/sessions.rs`; `siq-server` `tests/auth.rs`); `siq-auth --example user_cli` |
 | REQ-SEC-002 | A Hardware Control Token for a single active operator; viewers are read-only. | G | P9.2, P9.4, P9.5 | |
 | REQ-SEC-003 | A tamper-evident audit trail of logins, token changes and mutating actions. | Q | P9.3 | |
 | REQ-SEC-004 | Stop/abort is always available to operators and the local console. | D | P2.3, P3.4, P9.2, P15.2 | Halting past the global lock, in P2.3: `stage.halt` and `focus.halt` (ADR-0033; `siq-server` `server`: `the_global_lock_refuses_a_second_hardware_action_but_not_halt`). STOP on the Live page, in P3.4 (ADR-0039): always shown and never disabled, in each of the stage's 7 states and with no server; it halts the stage and the focus, and Esc does the same from anywhere on the page, dialogs included (`web/tests/unit/control/control.spec.ts`). P9.2 and P15.2 follow |

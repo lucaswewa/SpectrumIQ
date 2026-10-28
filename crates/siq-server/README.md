@@ -24,8 +24,14 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
   `snap_to_dataset`, the `workflow` actions other than its runs, and `mosaic_live` bypass it. A
   run holds it throughout.
 - **Routes,** under `/api/siq/system/`: `health`, `metrics` and `memory`; under
-  `/api/siq/data/`, a dataset's manifest and thumbnail, and its images' tiles. teta-wot's router
-  is the fallback (ADR-0003, amended).
+  `/api/siq/auth/`, `login`, `logout` and `me` (ADR-0065); under `/api/siq/data/`, a dataset's
+  manifest and thumbnail, and its images' tiles. teta-wot's router is the fallback (ADR-0003,
+  amended).
+- **The session layer** (ADR-0065), around every route, teta-wot's included: a request other than
+  `GET`, `HEAD` or `OPTIONS` whose `Origin` isn't the service's own, or one of `[auth]
+  allowed_origins`, is refused with 403; a request with a live session's cookie carries its
+  `siq_auth::Session`, its role read again from the users. The service is served with each
+  connection's address, which the login's limit counts by.
 - **The web app** at `/`, `/assets/…`, `/favicon.svg` and `/third-party-licences.txt` (ADR-0036):
   - `web/dist` is embedded in release builds, and read from disk in debug builds;
   - `Service::with_webapp(WebApp::Dir(folder))` serves another build;
@@ -43,7 +49,8 @@ This is the only crate that depends on teta-wot.
   - `siq-acquire`, `siq-preview`, `siq-jobs`, `siq-workflow`, `siq-pyramid`, `siq-storage`,
     `siq-calib`, `siq-register`, `siq-stitch`, `siq-stitch-live`, `siq-gpu`;
   - `siq-devices`, `siq-grbl`, `siq-ascii`, `siq-serial`, `siq-sim`;
-  - `siq-config`, `siq-telemetry`, `siq-buffer`, `siq-imgproc`, `siq-synth`, `siq-types`;
+  - `siq-auth`, `siq-config`, `siq-telemetry`, `siq-buffer`, `siq-imgproc`, `siq-synth`,
+    `siq-types`;
   - `tokio`, `serde`, `schemars`, `chrono`, `anyhow`, `tracing`, `jpeg-encoder`.
 - **Used by:** `apps/spectrumiq-server`, the service binary.
 - **Phase:** P2.3; P2.4 added the peripherals, the channels, and the metrics and memory routes;
@@ -51,7 +58,8 @@ This is the only crate that depends on teta-wot.
   cache; P4.7 the `datasets` Thing, a dataset's manifest and thumbnail; P4.8 an image's metadata;
   P5.2 the `calibration` Thing, and the frames' objective and calibration; P5.3 the darks and
   flats, and the previews' correction; P6.5 the `workflow` Thing; P7.3 the `mosaic_live` Thing,
-  and the GPU of `[gpu]`; P8.4 stitching: `jobs.stitch`, auto-stitch, and the QA overlays.
+  and the GPU of `[gpu]`; P8.4 stitching: `jobs.stitch`, auto-stitch, and the QA overlays; P9.1
+  the sessions: the auth routes and the layer.
 
 ## API
 
@@ -102,6 +110,19 @@ the objective and the channel in the same way.
 | `GET /api/siq/system/health` | `status`, `version`, `uptime_s`, and the camera's model |
 | `GET /api/siq/system/metrics` | Every metric by name, as `{"kind": "gauge", "value": …}`, `{"kind": "counter", …}` or `{"kind": "histogram", "count", "sum", "buckets"}`: the pool, the previews' latencies, and the acquisition's rate and losses |
 | `GET /api/siq/system/memory` | The pool's slots by state and their size; the process's working set, its peak and its private bytes; the configured budgets, all in bytes |
+
+### The session routes (ADR-0065)
+
+The users are in `users.json` in `[server] settings`, managed with `spectrumiq-server user`.
+
+| Route | What |
+|---|---|
+| `POST /api/siq/auth/login` | With `{"name", "password"}`: `{"name", "role", "since", "expires"}` and the cookie `siq_session` (`HttpOnly`, `SameSite=Strict`, `Path=/`, `Max-Age` the session's lifetime); 401 if the name or the password is wrong; 429 with `Retry-After` past `max_failures` |
+| `POST /api/siq/auth/logout` | 204: the session ended, and its cookie cleared |
+| `GET /api/siq/auth/me` | `{"name", "role", "since", "expires"}` of the cookie's session; 401 without a live one |
+
+`Auth` is `Instrument::auth`: its `users` and `sessions`, and `session(&headers)`, the live session
+of a request's cookie.
 
 ### The data routes (ADR-0041, ADR-0045)
 
@@ -193,6 +214,15 @@ no calibrations, through teta-wot's in-process `TestClient`.
 - SpectrumIQ's routes in front of teta-wot's;
 - the OpenAPI document's paths, with a snapshot, none of them under `/api/siq/`;
 - serving over TCP, and shutting down with live view stopped first.
+
+`auth` (P9.1), through `Service::router()`:
+
+- a login's cookie and its attributes, `me` with it and without, and a logout ending it;
+- five wrong passwords, then the right one refused with 429 and `Retry-After`, while another name
+  from the same address logs in, and an unknown name answers as a wrong password;
+- a `PUT` on a Thing's property and a `POST` on a SpectrumIQ route refused from another site's
+  origin, and passing from the service's own or without one;
+- a role changed and a user removed by another `UserStore`, the CLI's, reaching its session.
 
 `peripherals`:
 

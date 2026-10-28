@@ -20,6 +20,9 @@ publish = false
 teta-wot = { git = "https://github.com/lucaswewa/teta-wot", tag = "v0.1.0" }
 
 anyhow = "1.0"
+# Password hashes (ADR-0065): argon2id, RustCrypto's, with its PHC strings; salts from the operating
+# system through getrandom.
+argon2 = { version = "0.6.0", default-features = false, features = ["alloc", "password-hash", "getrandom"] }
 # Plain-data views of GPU buffers. Already in the lockfile.
 bytemuck = "1.25"
 # Compiles the Euresys shim with MSVC, with siq-euresys-sys's `sdk` feature. Already in the lockfile.
@@ -32,6 +35,8 @@ criterion = "0.8.2"
 flate2 = "1.1"
 # `executor::block_on`, for wgpu's futures on the GPU thread. Already in the lockfile.
 futures = "0.3.34"
+# Session identifiers and salts from the operating system. Already in the lockfile.
+getrandom = "0.4.3"
 insta = { version = "1.48", features = ["json"] }
 # Reading streamed bodies in the server's tests: teta-wot's version.
 http-body-util = "0.1.5"
@@ -82,6 +87,13 @@ uuid = { version = "1.18", features = ["v4", "v7", "serde"] }
 zarrs = { version = "0.23.14", default-features = false, features = ["filesystem", "zstd"] }
 # Already in the lockfile through tempfile and clap, and teta-wot's version.
 windows-sys = "0.61.2"
+
+# argon2id at its 19 MiB costs seconds a hash unoptimised: the tests hash at the service's cost.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
 
 [workspace.lints.rust]
 missing_docs = "warn"

@@ -154,7 +154,9 @@ Done so far:
   - P7.4, the Mosaic page: the live mosaic panned and zoomed, the camera's field and a minimap
     over it, a double-click moving the stage there, Clear and Save; and the Scan page's stage map
     over the mosaic (`/#/mosaic`, `/#/dev/mosaic`).
-- Milestone 8 (post-acquisition stitching), under way:
+- Milestone 8 (post-acquisition stitching), complete: on generated ground truth, scans of 3 × 3 to
+  10 × 10 tiles are placed within 0.02 pixels RMS of the truth, and a 500 MP mosaic is stitched in
+  under 8 s within 1.3 GB:
   - P8.1, [`siq-stitch`](crates/siq-stitch/README.md)'s pairs: a scan's tiles placed by their
     poses, the sides of the grid registered by phase correlation within the stage's reach, each
     offset with its confidence (`siq-stitch --example pairs_on_dataset`);
@@ -171,6 +173,11 @@ Done so far:
     overlaps, stage errors, light and specimens, every one within 0.3 pixels RMS of the truth; the
     defaults tuned; and 535 MP stitched in 7.8 s from its flat to its pyramid, within 1.3 GB
     (`siq-jobs --example bench_stitch_500mp`).
+- Milestone 9 (multi-client, accounts, control token and audit), under way:
+  - P9.1, [`siq-auth`](crates/siq-auth/README.md): local accounts with argon2id hashes and roles,
+    managed by `spectrumiq-server user`, browser sessions in `HttpOnly`, `SameSite=Strict` cookies,
+    failed logins limited, and changes from other sites' pages refused (`siq-auth --example
+    user_cli`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

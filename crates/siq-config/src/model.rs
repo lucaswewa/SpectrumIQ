@@ -30,6 +30,9 @@ pub struct InstrumentConfig {
     /// Where logs go.
     #[serde(default)]
     pub log: LogConfig,
+    /// Accounts and sessions (ADR-0065).
+    #[serde(default)]
+    pub auth: AuthConfig,
     /// The camera.
     pub camera: CameraConfig,
     /// The XYZ stage.
@@ -125,6 +128,37 @@ impl Default for GpuConfig {
             enabled: true,
             software: false,
             mosaic_vram_gb: 2.0,
+        }
+    }
+}
+
+/// Accounts and sessions (ADR-0065). The users are in `users.json` in `[server] settings`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(default, deny_unknown_fields)]
+pub struct AuthConfig {
+    /// A session ends after this long without a request, in minutes.
+    pub idle_minutes: u32,
+    /// And after this long however busy, in hours: the session cookie's lifetime.
+    pub session_hours: u32,
+    /// The failed logins a name may have within `failure_minutes` before more are refused, even
+    /// with the right password; an address may have four times as many.
+    pub max_failures: u32,
+    /// The time failed logins are counted over, in minutes.
+    pub failure_minutes: u32,
+    /// The origins, besides the service's own, whose pages may change things, as
+    /// `http://host:port`: a development server's that doesn't proxy, say.
+    pub allowed_origins: Vec<String>,
+}
+
+impl Default for AuthConfig {
+    /// An hour idle and a 12-hour shift; 5 failed logins in 5 minutes; no other origins.
+    fn default() -> Self {
+        Self {
+            idle_minutes: 60,
+            session_hours: 12,
+            max_failures: 5,
+            failure_minutes: 5,
+            allowed_origins: Vec::new(),
         }
     }
 }

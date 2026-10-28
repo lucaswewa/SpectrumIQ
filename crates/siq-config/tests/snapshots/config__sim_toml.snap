@@ -28,6 +28,13 @@ expression: config
     "directory": "config\\../logs",
     "keep_days": 30
   },
+  "auth": {
+    "idle_minutes": 60,
+    "session_hours": 12,
+    "max_failures": 5,
+    "failure_minutes": 5,
+    "allowed_origins": []
+  },
   "camera": {
     "kind": "sim",
     "width": 11648,

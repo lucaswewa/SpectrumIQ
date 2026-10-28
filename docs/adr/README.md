@@ -73,3 +73,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0062](0062-global-alignment.md) | Global alignment of a mosaic's tiles (amended in P8.5: edges weighed by their correlation, and the accuracy suite) | Accepted | P8.2 |
 | [0063](0063-blending-and-out-of-core-compositing.md) | Blending and out-of-core compositing (amended in P8.5: the feather, measured) | Accepted | P8.3 |
 | [0064](0064-stitch-qa-reprocessing-and-provenance.md) | Stitch QA, re-processing, and provenance (amended in P8.5: the 500 MP benchmark, and its targets) | Accepted | P8.4 |
+| [0065](0065-authentication-and-sessions.md) | Authentication and sessions | Accepted | P9.1 |

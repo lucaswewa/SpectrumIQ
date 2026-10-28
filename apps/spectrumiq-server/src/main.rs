@@ -6,17 +6,25 @@
 //!     [--port P] [--webapp-dir web/dist]      on another port; the web app from a folder
 //! spectrumiq-server --print-openapi            the Things' OpenAPI document, for client types
 //! spectrumiq-server --print-config-schema      the configuration's JSON Schema
+//! spectrumiq-server user add <name> [--role R] -c config/sim.toml
+//!                   user passwd|remove <name>, user role <name> <role>, user list
+//!                                              the users of `[server] settings` (ADR-0065)
 //! ```
 //!
 //! It listens where `[server]` says, 127.0.0.1:5000 by default, and serves the web app at `/`:
 //! the build compiled in, or the folder `--webapp-dir` gives. Shutting down stops live view, then
 //! motion, then the Things.
+//!
+//! The first user added is an admin, who manages the rest; a password is asked for twice, without
+//! being shown, or read as two lines of standard input from a pipe.
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use anyhow::Context;
 use clap::{Parser, Subcommand};
+use siq_auth::cli::UserCommand;
+use siq_auth::{Role, USERS_FILE, UserStore};
 use siq_server::webapp::WebApp;
 use siq_server::{Service, shutdown_signal};
 use tokio::net::TcpListener;
@@ -47,6 +55,54 @@ struct Cli {
 enum Command {
     /// Serve the instrument: the default.
     Run,
+    /// Manage the users, in `users.json` in `[server] settings`.
+    User {
+        #[command(subcommand)]
+        command: UserArgs,
+    },
+}
+
+#[derive(Subcommand)]
+enum UserArgs {
+    /// Add a user: an admin if it is the first, a viewer unless --role says otherwise.
+    Add {
+        /// Its name: letters, digits, '.', '_' or '-'.
+        name: String,
+        /// viewer, operator or admin.
+        #[arg(long)]
+        role: Option<Role>,
+    },
+    /// Change a user's password.
+    Passwd {
+        /// Its name.
+        name: String,
+    },
+    /// Change a user's role.
+    Role {
+        /// Its name.
+        name: String,
+        /// viewer, operator or admin.
+        role: Role,
+    },
+    /// List the users.
+    List,
+    /// Remove a user. The last admin stays.
+    Remove {
+        /// Its name.
+        name: String,
+    },
+}
+
+impl From<UserArgs> for UserCommand {
+    fn from(args: UserArgs) -> Self {
+        match args {
+            UserArgs::Add { name, role } => Self::Add { name, role },
+            UserArgs::Passwd { name } => Self::Passwd { name },
+            UserArgs::Role { name, role } => Self::Role { name, role },
+            UserArgs::List => Self::List,
+            UserArgs::Remove { name } => Self::Remove { name },
+        }
+    }
 }
 
 async fn run(cli: Cli) -> anyhow::Result<()> {
@@ -58,11 +114,16 @@ async fn run(cli: Cli) -> anyhow::Result<()> {
         println!("{:#}", siq_server::openapi().await?);
         return Ok(());
     }
-    let Command::Run = cli.command.unwrap_or(Command::Run);
     let path = cli
         .config
         .context("the configuration is missing: give -c <config.toml>")?;
     let config = siq_config::load(&path)?;
+    if let Some(Command::User { command }) = cli.command {
+        let store = UserStore::open(config.server.settings.join(USERS_FILE))?;
+        let mut ask = siq_auth::read_password;
+        siq_auth::cli::run(&store, &command.into(), &mut ask, &mut std::io::stdout())?;
+        return Ok(());
+    }
     let _logs = siq_telemetry::init(&config.log)?;
     let address = (config.server.bind, cli.port.unwrap_or(config.server.port));
     let listener = TcpListener::bind(address)
