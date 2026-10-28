@@ -191,7 +191,7 @@ hardware/ignored tests), and limitations.
 | Hardware | `#[ignore = "hardware"]`, feature-gated | Run manually with `cargo xtask hw-test`. |
 | Performance | `benches/` (criterion) or `examples/*_bench.rs` | Not in CI. Results recorded in impl notes. |
 | Frontend unit | `*.spec.ts` (Vitest + Vue Test Utils) | Stores, components, API layer with mocked fetch. |
-| E2E | `web/e2e/` (Playwright, from M9) | Against `spectrumiq-server --config config/sim.toml`. Opt-in: `cargo xtask ci --e2e`. |
+| E2E | `web/e2e/` (Playwright, from M9) | Against a debug `spectrumiq-server` on a fresh copy of `config/sim.toml`, in the installed Edge (ADR-0069). Opt-in: `cargo xtask ci --e2e`. |
 
 **Requirement tagging.** Put `// REQ-XXX-NNN` in the doc comment or first line of every test that
 verifies a requirement. `cargo xtask trace` builds the traceability matrix from these tags.

@@ -2,10 +2,11 @@
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 use xtask::metadata::Metadata;
-use xtask::{ci, layers, loc, regen};
+use xtask::{ci, layers, loc, regen, soak};
 
 #[derive(Parser)]
 #[command(name = "cargo xtask", about = "SpectrumIQ's development tasks.")]
@@ -41,6 +42,18 @@ enum Task {
     Layers,
     /// Regenerates siq-euresys-sys's bindings from its shim's header: needs bindgen-cli and LLVM.
     RegenBindings,
+    /// Runs viewers and an operator against a service of its own, and reports (ADR-0069).
+    Soak {
+        /// How many viewers.
+        #[arg(long, default_value_t = 8)]
+        viewers: usize,
+        /// For how long, in minutes.
+        #[arg(long, default_value_t = 30.0)]
+        minutes: f64,
+        /// The smoke run: 2 viewers for 20 s.
+        #[arg(long)]
+        smoke: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -106,6 +119,25 @@ fn run(task: Task) -> anyhow::Result<ExitCode> {
             regen::regen(&repo)?;
             println!("regen-bindings: wrote {}", regen::BINDINGS);
             Ok(ExitCode::SUCCESS)
+        }
+        Task::Soak {
+            viewers,
+            minutes,
+            smoke,
+        } => {
+            let options = if smoke {
+                soak::Options::SMOKE
+            } else {
+                let duration = Duration::from_secs_f64(minutes * 60.0);
+                soak::Options { viewers, duration }
+            };
+            let report = soak::run(&repo, options)?;
+            println!("{report}");
+            Ok(if report.passed() {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::FAILURE
+            })
         }
     }
 }

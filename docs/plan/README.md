@@ -235,8 +235,8 @@ A phase is Done once it is merged.
 | P9.1 | Accounts and sessions | 850 | P2.3 | Done |
 | P9.2 | Authorization layer and Hardware Control Token | 850 | P9.1, P6.5 | Done |
 | P9.3 | Audit trail | 600 | P9.2 | Done |
-| P9.4 | Frontend: login, roles, control token, admin | 900 | P9.2, P9.3, P3.5 | Review |
-| P9.5 | End-to-end tests and soak tool | 500 | P9.4 | — |
+| P9.4 | Frontend: login, roles, control token, admin | 900 | P9.2, P9.3, P3.5 | Done |
+| P9.5 | End-to-end tests and soak tool | 500 | P9.4 | Review |
 
 ### M10 — Hardware bring-up ([brief](milestones/M10-hardware-bringup.md))
 
@@ -314,7 +314,7 @@ A phase is Done once it is merged.
 | R2 | The simulated camera can't render 100 MP at 9 fps | Noiseless-render cache when stationary; `fast` profile; GPU rendering as a follow-up | P1.6 |
 | R3 | 32 GB RAM pressure (locked pool + jobs + WebView2) | Admission control, out-of-core design, memory tests | ADR-0005, P4.3 |
 | R4 | wgpu binding-size and texture limits for 100 MP buffers | Banding/paging; request adapter limits | P7.1, P11.2 |
-| R5 | Browser 6-connection limit (HTTP/1.1) | WS observations, stream budget, binary multiplex later | ADR-0010, P3.2, P9.5 |
+| R5 | Browser 6-connection limit (HTTP/1.1) | WS observations, stream budget, binary multiplex later. In P9.5, Edge held the 3 streams and the sockets while every tile loaded (ADR-0069) | ADR-0010, P3.2, P9.5 |
 | R6 | GRBL status latency and jitter, plus open-loop error | Stop-and-go; paint only stationary frames in live stitching; global alignment | ADR-0013 |
 | R7 | NGFF 0.5 not readable by a target tool | Fall back to 0.4; OME-TIFF export | P4.2 |
 | R8 | Keeping the `microscope` look, and widgets Reka UI lacks (data tables, trees) | `microscope`'s wrappers kept; new ones on TanStack Table and Reka UI's Tree; galleries; both-theme review | P3.1, M9 |

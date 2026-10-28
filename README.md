@@ -12,8 +12,8 @@ Scientific microscope instrument software:
 ## Status
 
 **In progress:** Milestone 9, multi-client use: accounts, the control token and the audit trail.
-P9.4 is the latest: the web app's login, its controls disabled by role and token with the reason,
-the control token's bar, and the Admin page (`/#/dev/admin`).
+P9.5 is the latest: the end-to-end tests in Edge, two browsers handing the token over among them,
+and the soak, 8 viewers and an operator for 30 minutes (`cargo xtask soak`).
 
 Done so far:
 
@@ -187,7 +187,12 @@ Done so far:
   - P9.4, the web app's side: a login where the service asks for one, the desktop logged in by
     itself, every control disabled with the reason where the role or the token is missing, the
     control token's bar above every page, and the Admin page for the users and the audit trail;
-    the examples log in with `SIQ_USER` (`/#/dev/admin`).
+    the examples log in with `SIQ_USER` (`/#/dev/admin`);
+  - P9.5, the end-to-end tests (`cargo xtask ci --e2e`), in Edge against a fresh simulated
+    instrument: the login, live view, two browsers handing the token over, a silent holder losing
+    it, and the connection budget's 3 streams, sockets and tiles at once; and the soak, viewers and
+    an operator against a service of its own, reported against ADR-0069's targets
+    (`cargo xtask soak --smoke`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

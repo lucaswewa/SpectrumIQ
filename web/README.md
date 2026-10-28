@@ -20,7 +20,8 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
   P6.6 the Scan page, and the saved positions on the server; P6.7 the run panel and sequences;
   P7.4 the Mosaic page, and the stage map over the live mosaic; P8.4 the Jobs page, Stitch on the
   Datasets page, and a stitched image's QA overlays in the viewer; P9.4 the login, the controls
-  disabled by role and token with the reason, the control token bar, and the Admin page.
+  disabled by role and token with the reason, the control token bar, and the Admin page; P9.5 the
+  end-to-end tests.
 
 ## Layout
 
@@ -47,6 +48,7 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
 | `src/admin/`       | The Admin page: the users, added, given a role or a password, and removed; the audit trail, filtered by who and what, a page at a time                                                                         |
 |  The About page    |
 | `src/views/dev/`   | The galleries, `/#/dev/components` and `/#/dev/tokens`, and `/#/dev/observe`: in development builds only                                                                                                       |
+| `e2e/`             | The end-to-end tests (ADR-0069), in Playwright against the served app on a fresh simulated instrument                                                                                                          |
 
 The rail lists architecture §11's destinations. Each shows once the instrument serves the Thing it
 needs. Until its page is built, a destination says which milestone builds it.
@@ -114,12 +116,29 @@ with `--webapp-dir web/dist`, or build a release server, which embeds `dist/`, a
 | `npm run lint`         | ESLint, warnings denied, with the app's rules: hash routing, platform and `@tauri-apps/*` only through `src/host/`, `reka-ui` only in `src/ui/` |
 | `npm run typecheck`    | `vue-tsc`, strict                                                                                                                               |
 | `npm run test:unit`    | Vitest, in happy-dom: `tests/unit/**/*.spec.ts`                                                                                                 |
+| `npm run test:e2e`     | Playwright, in the installed Edge, against a debug server of this checkout on a fresh simulated instrument: `e2e/**` (ADR-0069). Opt-in         |
 | `npm run build`        | The production build in `dist/`, with `third-party-licences.txt`                                                                                |
 | `npm run api:openapi`  | Writes the server's OpenAPI document to `src/api/generated/openapi.json` (needs Cargo)                                                          |
 | `npm run api:types`    | Writes its types to `src/api/generated/schema.d.ts`; with `-- --check`, checks they are current                                                 |
 
 `cargo xtask ci` runs the first five, and `api:types -- --check`. A server test fails when
-`openapi.json` is older than the server: then run `api:openapi` and `api:types`. The end-to-end tests (`npm run test:e2e`, Playwright) start with M9.
+`openapi.json` is older than the server: then run `api:openapi` and `api:types`.
+
+`cargo xtask ci --e2e` runs the end-to-end tests too. They build the web app and a debug server,
+and start it on port 5098 with a copy of `config/sim.toml` in the system's temporary folder: a
+2048 × 1536 camera, rendered fast, and a 15 s token timeout. A setup adds the users (`ada`, an
+admin, with the CLI; `olga` and `otto`, operators, and `vic`, a viewer, over HTTP), calibrates,
+so that the wizard stays shut, and snaps a dataset to view. The tests run one at a time, each
+with the token free and live view stopped:
+
+- `login`: a wrong password refused, a viewer's controls disabled with the reason, a logout;
+- `live`: an operator taking control, and both previews streaming;
+- `handover`: two browsers, an admin taking over an operator's control, and a holder gone silent
+  losing it after the timeout;
+- `budget`: the connection budget (ADR-0010): one browser with the 3 MJPEG streams and the
+  Things' sockets, while the viewer loads its tiles over the connections left.
+
+They use the installed Edge (`channel: 'msedge'`), so no browser is downloaded.
 
 ## Notes
 

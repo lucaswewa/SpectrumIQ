@@ -63,3 +63,13 @@
   them by themselves.
 - **ADR-0037** records the protocol, the reconnection, the budget's rules and the stores built on
   them.
+
+## Amendment (P9.5, 2026-10-28): the budget, tested in a browser and under load
+
+- **In Edge** (`web/e2e/budget.spec.ts`, ADR-0069): one browser held the 3 MJPEG streams, the
+  overview, the ROI and the live mosaic's view, on the Live and Mosaic pages, with the Things'
+  sockets. Meanwhile the Viewer page loaded its tiles over the connections left: every tile
+  arrived, and the streams and the observations went on.
+- **Under the soak** (`cargo xtask soak`, ADR-0069): 8 viewers, each with both streams and two
+  sockets while panning about the tiles, for 30 minutes. Every viewer received every frame, and no
+  tile failed.

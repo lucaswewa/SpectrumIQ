@@ -117,7 +117,7 @@ watch(useCaptureFlashes(), (count) => (flash.value = count))
 </script>
 
 <template>
-  <div ref="root" class="live-image" :data-status="status">
+  <div ref="root" class="live-image" :data-stream="stream" :data-status="status">
     <canvas
       v-show="status !== 'disabled'"
       ref="canvas"

@@ -5,16 +5,18 @@ SpectrumIQ's development tasks, run as `cargo xtask <task>`:
 - `ci` is the quality gate every phase passes;
 - `loc` measures the code budget;
 - `layers` checks the crate layering;
-- `regen-bindings` regenerates the Euresys shim's bindings.
+- `regen-bindings` regenerates the Euresys shim's bindings;
+- `soak` runs viewers and an operator against a service of its own, and reports.
 
 ## Place in the architecture
 
 - **Layer:** Tooling, outside the architecture. It may depend on anything, and nothing depends on
   it.
-- **Depends on:** `anyhow`, `clap`, `serde`, `serde_json`; `tempfile` in tests. It runs `cargo`,
+- **Depends on:** `anyhow`, `clap`, `serde`, `serde_json`, and `tungstenite`'s client for the
+  soak's sockets; `tempfile` in tests. It runs `cargo`,
   `git` and, for the web checks, `npm`; `regen-bindings` runs `bindgen` and `rustfmt`.
 - **Used by:** every phase's definition of done ([conventions §1.3](../docs/plan/conventions.md#13-definition-of-done-every-phase)).
-- **Phase:** P0.1; P2.5 added `regen-bindings`, and the check for Euresys SDK files.
+- **Phase:** P0.1; P2.5 added `regen-bindings`, and the check for Euresys SDK files; P9.5 `soak`.
 
 The `cargo xtask` alias in [`.cargo/config.toml`](../.cargo/config.toml) builds xtask into
 `target/xtask`. The running `xtask.exe` is therefore never overwritten by the workspace builds it
@@ -28,6 +30,7 @@ The binary is a thin command line over the library:
 |---|---|---|
 | `cargo xtask ci [--skip-web] [--e2e]` | `ci` | Runs fmt, clippy (warnings denied), the tests, rustdoc (warnings denied), `layers`, a check that no tracked file is a Euresys SDK file (REQ-NFR-005), every example in smoke mode, `cargo deny check licenses` when cargo-deny is installed, and the web checks once `web/package.json` exists. It stops at the first failure. |
 | `cargo xtask loc [--base main] [--budget 1000] [--files]` | `loc` | Counts the lines added since the merge base of `--base` and `HEAD`, including uncommitted and untracked files, by class. It fails when the counted lines reach the budget. |
+| `cargo xtask soak [--viewers 8] [--minutes 30] [--smoke]` | `soak` | Builds `spectrumiq-server` in release, and runs it on port 5097 with a copy of `config/sim.toml` in `target/soak/`, emptied first. An operator scans and looks at live view while each viewer follows both previews, observes the camera and the stage, and pans about a snap's tiles. It prints a report, writes it to `target/soak/report.json`, and fails when a target of ADR-0069 is missed. `--smoke` is 2 viewers for 20 s. |
 | `cargo xtask layers` | `layers` | Checks every workspace crate's normal and build dependencies against the layer table of architecture §3.1. |
 | `cargo xtask regen-bindings` | `regen` | Regenerates `crates/siq-euresys-sys/src/bindings.rs` from the shim's header with `bindgen` (ADR-0004), and formats it. It needs `cargo install bindgen-cli`, and LLVM with `LIBCLANG_PATH` set; it says so when they are missing. |
 

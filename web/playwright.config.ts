@@ -1,24 +1,43 @@
-import { fileURLToPath } from 'node:url'
-
 import { defineConfig, devices } from '@playwright/test'
 
-const port = 5098
-const root = fileURLToPath(new URL('..', import.meta.url))
+import { CONFIG, freshInstrument, PORT, ROOT } from './e2e/instrument'
 
-// The end-to-end tests (from M9, conventions §5.3) run against the app as the server serves it:
-// a debug build of this checkout, on the simulated instrument, serving the fresh web build.
+// The workers load this file too; only the runner, which starts the server, writes the instrument.
+if (process.env.TEST_WORKER_INDEX === undefined) freshInstrument()
+
+// The end-to-end tests (ADR-0069, conventions §5.3) run against the app as the server serves it:
+// a debug build of this checkout, on a fresh simulated instrument, serving the fresh web build.
+// They share the one instrument, so they run one at a time, in the installed Edge.
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  workers: 1,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  use: { baseURL: `http://127.0.0.1:${port}`, trace: 'on-first-retry' },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  retries: process.env.CI ? 1 : 0,
+  reporter: 'list',
+  use: {
+    baseURL: `http://127.0.0.1:${PORT}`,
+    trace: 'retain-on-failure',
+    viewport: { width: 1400, height: 900 },
+  },
+  projects: [
+    // The users, the calibrations, so that the wizard stays shut, and a dataset to view.
+    { name: 'setup', testMatch: /setup\.ts$/ },
+    {
+      name: 'edge',
+      use: {
+        ...devices['Desktop Edge'],
+        channel: 'msedge',
+        viewport: { width: 1400, height: 900 },
+      },
+      dependencies: ['setup'],
+    },
+  ],
   webServer: {
-    command: `npm --prefix web run build && cargo run -q -p spectrumiq-server -- -c config/sim.toml --port ${port} --webapp-dir web/dist`,
-    cwd: root,
-    url: `http://127.0.0.1:${port}/api/siq/system/health`,
-    reuseExistingServer: !process.env.CI,
+    command: `npm --prefix web run build && cargo run -q -p spectrumiq-server -- -c "${CONFIG}" --port ${PORT} --webapp-dir web/dist`,
+    cwd: ROOT,
+    url: `http://127.0.0.1:${PORT}/api/siq/system/health`,
+    reuseExistingServer: false,
+    // The first run builds the server.
     timeout: 600_000,
   },
 })

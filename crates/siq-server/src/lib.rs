@@ -230,14 +230,18 @@ impl Instrument {
         serde_json::to_value(self.registry.snapshot()).unwrap_or_default()
     }
 
-    /// The frame pool, the process's memory, and the configured budgets, in bytes.
+    /// The frame pool, the process's memory and CPU time, and the configured budgets, in bytes.
     fn memory(&self) -> Value {
         let pool = self.acquisition.pool_stats();
+        let cpu = siq_buffer::process_usage()
+            .ok()
+            .map(|usage| usage.cpu.as_secs_f64());
         let process = siq_buffer::process_memory().ok().map(|memory| {
             json!({
                 "working_set": memory.working_set,
                 "peak_working_set": memory.peak_working_set,
                 "private": memory.private,
+                "cpu_s": cpu,
             })
         });
         let budgets = &self.config.memory;

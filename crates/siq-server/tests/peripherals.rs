@@ -288,6 +288,10 @@ async fn the_memory_route_has_the_pool_the_process_and_the_budgets() {
     assert!(resident > 1 << 20, "{memory}");
     let peak = memory["process"]["peak_working_set"].as_u64().unwrap();
     assert!(peak >= resident, "{memory}");
+    assert!(
+        memory["process"]["cpu_s"].as_f64().unwrap() > 0.0,
+        "{memory}"
+    );
     assert_eq!(memory["budgets"]["job_ram"], 14e9);
     assert_eq!(memory["budgets"]["tile_cache"], 1024e6);
 }

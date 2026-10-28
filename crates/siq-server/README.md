@@ -125,7 +125,7 @@ the objective and the channel in the same way.
 |---|---|
 | `GET /api/siq/system/health` | `status`, `version`, `uptime_s`, and the camera's model |
 | `GET /api/siq/system/metrics` | Every metric by name, as `{"kind": "gauge", "value": …}`, `{"kind": "counter", …}` or `{"kind": "histogram", "count", "sum", "buckets"}`: the pool, the previews' latencies, and the acquisition's rate and losses |
-| `GET /api/siq/system/memory` | The pool's slots by state and their size; the process's working set, its peak and its private bytes; the configured budgets, all in bytes |
+| `GET /api/siq/system/memory` | The pool's slots by state and their size; the process's working set, its peak and its private bytes; the configured budgets, all in bytes; and the process's CPU time so far, `cpu_s`, in seconds |
 
 ### The session routes (ADR-0065)
 

@@ -7065,6 +7065,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "tungstenite",
 ]
 
 [[package]]
