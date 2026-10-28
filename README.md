@@ -207,6 +207,7 @@ The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 | [docs/adr/](docs/adr/README.md) | Architecture decision records |
 | [docs/requirements.md](docs/requirements.md) | Requirements, with traceability |
 | [docs/impl-notes/](docs/impl-notes/) | What each phase did |
+| [docs/plan/milestones/](docs/plan/milestones/README.md#testing-a-milestone-by-hand) | How to test each finished milestone by hand |
 
 ## Prerequisites
 

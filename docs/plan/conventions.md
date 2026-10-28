@@ -53,6 +53,10 @@ implement the phase without access to the planning conversation.
 - [ ] The roadmap status is updated in [README.md](README.md), and the "Verified by" column is
       updated in [../requirements.md](../requirements.md).
 - [ ] New third-party dependencies are added to [../soup.md](../soup.md).
+- [ ] A milestone's last phase adds the milestone's section to
+      [milestones/README.md](milestones/README.md#testing-a-milestone-by-hand): how to test it by
+      hand, against its exit criteria. A phase that changes how an earlier one is tested updates
+      its section.
 - [ ] Commits on the phase branch use Conventional Commits with the phase ID (`feat(P1.1): …`).
       The user reviews and merges.
 

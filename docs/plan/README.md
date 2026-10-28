@@ -14,7 +14,7 @@ SpectrumIQ is scientific microscope instrument software:
 | [../goals.md](../goals.md) | The original goals |
 | [architecture.md](architecture.md) | Target architecture: processes, crates, frame path, memory, API, streaming, storage, security, frontend, simulation |
 | [conventions.md](conventions.md) | **Read first for every phase:** phase protocol, definition of done, LOC accounting, documentation, coding and test standards |
-| [milestones/](milestones/) | One file per milestone, holding the self-contained phase briefs |
+| [milestones/](milestones/README.md) | One file per milestone, holding the self-contained phase briefs; and how to test each finished milestone by hand |
 | [../adr/](../adr/README.md) | Architecture decision records; 0001–0016 come from planning |
 | [../requirements.md](../requirements.md) | Requirement IDs with traceability |
 | [../soup.md](../soup.md) | Third-party components register |
