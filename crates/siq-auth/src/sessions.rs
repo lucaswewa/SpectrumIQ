@@ -73,6 +73,9 @@ pub struct Session {
     pub role: Role,
     /// The address it logged in from, if known.
     pub address: Option<IpAddr>,
+    /// Whether it is the local console's, logged in by its secret: it may take the control token
+    /// over (ADR-0066).
+    pub local: bool,
     /// When it began, on the store's clock.
     pub created: Timestamp,
     /// When it began, in UTC.
@@ -126,12 +129,31 @@ impl SessionStore {
         user: &User,
         address: Option<IpAddr>,
     ) -> Result<Session, getrandom::Error> {
+        self.begin(user, address, false)
+    }
+
+    /// A new session of the local console, for `user`, from `address`.
+    pub fn create_local(
+        &self,
+        user: &User,
+        address: Option<IpAddr>,
+    ) -> Result<Session, getrandom::Error> {
+        self.begin(user, address, true)
+    }
+
+    fn begin(
+        &self,
+        user: &User,
+        address: Option<IpAddr>,
+        local: bool,
+    ) -> Result<Session, getrandom::Error> {
         let now = self.clock.now();
         let session = Session {
             id: SessionId::random()?,
             user: user.name.clone(),
             role: user.role,
             address,
+            local,
             created: now,
             created_utc: self.clock.utc(now),
             seen: now,

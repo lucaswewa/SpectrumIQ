@@ -136,6 +136,15 @@ impl Default for GpuConfig {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 #[serde(default, deny_unknown_fields)]
 pub struct AuthConfig {
+    /// Whether who may do what is enforced (ADR-0066): a login to read, an operator's role to
+    /// process or stop, and the control token to change the instrument. Off, every request is
+    /// allowed, as before accounts: for development only.
+    pub enforce: bool,
+    /// The control token goes by itself after this long without a request from its holder, in
+    /// seconds; what the holder started keeps running.
+    pub control_timeout_s: u32,
+    /// The user the local console logs in as, by its secret (ADR-0066): none, and it can't.
+    pub local_user: Option<String>,
     /// A session ends after this long without a request, in minutes.
     pub idle_minutes: u32,
     /// And after this long however busy, in hours: the session cookie's lifetime.
@@ -151,9 +160,13 @@ pub struct AuthConfig {
 }
 
 impl Default for AuthConfig {
-    /// An hour idle and a 12-hour shift; 5 failed logins in 5 minutes; no other origins.
+    /// Enforced, the token for 30 s of silence, no local user; an hour idle and a 12-hour shift;
+    /// 5 failed logins in 5 minutes; no other origins.
     fn default() -> Self {
         Self {
+            enforce: true,
+            control_timeout_s: 30,
+            local_user: None,
             idle_minutes: 60,
             session_hours: 12,
             max_failures: 5,

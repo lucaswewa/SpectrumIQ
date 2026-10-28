@@ -47,7 +47,9 @@ use tower::ServiceExt;
 use tracing::{info, warn};
 
 pub mod auth;
+pub mod authz;
 pub mod calibration;
+pub mod control;
 mod data;
 pub mod datasets;
 pub mod devices;
@@ -64,6 +66,7 @@ pub use teta_wot::server::shutdown_signal;
 
 use auth::Auth;
 use calibration::Calibration;
+use control::Control;
 use datasets::Datasets;
 use devices::Peripherals;
 use imaging::Imaging;
@@ -285,6 +288,7 @@ fn things(camera: Camera, fitted: impl Fn(&str) -> bool) -> ThingServerBuilder {
         .thing("calibration", Calibration::default())
         .thing("workflow", Workflow::default())
         .thing("mosaic_live", MosaicLive::default())
+        .thing("control", Control::default())
 }
 
 /// The service: the Things' server, and the instrument behind it.

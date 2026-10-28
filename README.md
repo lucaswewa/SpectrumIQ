@@ -177,7 +177,11 @@ Done so far:
   - P9.1, [`siq-auth`](crates/siq-auth/README.md): local accounts with argon2id hashes and roles,
     managed by `spectrumiq-server user`, browser sessions in `HttpOnly`, `SameSite=Strict` cookies,
     failed logins limited, and changes from other sites' pages refused (`siq-auth --example
-    user_cli`).
+    user_cli`);
+  - P9.2, who may do what: every route classified, viewers reading, operators processing and
+    stopping, the instrument changed only by the holder of the Hardware Control Token, which an
+    admin or the local console takes over and a silent holder loses; the local console's
+    one-time secret (`python examples/python/two_clients.py`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

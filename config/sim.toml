@@ -9,6 +9,9 @@ data_root = "../data"
 scratch = "../scratch"
 settings = "../settings"   # the calibrations
 
+[auth]                      # accounts, sessions and the control token (ADR-0065, ADR-0066)
+enforce = false            # open until the web app and the desktop log in (P9.4)
+
 [memory]                    # the 32 GB / 8 GB workstation (ADR-0005)
 pool_slots = 12             # 12 × 200 MB, locked
 job_ram_gb = 14.0

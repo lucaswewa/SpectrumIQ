@@ -53,6 +53,9 @@ expression: schema
       "description": "Accounts and sessions (ADR-0065).",
       "$ref": "#/$defs/AuthConfig",
       "default": {
+        "enforce": true,
+        "control_timeout_s": 30,
+        "local_user": null,
         "idle_minutes": 60,
         "session_hours": 12,
         "max_failures": 5,
@@ -265,6 +268,26 @@ expression: schema
       "description": "Accounts and sessions (ADR-0065). The users are in `users.json` in `[server] settings`.",
       "type": "object",
       "properties": {
+        "enforce": {
+          "description": "Whether who may do what is enforced (ADR-0066): a login to read, an operator's role to\nprocess or stop, and the control token to change the instrument. Off, every request is\nallowed, as before accounts: for development only.",
+          "type": "boolean",
+          "default": true
+        },
+        "control_timeout_s": {
+          "description": "The control token goes by itself after this long without a request from its holder, in\nseconds; what the holder started keeps running.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0,
+          "default": 30
+        },
+        "local_user": {
+          "description": "The user the local console logs in as, by its secret (ADR-0066): none, and it can't.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
         "idle_minutes": {
           "description": "A session ends after this long without a request, in minutes.",
           "type": "integer",

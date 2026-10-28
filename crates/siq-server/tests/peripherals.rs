@@ -222,13 +222,14 @@ async fn without_peripherals_only_imaging_is_added_and_a_channel_sets_the_camera
     let things = client.get("/api/v1/things/").await.json();
     let mut names: Vec<_> = things.as_object().unwrap().keys().cloned().collect();
     names.sort();
-    // `calibration`, `jobs`, `datasets`, `workflow` and `mosaic_live` are served whatever is
-    // fitted.
+    // `calibration`, `control`, `jobs`, `datasets`, `workflow` and `mosaic_live` are served
+    // whatever is fitted.
     assert_eq!(
         names,
         [
             "calibration",
             "camera",
+            "control",
             "datasets",
             "display",
             "focus",

@@ -36,6 +36,7 @@ async fn the_things_are_listed_and_described() {
     let expected = [
         "calibration",
         "camera",
+        "control",
         "datasets",
         "display",
         "filter_wheel",

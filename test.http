@@ -55,8 +55,36 @@ Content-Type: application/json
 ### Who the session is, and when it ends (401 without one)
 GET {{host}}/api/siq/auth/me
 
-### Log out: the session ended, its cookie cleared
+### Log out: the session ended, its cookie cleared (and the control token, if it held it)
 POST {{host}}/api/siq/auth/logout
+
+# ============================== The control token ==============================
+# Where `[auth] enforce`, changing the instrument needs the token, stopping it doesn't, and any
+# request of the holder's is its heartbeat: silent for `control_timeout_s` (30 s), it loses it.
+
+### Who holds the token: `{ "holder": { "user", "since", "local" } }`, or `null`
+GET {{host}}/api/siq/control
+
+### Request it (an operator or an admin): 409, saying who holds it, if it isn't free
+POST {{host}}/api/siq/control/request
+
+### A heartbeat, though any request is one
+POST {{host}}/api/siq/control/heartbeat
+
+### Release it
+POST {{host}}/api/siq/control/release
+
+### Take it over from whoever holds it (an admin or the local console)
+POST {{host}}/api/siq/control/take_over
+
+### The local console's login, from this computer: the secret in `[server] settings`/local-login
+POST {{host}}/api/siq/auth/local
+Content-Type: application/json
+
+{ "secret": "paste the file's 64 digits" }
+
+### The control Thing: its holder, observed
+GET {{api}}/control/holder
 
 # ============================== The camera ==============================
 

@@ -17,7 +17,8 @@ serde.workspace = true
 serde_json.workspace = true
 siq-types = { path = "../siq-types" }
 thiserror.workspace = true
-windows-sys = { workspace = true, features = ["Win32_System_Console"] }
+tokio = { workspace = true, features = ["sync"] }
+windows-sys = { workspace = true, features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Console", "Win32_System_Threading"] }
 
 [dev-dependencies]
 tempfile.workspace = true

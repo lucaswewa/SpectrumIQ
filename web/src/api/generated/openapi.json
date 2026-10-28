@@ -6569,6 +6569,139 @@
           }
         }
       }
+    },
+    "/api/v1/control/changed": {
+      "get": {
+        "summary": "The token changed hands: its holder now, if any, and why.",
+        "description": "## The token changed hands: its holder now, if any, and why.\n\nThe token changed hands: its holder now, if any, and why.\n\nServer-sent events: each event's data, as JSON in a `data:` line, following this schema:\n\n```json\n{\n  \"$ref\": \"#/components/schemas/control_changed_data\"\n}\n```",
+        "operationId": "subscribe_event_api_v1_control_changed_get",
+        "responses": {
+          "200": {
+            "description": "Server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/control/holder": {
+      "get": {
+        "summary": "The user who holds the token: `null` while it is free.",
+        "description": "## The user who holds the token: `null` while it is free.\n\nThe user who holds the token: `null` while it is free.",
+        "operationId": "get_property_api_v1_control_holder_get",
+        "responses": {
+          "200": {
+            "description": "Value of holder",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/control_holder_value"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each new value as JSON in a `data:` line. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/control/since": {
+      "get": {
+        "summary": "Since when the holder has held it, in UTC.",
+        "description": "## Since when the holder has held it, in UTC.\n\nSince when the holder has held it, in UTC.",
+        "operationId": "get_property_api_v1_control_since_get",
+        "responses": {
+          "200": {
+            "description": "Value of since",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/control_since_value"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each new value as JSON in a `data:` line. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/control/properties": {
+      "get": {
+        "summary": "Read All Properties",
+        "description": "Every property of `control` (`readallproperties`), or their changes (`observeallproperties`).",
+        "operationId": "read_all_properties_api_v1_control_properties_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Each property's value, by name."
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events: each observable property's new values, as events named after it. Ask for them with `Accept: text/event-stream`."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/control/events": {
+      "get": {
+        "summary": "Subscribe All Events",
+        "description": "Server-sent events: every event of `control`, named after it (`subscribeallevents`).",
+        "operationId": "subscribe_all_events_api_v1_control_events_get",
+        "responses": {
+          "200": {
+            "description": "Server-sent events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/control/": {
+      "get": {
+        "summary": "Thing Description",
+        "description": "The W3C Thing Description of `control`: its properties, actions and events, and how to use them.",
+        "operationId": "things_control_api_v1_control__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThingDescription"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -17641,6 +17774,156 @@
           "height"
         ],
         "additionalProperties": false
+      },
+      "control_changed_data": {
+        "description": "The token's state: who holds it, and why it last changed.",
+        "type": "object",
+        "properties": {
+          "holder": {
+            "description": "Its holder, if any.",
+            "oneOf": [
+              {
+                "description": "Who holds the token.",
+                "type": "object",
+                "properties": {
+                  "user": {
+                    "description": "The user.",
+                    "type": "string"
+                  },
+                  "since": {
+                    "description": "Since when, in UTC.",
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "local": {
+                    "description": "Whether it is the local console's session.",
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "user",
+                  "since",
+                  "local"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "description": "Why it last changed.",
+            "oneOf": [
+              {
+                "description": "Nobody has asked for it yet.",
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "start",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "description": "Its holder asked for it.",
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "requested",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "description": "Its holder gave it back.",
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "released",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "description": "An admin or the local console took it from `from`.",
+                "type": "object",
+                "properties": {
+                  "from": {
+                    "description": "The user it was taken from.",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "const": "taken_over",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "from"
+                ]
+              },
+              {
+                "description": "Its holder was silent for the timeout.",
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "timed_out",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "description": "Its holder's session ended: a logout.",
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "ended",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "control_holder_value": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "control_since_value": {
+        "oneOf": [
+          {
+            "format": "date-time",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
       }
     }
   }

@@ -27,11 +27,19 @@ engines, and serves the instrument's Things on teta-wot, with SpectrumIQ's own r
   `/api/siq/auth/`, `login`, `logout` and `me` (ADR-0065); under `/api/siq/data/`, a dataset's
   manifest and thumbnail, and its images' tiles. teta-wot's router is the fallback (ADR-0003,
   amended).
-- **The session layer** (ADR-0065), around every route, teta-wot's included: a request other than
-  `GET`, `HEAD` or `OPTIONS` whose `Origin` isn't the service's own, or one of `[auth]
-  allowed_origins`, is refused with 403; a request with a live session's cookie carries its
-  `siq_auth::Session`, its role read again from the users. The service is served with each
-  connection's address, which the login's limit counts by.
+- **The session layer** (ADR-0065, ADR-0066), around every route, teta-wot's included:
+  - a request other than `GET`, `HEAD` or `OPTIONS` whose `Origin` isn't the service's own, or
+    one of `[auth] allowed_origins`, is refused with 403;
+  - a request with a live session's cookie carries its `siq_auth::Session`, its role read again
+    from the users, and is the control token's heartbeat if the session holds it;
+  - where `[auth] enforce`, `authz` classifies the request and refuses what the caller may not
+    do: 401 without a session, 403 for a role or the missing token.
+
+  The service is served with each connection's address, which the login's limit and the local
+  login use.
+- **Who may do what** (`authz`, ADR-0066): `classify(method, path)` gives every route a class,
+  public, read, stop, processing, control, hardware or admin, and `decide` the matrix of
+  architecture §10. A change to a route without a class is refused.
 - **The web app** at `/`, `/assets/…`, `/favicon.svg` and `/third-party-licences.txt` (ADR-0036):
   - `web/dist` is embedded in release builds, and read from disk in debug builds;
   - `Service::with_webapp(WebApp::Dir(folder))` serves another build;
@@ -59,7 +67,8 @@ This is the only crate that depends on teta-wot.
   P5.2 the `calibration` Thing, and the frames' objective and calibration; P5.3 the darks and
   flats, and the previews' correction; P6.5 the `workflow` Thing; P7.3 the `mosaic_live` Thing,
   and the GPU of `[gpu]`; P8.4 stitching: `jobs.stitch`, auto-stitch, and the QA overlays; P9.1
-  the sessions: the auth routes and the layer.
+  the sessions: the auth routes and the layer; P9.2 the authorization, the control token and its
+  Thing, and the local console's login.
 
 ## API
 
@@ -119,10 +128,18 @@ The users are in `users.json` in `[server] settings`, managed with `spectrumiq-s
 |---|---|
 | `POST /api/siq/auth/login` | With `{"name", "password"}`: `{"name", "role", "since", "expires"}` and the cookie `siq_session` (`HttpOnly`, `SameSite=Strict`, `Path=/`, `Max-Age` the session's lifetime); 401 if the name or the password is wrong; 429 with `Retry-After` past `max_failures` |
 | `POST /api/siq/auth/logout` | 204: the session ended, and its cookie cleared |
-| `GET /api/siq/auth/me` | `{"name", "role", "since", "expires"}` of the cookie's session; 401 without a live one |
+| `GET /api/siq/auth/me` | `{"name", "role", "local", "since", "expires", "holds_token"}` of the cookie's session; 401 without a live one |
+| `POST /api/siq/auth/local` | With `{"secret"}`, the one in `local-login` in `[server] settings`, from this computer: a session of the local console as `[auth] local_user`, and its cookie; the next secret written. 403 from another computer, 404 without a local user, 401 for another secret |
+| `GET /api/siq/control` | `{"holder": {"user", "since", "local"}}`, or `{"holder": null}` |
+| `POST /api/siq/control/request` | The token for the session if it is free: who holds it now; 409 if another does, saying who |
+| `POST /api/siq/control/release` | 204: the token given back; 409 if the session doesn't hold it |
+| `POST /api/siq/control/heartbeat` | 204: the holder's sign of life, though any of its requests is one; 409 for another session |
+| `POST /api/siq/control/take_over` | The token from whoever holds it, for an admin or the local console; 403 for others |
 
-`Auth` is `Instrument::auth`: its `users` and `sessions`, and `session(&headers)`, the live session
-of a request's cookie.
+`Auth` is `Instrument::auth`: its `users`, `sessions`, `control` and `local`, and
+`session(&headers)`, the live session of a request's cookie. The `control` Thing observes the
+token: `holder` and `since`, and `changed` with the holder and the reason; it looks for a silent
+holder's timeout every second.
 
 ### The data routes (ADR-0041, ADR-0045)
 
@@ -223,6 +240,21 @@ no calibrations, through teta-wot's in-process `TestClient`.
 - a `PUT` on a Thing's property and a `POST` on a SpectrumIQ route refused from another site's
   origin, and passing from the service's own or without one;
 - a role changed and a user removed by another `UserStore`, the CLI's, reaching its session.
+
+`authz` (P9.2), with `[auth] enforce`, a token timeout of a second, and an admin, two operators, a
+viewer and the local console's user:
+
+- every route of the OpenAPI document and of SpectrumIQ's classified, with a snapshot of every
+  change's class (`authz__route_classes`);
+- the decision for every class and every caller against architecture §10's matrix;
+- 401 without a session, the health public; a viewer reading but refused a change and a stop; an
+  operator refused without the token, served with it; another refused the token, with its
+  holder, but allowed to stop the stage and to process; deleting data an admin's; an admin's
+  take-over, after which the first operator is refused; release by the holder only;
+- a holder's requests half a second apart keeping the token, then 2.5 s of silence losing it, on
+  the `control` Thing too;
+- the local console refused from another computer, logging in from this one, refused the same
+  secret twice, logging in with the next, and taking the token over from an operator.
 
 `peripherals`:
 

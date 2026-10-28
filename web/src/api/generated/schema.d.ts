@@ -4328,6 +4328,140 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/control/changed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The token changed hands: its holder now, if any, and why.
+         * @description ## The token changed hands: its holder now, if any, and why.
+         *
+         *     The token changed hands: its holder now, if any, and why.
+         *
+         *     Server-sent events: each event's data, as JSON in a `data:` line, following this schema:
+         *
+         *     ```json
+         *     {
+         *       "$ref": "#/components/schemas/control_changed_data"
+         *     }
+         *     ```
+         */
+        get: operations["subscribe_event_api_v1_control_changed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control/holder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The user who holds the token: `null` while it is free.
+         * @description ## The user who holds the token: `null` while it is free.
+         *
+         *     The user who holds the token: `null` while it is free.
+         */
+        get: operations["get_property_api_v1_control_holder_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control/since": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Since when the holder has held it, in UTC.
+         * @description ## Since when the holder has held it, in UTC.
+         *
+         *     Since when the holder has held it, in UTC.
+         */
+        get: operations["get_property_api_v1_control_since_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read All Properties
+         * @description Every property of `control` (`readallproperties`), or their changes (`observeallproperties`).
+         */
+        get: operations["read_all_properties_api_v1_control_properties_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Subscribe All Events
+         * @description Server-sent events: every event of `control`, named after it (`subscribeallevents`).
+         */
+        get: operations["subscribe_all_events_api_v1_control_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/control/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Thing Description
+         * @description The W3C Thing Description of `control`: its properties, actions and events, and how to use them.
+         */
+        get: operations["things_control_api_v1_control__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7181,6 +7315,45 @@ export interface components {
             /** @description Its height, in pixels: at most 1080. */
             height: number;
         };
+        /** @description The token's state: who holds it, and why it last changed. */
+        control_changed_data: {
+            /** @description Its holder, if any. */
+            holder?: {
+                /** @description The user. */
+                user: string;
+                /**
+                 * Format: date-time
+                 * @description Since when, in UTC.
+                 */
+                since: string;
+                /** @description Whether it is the local console's session. */
+                local: boolean;
+            } | null;
+            /** @description Why it last changed. */
+            reason: {
+                /** @constant */
+                kind: "start";
+            } | {
+                /** @constant */
+                kind: "requested";
+            } | {
+                /** @constant */
+                kind: "released";
+            } | {
+                /** @description The user it was taken from. */
+                from: string;
+                /** @constant */
+                kind: "taken_over";
+            } | {
+                /** @constant */
+                kind: "timed_out";
+            } | {
+                /** @constant */
+                kind: "ended";
+            };
+        };
+        control_holder_value: string | null;
+        control_since_value: string | null;
     };
     responses: never;
     parameters: never;
@@ -13260,6 +13433,129 @@ export interface operations {
         };
     };
     things_mosaic_live_api_v1_mosaic_live__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThingDescription"];
+                };
+            };
+        };
+    };
+    subscribe_event_api_v1_control_changed_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-sent events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    get_property_api_v1_control_holder_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of holder */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["control_holder_value"];
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    get_property_api_v1_control_since_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Value of since */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["control_since_value"];
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    read_all_properties_api_v1_control_properties_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": Record<string, never>;
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    subscribe_all_events_api_v1_control_events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Server-sent events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    things_control_api_v1_control__get: {
         parameters: {
             query?: never;
             header?: never;

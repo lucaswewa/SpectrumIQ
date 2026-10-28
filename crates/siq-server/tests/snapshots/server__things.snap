@@ -36,6 +36,17 @@ expression: descriptions
       "frames_lost"
     ]
   },
+  "control": {
+    "title": "Control",
+    "properties": [
+      "holder",
+      "since"
+    ],
+    "actions": [],
+    "events": [
+      "changed"
+    ]
+  },
   "datasets": {
     "title": "Datasets",
     "properties": [],
