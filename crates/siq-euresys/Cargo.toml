@@ -1,0 +1,43 @@
+[package]
+name = "siq-euresys"
+description = "SpectrumIQ's Euresys camera: a siq-devices Camera that fills the frame pool by DMA from a Coaxlink grabber."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[features]
+# eGrabber, through siq-euresys-sys's shim, against the installed SDK (EGRABBER_SDK_DIR). Without
+# it, the camera builds over any Grabber, as the tests' fake.
+sdk = ["siq-euresys-sys/sdk"]
+
+[dependencies]
+serde.workspace = true
+siq-buffer = { path = "../siq-buffer" }
+siq-devices = { path = "../siq-devices" }
+siq-euresys-sys = { path = "../siq-euresys-sys" }
+siq-types = { path = "../siq-types" }
+thiserror.workspace = true
+tokio = { workspace = true, features = ["time"] }
+toml.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt", "time"] }
+
+[[example]]
+name = "eg_live"
+required-features = ["sdk"]
+
+[[example]]
+name = "eg_features"
+required-features = ["sdk"]
+
+[[test]]
+name = "hardware"
+required-features = ["sdk"]
+
+[lints]
+workspace = true

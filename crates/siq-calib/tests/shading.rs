@@ -74,6 +74,7 @@ fn meta() -> FrameMeta {
         roi: settings.roi,
         binning: settings.binning,
         pixel_format: settings.pixel_format,
+        cfa: None,
         pose: None,
         pose_quality: PoseQuality::Settled,
         channel: None,

@@ -15,7 +15,7 @@
 
 use std::sync::Arc;
 
-use anyhow::{Context, bail};
+use anyhow::Context;
 use siq_ascii::{AsciiFocusDrive, Dialect};
 use siq_buffer::Backend;
 use siq_config::model::{
@@ -135,6 +135,32 @@ fn port(baud: u32) -> PortSettings {
     }
 }
 
+/// The Euresys camera (ADR-0070), named by its feature map. Its pool is locked in RAM, for DMA.
+#[cfg(feature = "euresys")]
+fn euresys(
+    config: &siq_config::model::EuresysCameraConfig,
+    clock: Arc<dyn Clock>,
+) -> anyhow::Result<(Arc<dyn Camera>, Backend)> {
+    use siq_euresys::{EGrabber, EuresysCamera, FeatureMap};
+    let map = match &config.features {
+        Some(path) => FeatureMap::load(path)?,
+        None => FeatureMap::default(),
+    };
+    let grabber = EGrabber::open(None, config.interface, config.device)?;
+    let camera = EuresysCamera::new(grabber, map, clock).context("the Euresys camera")?;
+    Ok((Arc::new(camera), Backend::WindowsLocked))
+}
+
+#[cfg(not(feature = "euresys"))]
+fn euresys(
+    _: &siq_config::model::EuresysCameraConfig,
+    _: Arc<dyn Clock>,
+) -> anyhow::Result<(Arc<dyn Camera>, Backend)> {
+    anyhow::bail!(
+        "this build has no Euresys camera: build spectrumiq-server with `--features euresys`"
+    )
+}
+
 /// Opens every device of `config`, on `clock`, connecting the drivers.
 pub async fn open(config: &InstrumentConfig, clock: Arc<dyn Clock>) -> anyhow::Result<Devices> {
     let sources = config
@@ -150,9 +176,7 @@ pub async fn open(config: &InstrumentConfig, clock: Arc<dyn Clock>) -> anyhow::R
             let camera = SimCamera::new(setup, world.into(), state.clone(), clock.clone());
             (Arc::new(camera), Backend::Heap)
         }
-        CameraConfig::Euresys(_) => {
-            bail!("the Euresys camera comes with P10.1: use [camera] kind = \"sim\"")
-        }
+        CameraConfig::Euresys(camera) => euresys(camera, clock.clone())?,
     };
     let stage: Arc<dyn Stage> = match &config.stage {
         StageConfig::Sim(stage) => {

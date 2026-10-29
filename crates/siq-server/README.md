@@ -75,7 +75,8 @@ This is the only crate that depends on teta-wot.
   and the GPU of `[gpu]`; P8.4 stitching: `jobs.stitch`, auto-stitch, and the QA overlays; P9.1
   the sessions: the auth routes and the layer; P9.2 the authorization, the control token and its
   Thing, and the local console's login; P9.3 the audit trail and its query; P9.4 the users
-  routes, the local console's user made at start, and where its secret is.
+  routes, the local console's user made at start, and where its secret is; P10.1 the Euresys
+  camera, with `euresys`.
 
 ## API
 
@@ -230,7 +231,9 @@ with `# @name` feed the ones after them: the snap's state and JPEG, and cancelli
 
 ## Features
 
-None.
+- **`euresys`:** the Euresys camera, `[camera] kind = "euresys"` (`siq-euresys`, ADR-0070),
+  through the installed eGrabber SDK. Its pool is locked in RAM. Without it, such a configuration
+  is refused at start, saying so.
 
 ## Testing
 

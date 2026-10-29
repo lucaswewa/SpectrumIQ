@@ -54,6 +54,43 @@ impl PixelFormat {
     }
 }
 
+/// A colour sensor's filter array, by the colours of the 2 × 2 cell at an image's top left, row by
+/// row: `Gbrg` is green and blue, then red and green, as GenICam's `BayerGB`. A frame from a colour
+/// sensor stays raw: one sample a pixel, of the colour its filter passes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Cfa {
+    /// Red, green; green, blue.
+    Rggb,
+    /// Green, red; blue, green.
+    Grbg,
+    /// Green, blue; red, green.
+    Gbrg,
+    /// Blue, green; green, red.
+    Bggr,
+}
+
+impl Cfa {
+    /// The pattern of an image that starts `x` columns and `y` rows into this one's: an odd
+    /// offset swaps the cell's columns or rows.
+    pub const fn shifted(self, x: u32, y: u32) -> Cfa {
+        let across = match (self, x % 2) {
+            (cfa, 0) => cfa,
+            (Cfa::Rggb, _) => Cfa::Grbg,
+            (Cfa::Grbg, _) => Cfa::Rggb,
+            (Cfa::Gbrg, _) => Cfa::Bggr,
+            (Cfa::Bggr, _) => Cfa::Gbrg,
+        };
+        match (across, y % 2) {
+            (cfa, 0) => cfa,
+            (Cfa::Rggb, _) => Cfa::Gbrg,
+            (Cfa::Gbrg, _) => Cfa::Rggb,
+            (Cfa::Grbg, _) => Cfa::Bggr,
+            (Cfa::Bggr, _) => Cfa::Grbg,
+        }
+    }
+}
+
 /// A region of the sensor, in unbinned sensor pixels, as GenICam's `OffsetX`, `OffsetY`,
 /// `Width` and `Height`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]

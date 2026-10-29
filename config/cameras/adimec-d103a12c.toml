@@ -1,0 +1,40 @@
+# The Adimec D-103A12c/CXP-T01's features, where they differ from GenICam SFNC's (ADR-0070), read
+# from the camera on this PC (P10.1). Its region, binning and sensor features are SFNC's.
+
+model = "D-103A12c/CXP-T01"
+cfa = "gbrg"                 # BayerGB: green and blue, then red and green
+pixel_size_um = 3.2          # the GMAX32103 sensor's pitch: to confirm from Adimec's datasheet
+
+exposure = "ExposureTime"    # µs
+gain = "Gain"
+gain_db = false              # a factor, 1 to 32
+# In ExposureMode Timed, the camera runs at this period, in µs.
+frame_period = "AcquisitionFramePeriod"
+# A software trigger is the grabber's: its camera controller sends a CoaXPress trigger, and the
+# camera exposes for its ExposureTime. The camera's own TriggerSoftware makes no frame here.
+trigger_command = "StartCycle"
+trigger_module = "device"
+
+# Measured in P2.5: 12.28 frames/s at a 1 ms exposure in BayerGB12, 81.4 ms a frame over 9200
+# rows. P10.2 measures each mode.
+readout_overhead_ms = 0.0
+line_time_us = 8.85
+
+[pixel_formats]              # the camera's entries, and what they deliver: raw Bayer samples
+BayerGB8 = "Mono8"
+BayerGB10 = "Mono10"
+BayerGB12 = "Mono12"
+
+[trigger]                    # a feature of another module than the camera's has its name first
+free_run = [["ExposureMode", "Timed"], ["device:CameraControlMethod", "NC"]]
+software = [
+    ["ExposureMode", "TimedTriggerControl"],
+    ["TriggerSource", "Trigger"],
+    ["device:CameraControlMethod", "RC"],
+    ["device:CycleTriggerSource", "StartCycle"],
+]
+external = [
+    ["ExposureMode", "TimedTriggerControl"],
+    ["TriggerSource", "IO_Connector"],
+    ["device:CameraControlMethod", "NC"],
+]

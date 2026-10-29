@@ -52,6 +52,7 @@ pub fn publish(pool: &FramePool, fanout: &Fanout, seq: u64, save: bool) -> Frame
         roi: Roi::full(WIDTH, HEIGHT),
         binning: Binning::NONE,
         pixel_format: PixelFormat::Mono14,
+        cfa: None,
         pose: None,
         pose_quality: PoseQuality::Unknown,
         channel: Some(ChannelId(2)),

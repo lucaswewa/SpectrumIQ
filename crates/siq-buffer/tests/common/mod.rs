@@ -21,6 +21,7 @@ pub fn meta(seq: u64, width: u32, height: u32) -> FrameMeta {
         roi: Roi::full(width, height),
         binning: Binning::NONE,
         pixel_format: PixelFormat::Mono16,
+        cfa: None,
         pose: None,
         pose_quality: PoseQuality::Unknown,
         channel: None,

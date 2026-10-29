@@ -158,6 +158,7 @@ impl SimCameraSetup {
             sensor_height: height,
             pixel_size: self.pixel_size,
             pixel_formats: formats,
+            cfa: None,
             binnings: [1, 2, 4]
                 .map(|b| Binning::new(b, b).expect("not 0"))
                 .to_vec(),

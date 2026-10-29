@@ -48,6 +48,17 @@ expression: "schemars::schema_for!(FrameMeta)"
       "description": "The pixel format.",
       "$ref": "#/$defs/PixelFormat"
     },
+    "cfa": {
+      "description": "A colour sensor's filter array at the image's top left; `None` for a mono sensor.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Cfa"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "pose": {
       "description": "The stage and focus position, if known.",
       "anyOf": [
@@ -223,6 +234,31 @@ expression: "schemars::schema_for!(FrameMeta)"
           "description": "16-bit monochrome, in `u16`.",
           "type": "string",
           "const": "Mono16"
+        }
+      ]
+    },
+    "Cfa": {
+      "description": "A colour sensor's filter array, by the colours of the 2 × 2 cell at an image's top left, row by\nrow: `Gbrg` is green and blue, then red and green, as GenICam's `BayerGB`. A frame from a colour\nsensor stays raw: one sample a pixel, of the colour its filter passes.",
+      "oneOf": [
+        {
+          "description": "Red, green; green, blue.",
+          "type": "string",
+          "const": "rggb"
+        },
+        {
+          "description": "Green, red; blue, green.",
+          "type": "string",
+          "const": "grbg"
+        },
+        {
+          "description": "Green, blue; red, green.",
+          "type": "string",
+          "const": "gbrg"
+        },
+        {
+          "description": "Blue, green; green, red.",
+          "type": "string",
+          "const": "bggr"
         }
       ]
     },

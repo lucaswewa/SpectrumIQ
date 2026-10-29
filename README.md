@@ -11,9 +11,10 @@ Scientific microscope instrument software:
 
 ## Status
 
-**In progress:** Milestone 9, multi-client use: accounts, the control token and the audit trail.
-P9.5 is the latest: the end-to-end tests in Edge, two browsers handing the token over among them,
-and the soak, 8 viewers and an operator for 30 minutes (`cargo xtask soak`).
+**In progress:** Milestone 10, the hardware: the Adimec camera on its Coaxlink, then the stage and
+the focus drive. P10.1 is the latest: the camera filling the frame pool by DMA, its raw Bayer
+frames at 12.28 frames/s full frame, none lost, and the service's live view on it
+(`siq-euresys --example eg_live`).
 
 Done so far:
 
@@ -172,7 +173,10 @@ Done so far:
     overlaps, stage errors, light and specimens, every one within 0.3 pixels RMS of the truth; the
     defaults tuned; and 535 MP stitched in 7.8 s from its flat to its pyramid, within 1.3 GB
     (`siq-jobs --example bench_stitch_500mp`).
-- Milestone 9 (multi-client, accounts, control token and audit), under way:
+- Milestone 9 (multi-client, accounts, control token and audit), complete: every route classified
+  and the matrix tested for every role; two browsers handing the token over; and a 30-minute soak
+  with 8 viewers and an operator losing no frame, its overview's pipeline work over its target
+  under the viewers' load, for P10.2 to measure on the camera (ADR-0069):
   - P9.1, [`siq-auth`](crates/siq-auth/README.md): local accounts with argon2id hashes and roles,
     managed by `spectrumiq-server user`, browser sessions in `HttpOnly`, `SameSite=Strict` cookies,
     failed logins limited, and changes from other sites' pages refused (`siq-auth --example
@@ -193,6 +197,13 @@ Done so far:
     it, and the connection budget's 3 streams, sockets and tiles at once; and the soak, viewers and
     an operator against a service of its own, reported against ADR-0069's targets
     (`cargo xtask soak --smoke`).
+- Milestone 10 (hardware bring-up), under way, with the Adimec D-103A12c on this PC as the
+  instrument's camera, its frames raw Bayer, and the stage and the focus drive simulated for now:
+  - P10.1, [`siq-euresys`](crates/siq-euresys/README.md): the camera as a `Camera`, every frame
+    pool slot a grabber buffer filled by DMA and requeued once read; its features named by a map
+    for the camera model (`config/cameras/`); software triggers through the grabber's camera
+    controller; each frame's colour filter array; and the service's `euresys` feature
+    (`siq-euresys --example eg_live`, `eg_features`).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

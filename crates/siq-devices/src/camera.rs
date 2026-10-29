@@ -9,8 +9,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use siq_buffer::{FillGuard, FramePool};
 use siq_types::{
-    Binning, FrameFlags, FrameMeta, FrameSeq, Hertz, Micrometers, Millis, PixelFormat, PoseQuality,
-    Roi, Timestamp,
+    Binning, Cfa, FrameFlags, FrameMeta, FrameSeq, Hertz, Micrometers, Millis, PixelFormat,
+    PoseQuality, Roi, Timestamp,
 };
 
 use crate::{BoxFuture, Device, DeviceError, DeviceResult};
@@ -26,6 +26,9 @@ pub struct CameraCapabilities {
     pub pixel_size: Micrometers,
     /// The pixel formats it can deliver.
     pub pixel_formats: Vec<PixelFormat>,
+    /// A colour sensor's filter array at the sensor's top left; `None` for a mono sensor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cfa: Option<Cfa>,
     /// The binning modes it offers, `Binning::NONE` among them.
     pub binnings: Vec<Binning>,
     /// What an ROI must align to.
@@ -200,6 +203,7 @@ impl CameraSettings {
             roi: self.roi,
             binning: self.binning,
             pixel_format: self.pixel_format,
+            cfa: None,
             pose: None,
             pose_quality: PoseQuality::Unknown,
             channel: None,

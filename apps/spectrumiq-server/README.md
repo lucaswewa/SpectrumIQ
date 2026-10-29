@@ -50,5 +50,11 @@ before and after. The web app at <http://127.0.0.1:5000/> asks for the same logi
 - **Depends on:** `siq-server`, `siq-auth`, `siq-config`, `siq-telemetry`, `clap`, `tokio`,
   `anyhow`.
 - **Phase:** P2.3; P3.1 added the web app, `--port` and `--webapp-dir`; P9.1 the `user`
-  commands; P9.3 `audit verify`; P9.4 the local console's user. The Windows service mode
-  follows in P15.1.
+  commands; P9.3 `audit verify`; P9.4 the local console's user; P10.1 the `euresys` feature. The
+  Windows service mode follows in P15.1.
+
+## Features
+
+- **`euresys`:** the Euresys camera, through `siq-server`'s feature of that name:
+  `cargo run --release -p spectrumiq-server --features euresys -- -c <configuration>`, with
+  `[camera] kind = "euresys"` and its feature map (`config/cameras/`). It needs the eGrabber SDK.

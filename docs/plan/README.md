@@ -236,17 +236,22 @@ A phase is Done once it is merged.
 | P9.2 | Authorization layer and Hardware Control Token | 850 | P9.1, P6.5 | Done |
 | P9.3 | Audit trail | 600 | P9.2 | Done |
 | P9.4 | Frontend: login, roles, control token, admin | 900 | P9.2, P9.3, P3.5 | Done |
-| P9.5 | End-to-end tests and soak tool | 500 | P9.4 | Review |
+| P9.5 | End-to-end tests and soak tool | 500 | P9.4 | Done |
 
 ### M10 — Hardware bring-up ([brief](milestones/M10-hardware-bringup.md))
 
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
-| P10.1 | Euresys safe wrapper and `Camera` implementation | 900 | P2.5, P1.1, P1.3 | — |
+| P10.1 | Euresys safe wrapper and `Camera` implementation | 900 | P2.5, P1.1, P1.3 | Review |
 | P10.2 | Camera bring-up and performance tuning | 500 | P10.1 | — |
-| P10.3 | Real stage and focus drive bring-up | 500 | P1.9, P1.10b, P5.1 | — |
+| P10.6 | Colour I: a Bayer sensor in the simulator, and colour for display | 900 | P10.1 | — |
+| P10.7 | Colour II: luminance for registration, focus and stitching | 900 | P10.6 | — |
+| P10.3 | Real stage and focus drive bring-up (on the emulators for now) | 500 | P1.9, P1.10b, P5.1 | — |
 | P10.4 | (Optional) Hardware trigger and strobe | 600 | P10.2 | — |
-| P10.5 | Peripheral drivers (one phase per device) | ≤ 900 each | P1.10b | — |
+| P10.5 | Peripheral drivers (one phase per device) | ≤ 900 each | P1.10b | waits for the models |
+
+The colour phases, and the owner's answers on the camera, the stage and the scope, are in [the
+brief's amendment](milestones/M10-hardware-bringup.md#amendment-p101-2026-10-29-the-owners-answers-and-the-colour-phases).
 
 ### M11 — 3D: depth from focus ([brief](milestones/M11-depth-from-focus.md))
 
@@ -334,6 +339,8 @@ These are needed later; none of them blocks M0–M2.
      (103.6 MP) in `BayerGB8`.
    - It is a colour camera, so whether it is the instrument's camera, and REQ-ACQ-001's 14-bit
      mono, are now open (P2.5 notes).
+   - **Answered on 2026-10-29:** it is the instrument's camera, and its frames stay raw Bayer
+     (M10's amendment, ADR-0070).
 2. **Coaxlink model and slot:** for example, Quad CXP-12, and the PCIe lanes it gets on the
    mini-ITX board. Needed by P10.2.
    - **Found in P2.5:** a Coaxlink Quad CXP-12 (`PC3603`, 1-camera firmware). The PCIe lanes

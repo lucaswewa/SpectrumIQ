@@ -15,6 +15,7 @@ fn sample_meta() -> FrameMeta {
         roi: Roi::full(11_648, 8_742),
         binning: Binning::NONE,
         pixel_format: PixelFormat::Mono14,
+        cfa: None,
         pose: Some(StagePose {
             x: Micrometers(1500.0),
             y: Micrometers(-250.25),
@@ -133,6 +134,7 @@ prop_compose! {
             roi: Roi { offset_x: roi[0], offset_y: roi[1], width: roi[2], height: roi[3] },
             binning: Binning::new(binning.0, binning.1).expect("non-zero"),
             pixel_format,
+            cfa: None,
             pose,
             pose_quality,
             channel: channel.map(ChannelId),

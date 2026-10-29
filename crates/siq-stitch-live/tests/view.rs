@@ -104,6 +104,7 @@ fn meta(width: u32, height: u32, binning: u8) -> FrameMeta {
         roi: Roi::full(width, height),
         binning: Binning::new(binning, binning).unwrap(),
         pixel_format: PixelFormat::Mono14,
+        cfa: None,
         pose: None,
         pose_quality: PoseQuality::Settled,
         channel: None,

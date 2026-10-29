@@ -247,6 +247,7 @@ pub fn small_sensor() -> CameraCapabilities {
         sensor_height: 48,
         pixel_size: Micrometers(3.76),
         pixel_formats: vec![PixelFormat::Mono16, PixelFormat::Mono8],
+        cfa: None,
         binnings: vec![Binning::NONE, Binning::new(2, 2).expect("2 isn't 0")],
         roi: RoiRules {
             step_x: 4,

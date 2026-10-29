@@ -4518,6 +4518,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "siq-euresys"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "siq-buffer",
+ "siq-devices",
+ "siq-euresys-sys",
+ "siq-types",
+ "thiserror 2.0.21",
+ "tokio",
+ "toml 1.1.6+spec-1.1.0",
+ "tracing",
+]
+
+[[package]]
 name = "siq-euresys-sys"
 version = "0.1.0"
 dependencies = [
@@ -4679,6 +4694,7 @@ dependencies = [
  "siq-config",
  "siq-datagen",
  "siq-devices",
+ "siq-euresys",
  "siq-gpu",
  "siq-grbl",
  "siq-imgproc",

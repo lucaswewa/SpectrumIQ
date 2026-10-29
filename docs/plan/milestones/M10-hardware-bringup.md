@@ -153,3 +153,48 @@ timestamp mapping.
 **Example.** `<device>_demo`.
 
 **ADR.** One ADR per device: protocol notes in our own words, and the safety constraints.
+
+---
+
+## Amendment (P10.1, 2026-10-29): the owner's answers, and the colour phases
+
+Asked when M10 began, the owner answered:
+
+- **The camera:** the Adimec D-103A12c/CXP-T01 on this PC is the instrument's camera. It is colour
+  (Bayer GB), 11264 × 9200, 12 bits, and runs at 12.28 frames/s full frame. Its frames stay raw
+  Bayer, 12 bits in a 16-bit container, as they are recorded and stitched. They are demosaiced only
+  for display, and the processing works on the raw samples or on a luminance plane. That answers
+  the plan's open question 1, and changes REQ-ACQ-001.
+- **Hardware tests:** the agent may run them on the Coaxlink and the camera, putting back every
+  setting it changes. The owner still runs each driver phase's "How to try it".
+- **The stage and the focus drive:** they stay simulated for now. P10.3 is built against the GRBL
+  and focus emulators: COM port discovery, the `$$` checks, homing, the status round trip, and the
+  repeatability and backlash routine. The focus drive's dialect waits for its protocol document.
+  The exit criterion of a real 3 × 3 tile scan waits for the real stage.
+- **Scope:** P10.1 to P10.4. P10.5 waits for the peripherals' models.
+
+**Two colour phases** are added, since raw Bayer frames meet every consumer:
+
+### P10.6 — Colour I: a Bayer sensor in the simulator, and colour for display
+
+**Budget** ~900 · **Depends on** P10.1 · **Requirements** REQ-ACQ-001, REQ-PRV-001, REQ-VIS-005
+
+- The simulator's sensor gains a colour filter array (`[camera] cfa` for `kind = "sim"`), so that
+  colour is tested in CI.
+- The previews demosaic: the overview from whole filter cells, the ROI by interpolation at 1:1,
+  with white balance, and the display mapping on each colour.
+- The viewer's tiles demosaic, from the raw levels: the pyramid keeps the cells whole.
+- The statistics and the histogram on luminance, or per colour.
+
+### P10.7 — Colour II: luminance for registration, focus and stitching
+
+**Budget** ~900 · **Depends on** P10.6 · **Requirements** REQ-CAL-001, REQ-STI-001, REQ-STI-002
+
+- Registration, autofocus, the stage–camera calibration and the shading on luminance, or on one
+  colour plane, never across the pattern.
+- The live mosaic paints luminance, from whole cells.
+- The stitch's registration on luminance, and its composite in colour: tiles placed at sub-pixel
+  offsets can't keep a Bayer pattern.
+- Datasets keep the raw frames, with their filter array in the metadata.
+
+**The order of M10's phases:** P10.1, P10.2, P10.6, P10.7, P10.3, P10.4.

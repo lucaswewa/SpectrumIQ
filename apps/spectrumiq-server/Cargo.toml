@@ -8,6 +8,10 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
+[features]
+# The Euresys camera, through the installed eGrabber SDK (siq-server's `euresys`).
+euresys = ["siq-server/euresys"]
+
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true

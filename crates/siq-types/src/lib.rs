@@ -22,6 +22,6 @@ pub use affine::{Affine2, AffineParams, PixelToStage, StageToPixel};
 pub use frame::{DeviceMicros, FrameFlags, FrameMeta, FrameSeq, ModalityMode, PoseQuality};
 pub use geometry::{PointPx, RectPx, RectUm, StagePose, Vec2Um};
 pub use ids::{CalibrationId, ChannelId, DatasetId, ObjectiveId};
-pub use image::{Binning, ImageError, ImageView, ImageViewMut, OwnedImage, PixelFormat, Roi};
+pub use image::{Binning, Cfa, ImageError, ImageView, ImageViewMut, OwnedImage, PixelFormat, Roi};
 pub use time::{Clock, ManualClock, SystemClock, Timestamp};
 pub use units::{Hertz, Micrometers, MicrometersPerSecond, Millimeters, Millis, Nanometers};

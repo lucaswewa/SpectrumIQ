@@ -28,6 +28,7 @@ fn meta(width: u32, height: u32, binning: u8, [x, y]: [f64; 2]) -> FrameMeta {
         roi: Roi::full(width, height),
         binning: Binning::new(binning, binning).unwrap(),
         pixel_format: PixelFormat::Mono14,
+        cfa: None,
         pose: Some(StagePose {
             x: Micrometers(x),
             y: Micrometers(y),

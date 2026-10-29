@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::geometry::StagePose;
 use crate::ids::{CalibrationId, ChannelId, ObjectiveId};
-use crate::image::{Binning, PixelFormat, Roi};
+use crate::image::{Binning, Cfa, PixelFormat, Roi};
 use crate::time::Timestamp;
 use crate::units::{Micrometers, Millis};
 
@@ -78,6 +78,9 @@ pub struct FrameMeta {
     pub binning: Binning,
     /// The pixel format.
     pub pixel_format: PixelFormat,
+    /// A colour sensor's filter array at the image's top left; `None` for a mono sensor.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cfa: Option<Cfa>,
     /// The stage and focus position, if known.
     pub pose: Option<StagePose>,
     /// How well [`pose`](Self::pose) is known.

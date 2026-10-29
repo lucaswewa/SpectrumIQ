@@ -18,7 +18,7 @@ keep_days = 90
 kind = "euresys"
 interface = 0
 device = 0
-# features = "cameras/my-camera.toml"   # if its feature names differ from GenICam SFNC (P10.2)
+features = "cameras/adimec-d103a12c.toml"   # its feature names, where they differ from SFNC's
 
 [stage]
 kind = "grbl"

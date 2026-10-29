@@ -8,6 +8,10 @@ license.workspace = true
 repository.workspace = true
 publish.workspace = true
 
+[features]
+# The Euresys camera (`[camera] kind = "euresys"`), through the installed eGrabber SDK.
+euresys = ["dep:siq-euresys", "siq-euresys/sdk"]
+
 [dependencies]
 anyhow.workspace = true
 chrono.workspace = true
@@ -23,6 +27,7 @@ siq-buffer = { path = "../siq-buffer" }
 siq-calib = { path = "../siq-calib" }
 siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }
+siq-euresys = { path = "../siq-euresys", optional = true }
 siq-gpu = { path = "../siq-gpu" }
 siq-grbl = { path = "../siq-grbl" }
 siq-imgproc = { path = "../siq-imgproc" }

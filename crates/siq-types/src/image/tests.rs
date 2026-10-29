@@ -185,3 +185,21 @@ fn binning_divides_the_region_and_is_never_zero() {
         RectPx::new(0, 0, 640, 480)
     );
 }
+
+// REQ-ACQ-001: a region that starts an odd column or row in sees the sensor's filter cell
+// shifted, and an even one sees it unchanged.
+#[test]
+fn an_odd_offset_shifts_the_colour_filter_cell() {
+    use Cfa::{Bggr, Gbrg, Grbg, Rggb};
+    for cfa in [Rggb, Grbg, Gbrg, Bggr] {
+        assert_eq!(cfa.shifted(0, 0), cfa);
+        assert_eq!(cfa.shifted(1024, 512), cfa);
+        assert_eq!(cfa.shifted(1, 1).shifted(1, 1), cfa);
+    }
+    assert_eq!(
+        [Rggb.shifted(1, 0), Rggb.shifted(0, 1), Rggb.shifted(1, 1)],
+        [Grbg, Gbrg, Bggr]
+    );
+    // The Adimec's BayerGB, one column and one row in: green and red, then blue and green.
+    assert_eq!(Gbrg.shifted(1, 1), Grbg);
+}
