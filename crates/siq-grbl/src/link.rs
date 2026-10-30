@@ -7,8 +7,8 @@
 //! - It polls for status on the clock, and keeps the status watch. A report's timestamp is its
 //!   arrival less half the round trip.
 
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use siq_devices::{DeviceError, DeviceResult, MotionState, StageStatus, Xyz, watch};
@@ -46,6 +46,8 @@ pub(crate) struct Shared {
     pub alarm: AtomicU32,
     /// How many resets the link has sent.
     pub resets: AtomicU64,
+    /// The status's round trips: how many, and their least, sum and most.
+    pub round_trips: Mutex<Option<(u64, [Duration; 3])>>,
 }
 
 /// How long the task waits for a line before it looks at the clock and its queues again.
@@ -171,8 +173,18 @@ impl Link {
         let shared = &self.shared;
         if let Some(report) = protocol::parse_status(text, &mut self.offset) {
             let now = self.clock.now();
-            let sent = self.polled.take().unwrap_or(now);
-            let ts = Timestamp(now.0 - now.saturating_since(sent).as_nanos() as u64 / 2);
+            let polled = self.polled.take();
+            let trip = now.saturating_since(polled.unwrap_or(now));
+            let ts = Timestamp(now.0 - trip.as_nanos() as u64 / 2);
+            // A report asked for: one that comes alone has no round trip.
+            if polled.is_some() {
+                let mut trips = shared
+                    .round_trips
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner);
+                let (count, [min, sum, max]) = trips.unwrap_or((0, [trip, Duration::ZERO, trip]));
+                *trips = Some((count + 1, [min.min(trip), sum + trip, max.max(trip)]));
+            }
             let state = match report.state {
                 State::Idle | State::Check | State::Sleep => MotionState::Idle,
                 State::Run => MotionState::Moving,

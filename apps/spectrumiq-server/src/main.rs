@@ -6,6 +6,7 @@
 //!     [--port P] [--webapp-dir web/dist]      on another port; the web app from a folder
 //! spectrumiq-server --print-openapi            the Things' OpenAPI document, for client types
 //! spectrumiq-server --print-config-schema      the configuration's JSON Schema
+//! spectrumiq-server --list-ports               the serial ports, for [stage] and [focus] port
 //! spectrumiq-server user add <name> [--role R] -c config/sim.toml
 //!                   user passwd|remove <name>, user role <name> <role>, user list
 //!                                              the users of `[server] settings` (ADR-0065)
@@ -45,6 +46,9 @@ struct Cli {
     /// Print the configuration's JSON Schema, and exit.
     #[arg(long)]
     print_config_schema: bool,
+    /// List this computer's serial ports, for the stage's and the focus drive's `port`, and exit.
+    #[arg(long)]
+    list_ports: bool,
     /// Listen on this port instead of the configuration's.
     #[arg(long, global = true)]
     port: Option<u16>,
@@ -121,6 +125,12 @@ impl From<UserArgs> for UserCommand {
 async fn run(cli: Cli) -> anyhow::Result<()> {
     if cli.print_config_schema {
         println!("{:#}", siq_config::json_schema());
+        return Ok(());
+    }
+    if cli.list_ports {
+        for port in siq_serial::ports()? {
+            println!("{:<8} {}", port.name, port.description);
+        }
         return Ok(());
     }
     if cli.print_openapi {

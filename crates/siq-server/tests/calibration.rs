@@ -1,9 +1,9 @@
 //! The stage–camera calibration on the simulated instrument (ADR-0049), end to end over HTTP:
 //! the camera mounted turned 0.4°, with 0.2 % more pixels per µm and a shear of 0.001, the stage
 //! with its backlash, scale error and noise. The calibration recovers the mount within 0.1 % in
-//! scale and 0.05° in rotation (M5's criterion), measures the backlash, is kept as a version, and
-//! frames and datasets carry it from then on. As well on a colour camera, on its frames'
-//! luminance (ADR-0071). REQ-CAL-001, REQ-CAL-003.
+//! scale and 0.05° in rotation (M5's criterion), measures the backlash and the repeatability
+//! (P10.3), is kept as a version, and frames and datasets carry it from then on. As well on a
+//! colour camera, on its frames' luminance (ADR-0071). REQ-CAL-001, REQ-CAL-003, REQ-STG-005.
 
 mod common;
 
@@ -89,6 +89,11 @@ async fn calibrates(cfa: Option<siq_types::Cfa>) {
         backlash.iter().all(|b| (b - 2.0).abs() < 1.0),
         "{backlash:?}"
     );
+    // The repeatability, of the stage's 0.5 µm noise, from four arrivals.
+    let repeatability = record
+        .repeatability_um
+        .expect("the repeatability is measured");
+    assert!(repeatability.iter().all(|r| *r < 1.5), "{repeatability:?}");
 
     // Kept, in force, and on the frames from now on.
     let objective = record.objective;

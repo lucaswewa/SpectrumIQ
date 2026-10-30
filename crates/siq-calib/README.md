@@ -42,7 +42,7 @@ versioned, in the settings folder. Pure: the routines that move the stage and ta
 - **Used by:** `siq-workflow` (the routines), `siq-jobs` (the shading estimate), `siq-preview`
   (the previews' correction), `siq-server` (the `calibration` Thing, and the frames' stamp);
   stitching (M7, M8) reads the records to place and correct tiles.
-- **Phase:** P5.2; P5.3 the shading.
+- **Phase:** P5.2; P5.3 the shading; P10.3 the repeatability.
 
 ## API
 
@@ -54,7 +54,8 @@ versioned, in the settings folder. Pure: the routines that move the stage and ta
 | `fit.check(&Thresholds)` | `Ok`, or `CalibError::Rejected` with the reason |
 | `Thresholds` | `min_moves` (6), `max_residual_rms_um` (1.5), `max_residual_um` (4.0) |
 | `backlash(&fit, shift)` | The backlash on `x` and `y`, in µm |
-| `CalibrationRecord::new(objective, &fit, backlash, method)` | A calibration as it is kept: `id`, `objective`, `created`, `affine`, `px_size_um`, `rotation_deg`, `scale`, `shear`, `residual_rms_um`, `residual_max_um`, `backlash_um`, `moves`, `method`; `affine()` gives `L` as an `Affine2` |
+| `repeatability(&fit, &shifts)` | The repeatability on `x` and `y`, in µm: the standard deviation on the stage of a place's arrivals from one side, from each later one's shift from the first; `None` without one (P10.3) |
+| `CalibrationRecord::new(objective, &fit, backlash, method)` | A calibration as it is kept: `id`, `objective`, `created`, `affine`, `px_size_um`, `rotation_deg`, `scale`, `shear`, `residual_rms_um`, `residual_max_um`, `backlash_um`, `repeatability_um` (P10.3; none in older records), `moves`, `method`; `affine()` gives `L` as an `Affine2` |
 | `Registry<R: Versioned>`, `CalibrationRegistry`, `ShadingRegistry` | The calibrations of one kind |
 | `Registry::open(settings)` | The calibrations of a settings folder, read once; a file that isn't one is left out with a warning |
 | `registry.save(&record, &[(name, bytes)])` | Its data, then the record, each written to a `.part` file and renamed: in force from now |
@@ -84,7 +85,7 @@ None.
 - an offset common to every move is no residual;
 - moves along one line, too few, or none, refused as degenerate; a poor fit, and too few moves,
   refused by the thresholds;
-- the backlash from either side's arrival;
+- the backlash from either side's arrival, and the repeatability from one side's (P10.3);
 - the registry's versions: the newest in force, the history newest first, by id, and read again
   from disk with a broken file left out.
 

@@ -180,3 +180,58 @@ Re-sync runs after connecting, after a reset, and after homing:
   - `ALARM:1` and recovery by `stop`;
   - `$13=1` refused.
 - **The `grbl_drive` example,** and its manual `--port` path.
+
+## Amendment (P10.3, 2026-10-29): the controller's settings checked, the round trip, and the repeatability
+
+**Context.** M10 brings up the instrument's stage. A GRBL controller's settings live in its own
+EEPROM: a firmware update, or a `$100=` typed in a terminal, changes how far a step moves the
+stage, and nothing tells the driver. The owner kept the stage simulated for now, so P10.3 was
+built on the emulator.
+
+**Decision.**
+
+- **`[stage.expect]`:** the configuration names the settings the controller must have, such as
+  `"$100" = 1600.0`. On connecting, after `$$`, the driver compares them to a millionth. A
+  controller that differs is refused, every difference named, before `$X` or any move. The
+  settings to name are steps/mm, maximum rates, accelerations, travel, soft limits (`$20`) and
+  homing (`$22`). `config/sim.toml` names the emulator's.
+- **`GrblStage::settings()`** gives the whole `$$`, and `grbl_drive --port` prints it as a
+  `[stage.expect]` section to copy.
+- **The status's round trip,** from `?` to its report, is kept, for reports that were asked for:
+  their count, least, mean and most (`GrblStage::round_trip()`). The driver already stamps a
+  report at its arrival less half of it.
+- **The repeatability** is measured with the backlash, in the stage–camera calibration (ADR-0049):
+  each arrival at the backlash's place from −x −y, after the first, is registered against the
+  first. The repeatability is the arrivals' standard deviation on each stage axis, the first's
+  included (`siq_calib::repeatability`). It is kept in the calibration record, as
+  `repeatability_um`. The `motion_repeatability` example measures both over more repeats.
+- **Ports** are discovered (`siq_serial::ports`): `spectrumiq-server --list-ports`, the service's
+  `GET /api/siq/system/ports`, and the web app's Settings page. They show the device the
+  configuration puts on each port, and the configured ports the computer lacks.
+
+**Alternatives considered.**
+
+- **Writing the expected settings to the controller.** That changes a machine's setup unasked,
+  and a wrong configuration would spread to the controller. Refusing and naming the difference
+  leaves the choice to whoever set the stage up.
+- **Repeatability as each arrival's distance from the first.** The first arrival's own error
+  enters every term: on the emulator it read 1.2 µm against 0.5 injected. The arrivals' spread
+  about their mean is the stage's own.
+
+**Consequences.**
+
+- A configuration with `[stage.expect]` fails to start on a controller that was changed. The
+  service's log names what differs.
+- Old calibration records have no `repeatability_um`, and read as not measured.
+
+**Verification.**
+
+- `siq-grbl` `driver`: `a_controller_s_settings_are_checked_and_its_round_trips_kept`. A
+  difference and an unknown setting are named, and a setting that agrees isn't. One that agrees
+  connects, with its settings and round trips kept.
+- `siq-calib` `calib`: `the_repeatability_is_the_spread_of_the_arrivals_from_one_side`.
+- `siq-server` `calibration`: the repeatability recorded, under 1.5 µm on the stage's 0.5 µm of
+  noise, mono and colour.
+- On the emulator: `grbl_drive` measures a round trip of 10.2–10.8 ms. `motion_repeatability`, with
+  20 repeats, measures a repeatability of 0.61 and 0.57 µm against 0.5 injected, and a backlash of
+  2.05 and 1.87 µm against 2.

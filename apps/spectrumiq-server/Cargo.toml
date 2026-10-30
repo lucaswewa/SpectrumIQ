@@ -17,6 +17,7 @@ anyhow.workspace = true
 clap.workspace = true
 siq-auth = { path = "../../crates/siq-auth" }
 siq-config = { path = "../../crates/siq-config" }
+siq-serial = { path = "../../crates/siq-serial" }
 siq-server = { path = "../../crates/siq-server" }
 siq-telemetry = { path = "../../crates/siq-telemetry" }
 tokio = { workspace = true, features = ["macros", "net", "rt-multi-thread"] }

@@ -40,6 +40,22 @@ pixel_size = 3.76           # µm, the sensor's pixel pitch
 kind = "sim"                # the GRBL driver, against the GRBL emulator
 poll_hz = 5.0
 
+[stage.expect]              # the controller's $$ as it must be: refused on connecting otherwise
+"$20" = 1.0                 # soft limits on
+"$22" = 1.0                 # homing on
+"$100" = 1600.0             # steps/mm: x, y, z
+"$101" = 1600.0
+"$102" = 3200.0
+"$110" = 3000.0             # maximum rates, mm/min
+"$111" = 3000.0
+"$112" = 600.0
+"$120" = 200.0              # accelerations, mm/s²
+"$121" = 200.0
+"$122" = 100.0
+"$130" = 100.0              # travel, mm
+"$131" = 75.0
+"$132" = 20.0
+
 [focus]
 kind = "sim"                # the ASCII driver, against an emulator of the example dialect
 

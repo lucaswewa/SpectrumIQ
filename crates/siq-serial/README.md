@@ -27,7 +27,7 @@ The design is in
   - P1.9's GRBL driver;
   - `siq-ascii`'s dialects, for their framing (P1.10a), and its driver (P1.10b);
   - the emulators' tests in `siq-sim`.
-- **Phase:** P1.8.
+- **Phase:** P1.8; P10.3 `ports`.
 
 ## API
 
@@ -39,6 +39,7 @@ The design is in
 | `LineStream<S>` | The trait over any `AsyncRead + AsyncWrite` stream, traced at debug level by name |
 | `duplex(framing, name)` → `(DuplexTransport, DuplexStream)` | The host's end of an in-memory link, and the device's end for an emulator |
 | `open(port, &PortSettings, framing)` → `SerialTransport` | A serial port. `PortSettings::default()` is 115 200 baud 8N1, GRBL's |
+| `ports()` → `Vec<Port { name, description }>` | This computer's serial ports, by name: a USB adapter's vendor and product ids, maker and product, or the port's kind (P10.3) |
 
 ```rust
 let (mut stage, device) = duplex(Framing::default(), "grbl");
@@ -64,7 +65,8 @@ None.
 - realtime bytes;
 - a closed link;
 - `\r` framing;
-- a port that isn't there.
+- a port that isn't there;
+- this computer's ports, by name, each described (P10.3).
 
 ## Limitations
 

@@ -13,7 +13,7 @@ siq-config = { path = "../siq-config" }
 siq-devices = { path = "../siq-devices" }
 siq-serial = { path = "../siq-serial" }
 siq-types = { path = "../siq-types" }
-tokio = { workspace = true, features = ["rt", "sync", "time"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
 tracing.workspace = true
 
 [dev-dependencies]

@@ -9,6 +9,7 @@ spectrumiq-server [run] -c config/sim.toml   serve the instrument; run is the de
     [--webapp-dir web/dist]                  the web app from a folder, not the build compiled in
 spectrumiq-server --print-openapi            the Things' OpenAPI document, for client types
 spectrumiq-server --print-config-schema      the configuration's JSON Schema
+spectrumiq-server --list-ports               the serial ports, for [stage] port and [focus] port (P10.3)
 spectrumiq-server user add <name> [--role R] -c config/sim.toml
                                              a user; an admin while there is none
 spectrumiq-server user passwd <name>         a new password

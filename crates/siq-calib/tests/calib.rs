@@ -142,6 +142,20 @@ fn the_backlash_comes_from_arriving_from_either_side() {
     );
 }
 
+// P10.3: the repeatability is the arrivals' standard deviation on the stage, the first's included:
+// arrivals at 0, 2 and 4 µm along x, and 0, 1 and −1 along y.
+#[test]
+fn the_repeatability_is_the_spread_of_the_arrivals_from_one_side() {
+    let fit = Fit {
+        affine: mount(),
+        residuals: Vec::new(),
+    };
+    let shifts = [[2.0, 1.0], [4.0, -1.0]].map(|at| fit.affine.apply_vector(at));
+    let [x, y] = repeatability(&fit, &shifts).unwrap();
+    assert!((x - 2.0).abs() < 1e-9 && (y - 1.0).abs() < 1e-9, "{x}, {y}");
+    assert_eq!(repeatability(&fit, &[]), None, "one arrival has no spread");
+}
+
 #[test]
 fn the_registry_keeps_every_version_and_the_newest_is_in_force() {
     let settings = tempfile::tempdir().unwrap();

@@ -89,6 +89,9 @@ pub struct Measurement {
     /// The shift of the place approached toward −x and −y from the one approached toward +x and
     /// +y, in sensor pixels, averaged over the repeats, if measured.
     pub backlash_shift: Option<[f64; 2]>,
+    /// How far the place, approached from the same side again, lands from where it first did: each
+    /// repeat after the first's shift, in sensor pixels (P10.3).
+    pub repeats: Vec<[f64; 2]>,
 }
 
 /// Why the measurement stopped.
@@ -191,6 +194,7 @@ pub async fn measure(
             moves: Vec::with_capacity(plan.moves.len()),
             pce: Vec::with_capacity(plan.moves.len()),
             backlash_shift: None,
+            repeats: Vec::new(),
         };
         for &place in &plan.moves {
             stage.move_to(at(place), same_side).await?;
@@ -215,15 +219,25 @@ pub async fn measure(
             repeats,
         }) = plan.backlash
         {
-            let mut sum = [0.0; 2];
+            let (mut sum, mut first) = ([0.0; 2], None);
             for _ in 0..repeats {
                 stage.move_to(at([x - reach, y - reach]), direct).await?;
                 stage.move_to(at([x, y]), direct).await?;
                 let (rising, [bx, by]) = snap(acquisition).await?;
+                let rising = Arc::new(rising);
+                // Each arrival from the same side against the first: the stage's repeatability.
+                match &first {
+                    None => first = Some(Arc::clone(&rising)),
+                    Some(first) => {
+                        let again = register(Arc::clone(first), (*rising).clone()).await?;
+                        let shift = [again.shift[0] * bx, again.shift[1] * by];
+                        measurement.repeats.push(shift);
+                    }
+                }
                 stage.move_to(at([x + reach, y + reach]), direct).await?;
                 stage.move_to(at([x, y]), direct).await?;
                 let (falling, _) = snap(acquisition).await?;
-                let found = register(Arc::new(rising), falling).await?;
+                let found = register(rising, falling).await?;
                 sum = [sum[0] + found.shift[0] * bx, sum[1] + found.shift[1] * by];
             }
             let n = repeats.max(1) as f64;

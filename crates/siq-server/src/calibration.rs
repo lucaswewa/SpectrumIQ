@@ -11,7 +11,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use siq_acquire::AcquisitionContext;
 use siq_calib::shading::{FlatField, ShadingKind, ShadingRecord};
-use siq_calib::{CalibrationRecord, Thresholds, backlash, fit};
+use siq_calib::{CalibrationRecord, Thresholds, backlash, fit, repeatability};
 use siq_config::model::ObjectiveConfig;
 use siq_jobs::Priority;
 use siq_jobs::kinds::ShadingJob;
@@ -164,8 +164,9 @@ impl Calibration {
 
     /// Calibrates the objective in use against the stage: a star of 16 moves about where the stage
     /// is, out to 0.4 of the field, a frame at each registered against the first; the affine
-    /// fitted, checked, and the backlash measured. Kept as a new version, it is in force for the
-    /// objective's frames from then on. Something must be in the field to register.
+    /// fitted, checked, and the backlash and repeatability measured. Kept as a new version, it is
+    /// in force for the objective's frames from then on. Something must be in the field to
+    /// register.
     #[action]
     async fn stage_camera(&self) -> Result<CalibrationRecord, ActionError> {
         let instrument = bound(&self.instrument);
@@ -179,7 +180,10 @@ impl Calibration {
         let backlash = measured
             .backlash_shift
             .map(|shift| backlash(&fitted, shift));
-        let record = CalibrationRecord::new(objective.id, &fitted, backlash, "stage_camera");
+        let record = CalibrationRecord {
+            repeatability_um: repeatability(&fitted, &measured.repeats),
+            ..CalibrationRecord::new(objective.id, &fitted, backlash, "stage_camera")
+        };
         instrument.calibrations.save(&record, &[])?;
         stamp(instrument);
         Ok(record)

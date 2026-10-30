@@ -46,7 +46,7 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
 | `src/mosaic/`      | The Mosaic page (ADR-0060): the live mosaic panned and zoomed, the camera's field, the minimap, double-click to move; the backdrop under it and the stage map; the viewport maths                              |
 | `src/jobs/`        | The Jobs page: the jobs running, with their progress, and waiting, each with Cancel; auto-stitch                                                                                                               |
 | `src/admin/`       | The Admin page: the users, added, given a role or a password, and removed; the audit trail, filtered by who and what, a page at a time                                                                         |
-|  The About page    |
+| `src/system/`      | The About page; the Settings page: this computer's serial ports, each with the device the configuration puts on it, and the configured ones it hasn't (P10.3)                                                  |
 | `src/views/dev/`   | The galleries, `/#/dev/components` and `/#/dev/tokens`, and `/#/dev/observe`: in development builds only                                                                                                       |
 | `e2e/`             | The end-to-end tests (ADR-0069), in Playwright against the served app on a fresh simulated instrument                                                                                                          |
 

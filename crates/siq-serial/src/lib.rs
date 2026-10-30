@@ -5,6 +5,7 @@
 //! - [`LineStream`] implements it over any byte stream, with a [`Framing`].
 //! - [`open`] opens a serial port; [`duplex`] makes an in-memory link to an emulator, which gets
 //!   the other end.
+//! - [`ports`] lists the serial ports this computer has (P10.3).
 //!
 //! Every line and realtime byte sent, and every line received, is traced at debug level, with the
 //! link's name.
@@ -14,7 +15,9 @@ use std::io;
 use std::time::Duration;
 
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader, DuplexStream};
-use tokio_serial::{DataBits, FlowControl, Parity, SerialPortBuilderExt, SerialStream, StopBits};
+use tokio_serial::{
+    DataBits, FlowControl, Parity, SerialPortBuilderExt, SerialPortType, SerialStream, StopBits,
+};
 use tracing::debug;
 
 /// A link that carries lines of text, and single realtime bytes.
@@ -208,4 +211,38 @@ pub fn open(
         .open_native_async()
         .map_err(|error| SerialError::Io(io::Error::other(format!("{port}: {error}"))))?;
     Ok(LineStream::new(stream, framing, port))
+}
+
+/// A serial port this computer has.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Port {
+    /// Its name, such as `COM5`.
+    pub name: String,
+    /// What it is: a USB adapter's maker, product and ids, or its kind.
+    pub description: String,
+}
+
+/// The serial ports this computer has, by name.
+pub fn ports() -> Result<Vec<Port>, SerialError> {
+    let found = tokio_serial::available_ports().map_err(|error| SerialError::Io(error.into()))?;
+    let mut ports: Vec<Port> = found
+        .into_iter()
+        .map(|port| Port {
+            description: match port.port_type {
+                SerialPortType::UsbPort(usb) => {
+                    let named = [usb.manufacturer, usb.product].into_iter().flatten();
+                    let named = named.collect::<Vec<_>>().join(" ");
+                    format!("USB {:04x}:{:04x} {named}", usb.vid, usb.pid)
+                        .trim_end()
+                        .to_owned()
+                }
+                SerialPortType::PciPort => "PCI".to_owned(),
+                SerialPortType::BluetoothPort => "Bluetooth".to_owned(),
+                SerialPortType::Unknown => "unknown".to_owned(),
+            },
+            name: port.port_name,
+        })
+        .collect();
+    ports.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(ports)
 }

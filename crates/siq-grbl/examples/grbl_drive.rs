@@ -7,10 +7,12 @@
 //!
 //! - **By default, against the emulator,** with the default `[sim.errors]`. The session homes,
 //!   moves directly and then from one side, jogs, and stops a move halfway. Each step prints the
-//!   reported position and the true stage's. It takes about 3 s, in smoke mode too.
+//!   reported position and the true stage's, and the status's round trip after a second. It takes
+//!   about 4 s, in smoke mode too.
 //! - **With `--port`, against a real controller.** It connects and prints the controller's
-//!   firmware, travel and status. Only with `--move` does it move: 1 mm along −X and back. It never
-//!   homes.
+//!   firmware, travel and status, its `$$` as a configuration's `[stage.expect]` (P10.3), and the
+//!   status's round trip over 2 s of polling. Only with `--move` does it move: 1 mm along −X and
+//!   back. It never homes.
 
 use std::error::Error;
 use std::sync::Arc;
@@ -39,6 +41,16 @@ fn show(step: &str, status: &StageStatus, truth: Option<&TrueState>) {
     }
 }
 
+/// Prints the status's round trips so far.
+fn round_trip(stage: &GrblStage) {
+    if let Some(trip) = stage.round_trip() {
+        println!(
+            "the status's round trip, {} polls: {:.1?} at least, {:.1?} on average, {:.1?} at most",
+            trip.count, trip.min, trip.mean, trip.max
+        );
+    }
+}
+
 async fn emulated(clock: Arc<dyn Clock>) -> Result<(), Box<dyn Error>> {
     let state = Arc::new(TrueState::new(0));
     let errors = GrblErrors::from(&SimErrors::default());
@@ -51,6 +63,8 @@ async fn emulated(clock: Arc<dyn Clock>) -> Result<(), Box<dyn Error>> {
     let truth = Some(&*state);
     let status = || *stage.status().borrow();
     show("connected", &status(), truth);
+    tokio::time::sleep(Duration::from_secs(1)).await;
+    round_trip(&stage);
     show("homed", &stage.home().await?, truth);
 
     let (direct, one_way) = (
@@ -121,6 +135,14 @@ async fn real(
     let limits = stage.limits();
     println!("travel: {:?} to {:?}", limits.min, limits.max);
     show("connected", &stage.status().borrow(), None);
+    println!("[stage.expect]");
+    let mut numbers: Vec<_> = stage.settings().iter().collect();
+    numbers.sort_by_key(|(number, _)| **number);
+    for (number, value) in numbers {
+        println!("\"${number}\" = {value:?}");
+    }
+    tokio::time::sleep(Duration::from_secs(2)).await;
+    round_trip(&stage);
     if moving {
         let opts = MoveOpts::default();
         show(

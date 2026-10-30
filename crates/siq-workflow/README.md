@@ -59,7 +59,8 @@ instrument.
   2. The stage moved to each of the plan's places about it, each approached from the same side so
      that the backlash is the same at every arrival; a frame at each, registered against the
      reference by [`siq-register`](../siq-register/README.md).
-  3. One place approached from either side, a few times over, for the backlash.
+  3. One place approached from either side, a few times over, for the backlash; each arrival from
+     −x −y after the first registered against the first, for the repeatability (P10.3).
   4. Back where it started, whether it worked or not.
 
   The places are about where the stage is or, if they would leave its travel there, about the
@@ -127,7 +128,7 @@ instrument.
 | `routines::stage_camera::StageCameraPlan` | `moves` (µm from where the stage is), `backlash` (`Option<BacklashPlan>`), `min_pce` |
 | `StageCameraPlan::for_field([width, height])` | For a field in µm: a star of 16 places, eight at 0.4 of the field each way and eight at 0.3, on the axes and diagonals; the backlash at the start, from 50 µm either side, four times; a least PCE of 100 |
 | `BacklashPlan { at, reach, repeats }` | Where the backlash is measured, how far beyond it the approaches start, and how many times |
-| `measure(&acquisition, &stage, &registrar, &plan)` | `Measurement { moves, pce, backlash_shift }`, the moves ready for `siq_calib::fit`, or `RoutineError` (`Device`, `Register`, `Featureless`, `Format`, `Failed`, `Calib`) |
+| `measure(&acquisition, &stage, &registrar, &plan)` | `Measurement { moves, pce, backlash_shift, repeats }`, `repeats` each later arrival's shift from the first (P10.3), the moves ready for `siq_calib::fit`, or `RoutineError` (`Device`, `Register`, `Featureless`, `Format`, `Failed`, `Calib`) |
 | `routines::shading::capture_dark(&acquisition, lights, frames)` | `Captured { sum, meta }`: the frames' `Accumulator`, and the last frame's metadata |
 | `routines::shading::FlatPlan { places, frames, defocus }` | `for_field(field, defocus)`: a 3 × 3 grid a field apart, two frames at each |
 | `routines::shading::capture_flat(&acquisition, &stage, &focus, &plan)` | `Captured`, of every place |

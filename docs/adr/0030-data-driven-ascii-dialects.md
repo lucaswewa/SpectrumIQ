@@ -176,3 +176,17 @@ A template is text with fields, `{name:kind}`:
 - **`move_by`** is relative to the latest status.
 - **Verified by** `siq-ascii`'s `driver` tests, against the emulator by poll and by reply, with
   pairs of dialects that disagree for the errors and timeouts.
+
+## Amendment (P10.3, 2026-10-29): the instrument's focus drive waits for its protocol
+
+M10's brief has the focus drive's dialect written from its vendor's protocol document, which only
+the owner can provide. P10.3 was built without it: the instrument's focus drive stays simulated,
+on `config/dialects/example-focus.toml`'s emulator. Its port is discovered as the stage's is
+(ADR-0029, amended), and `docs/hardware/motion-bringup.md` holds the steps that follow the
+document:
+
+1. Write the dialect from it.
+2. Check the dialect against its own emulator.
+3. Set `[focus] kind = "ascii"`.
+
+Nothing in the dialect format is expected to change for it.

@@ -518,6 +518,14 @@ expression: schema
                 "overshoot": 50.0
               }
             },
+            "expect": {
+              "description": "The emulator's `$$` as it must be, by setting, as for a real controller.",
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "double"
+              }
+            },
             "kind": {
               "type": "string",
               "const": "sim"
@@ -559,6 +567,14 @@ expression: schema
                   1
                 ],
                 "overshoot": 50.0
+              }
+            },
+            "expect": {
+              "description": "The controller's `$$` as it must be, by setting, such as `\"$100\" = 1600.0`: steps/mm,\nrates, accelerations, travel, soft limits, homing. A controller that differs is refused\n(P10.3).",
+              "type": "object",
+              "additionalProperties": {
+                "type": "number",
+                "format": "double"
               }
             },
             "kind": {

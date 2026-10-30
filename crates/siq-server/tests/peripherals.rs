@@ -1,6 +1,6 @@
 //! The peripherals' Things, `imaging`, and the system routes, with the simulated instrument of
 //! `config/sim.toml`: each peripheral over HTTP, a channel switch sampled in the true state, an
-//! instrument with no peripherals, and the metrics and memory routes.
+//! instrument with no peripherals, and the metrics, memory and serial ports routes.
 
 mod common;
 
@@ -294,4 +294,25 @@ async fn the_memory_route_has_the_pool_the_process_and_the_budgets() {
     );
     assert_eq!(memory["budgets"]["job_ram"], 14e9);
     assert_eq!(memory["budgets"]["tile_cache"], 1024e6);
+}
+
+// P10.3: the serial ports this computer has, each with the device the configuration puts on it;
+// the simulated instrument puts none, and misses none.
+#[tokio::test]
+async fn the_ports_route_lists_this_computer_s_serial_ports() {
+    let service = Service::build(config()).await.unwrap();
+    let ports = get(&service, "/api/siq/system/ports").await;
+    let found = ports["ports"].as_array().expect("a list");
+    assert!(
+        found
+            .iter()
+            .all(|port| port["name"].is_string() && port["device"].is_null())
+    );
+    assert_eq!(ports["missing"], serde_json::json!([]));
+    assert!(ports["error"].is_null(), "{ports}");
+    let names: Vec<&str> = found
+        .iter()
+        .filter_map(|port| port["name"].as_str())
+        .collect();
+    assert!(names.is_sorted(), "{names:?}");
 }

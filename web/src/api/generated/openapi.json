@@ -4798,7 +4798,7 @@
       },
       "post": {
         "summary": "Calibrates the objective in use against the stage: a star of 16 moves about where the stage",
-        "description": "## Calibrates the objective in use against the stage: a star of 16 moves about where the stage\n\nCalibrates the objective in use against the stage: a star of 16 moves about where the stage\nis, out to 0.4 of the field, a frame at each registered against the first; the affine\nfitted, checked, and the backlash measured. Kept as a new version, it is in force for the\nobjective's frames from then on. Something must be in the field to register.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "description": "## Calibrates the objective in use against the stage: a star of 16 moves about where the stage\n\nCalibrates the objective in use against the stage: a star of 16 moves about where the stage\nis, out to 0.4 of the field, a frame at each registered against the first; the affine\nfitted, checked, and the backlash and repeatability measured. Kept as a new version, it is\nin force for the objective's frames from then on. Something must be in the field to\nregister.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
         "operationId": "start_action_api_v1_calibration_stage_camera_post",
         "requestBody": {
           "content": {
@@ -13929,6 +13929,22 @@
               }
             ]
           },
+          "repeatability_um": {
+            "description": "The stage's repeatability on `x` and `y`, in µm: the standard deviation of a place's\narrivals from the same side, if it was measured (P10.3).",
+            "oneOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 2,
+                "minItems": 2
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "moves": {
             "description": "The moves it was fitted from.",
             "type": "integer",
@@ -14136,6 +14152,22 @@
                     },
                     "backlash_um": {
                       "description": "The stage's backlash on `x` and `y`, in µm, if it was measured.",
+                      "oneOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "number"
+                          },
+                          "maxItems": 2,
+                          "minItems": 2
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "repeatability_um": {
+                      "description": "The stage's repeatability on `x` and `y`, in µm: the standard deviation of a place's\narrivals from the same side, if it was measured (P10.3).",
                       "oneOf": [
                         {
                           "type": "array",

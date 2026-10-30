@@ -29,7 +29,7 @@ use anyhow::Context;
 use serde_json::{Value, json};
 use siq_acquire::Acquisition;
 use siq_buffer::{FramePool, PoolConfig};
-use siq_config::model::InstrumentConfig;
+use siq_config::model::{FocusConfig, InstrumentConfig, StageConfig};
 use siq_devices::FocusDrive;
 use siq_gpu::{Compute, GpuOptions};
 use siq_preview::{PreviewConfig, Previews};
@@ -228,6 +228,40 @@ impl Instrument {
             }
         }
         serde_json::to_value(self.registry.snapshot()).unwrap_or_default()
+    }
+
+    /// The serial ports this computer has, each with the device the configuration puts on it, and
+    /// the configured ports it hasn't (P10.3).
+    fn ports(&self) -> Value {
+        let mut configured: Vec<(&str, &str)> = Vec::new();
+        if let StageConfig::Grbl(stage) = &self.config.stage {
+            configured.push((&stage.port, "stage"));
+        }
+        if let FocusConfig::Ascii(focus) = &self.config.focus {
+            configured.push((&focus.port, "focus"));
+        }
+        let (found, error) = match siq_serial::ports() {
+            Ok(found) => (found, None),
+            Err(error) => (Vec::new(), Some(error.to_string())),
+        };
+        let device = |name: &str| {
+            let on = configured
+                .iter()
+                .find(|(port, _)| port.eq_ignore_ascii_case(name));
+            on.map(|(_, device)| *device)
+        };
+        let ports: Vec<Value> = found
+            .iter()
+            .map(|port| {
+                json!({ "name": port.name, "description": port.description, "device": device(&port.name) })
+            })
+            .collect();
+        let missing: Vec<Value> = configured
+            .iter()
+            .filter(|(port, _)| !found.iter().any(|f| f.name.eq_ignore_ascii_case(port)))
+            .map(|(port, device)| json!({ "name": port, "device": device }))
+            .collect();
+        json!({ "ports": ports, "missing": missing, "error": error })
     }
 
     /// The frame pool, the process's memory and CPU time, and the configured budgets, in bytes.
@@ -522,6 +556,7 @@ fn routes(instrument: &Arc<Instrument>) -> Router {
         .route("/api/siq/system/health", route(Instrument::health))
         .route("/api/siq/system/metrics", route(Instrument::metrics))
         .route("/api/siq/system/memory", route(Instrument::memory))
+        .route("/api/siq/system/ports", route(Instrument::ports))
 }
 
 /// The Things' OpenAPI document, with every peripheral. It needs no devices.

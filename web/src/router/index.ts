@@ -15,6 +15,7 @@ import LivePage from '@/live/LivePage.vue'
 import MosaicPage from '@/mosaic/MosaicPage.vue'
 import ScanPage from '@/scan/ScanPage.vue'
 import AboutPage from '@/system/AboutPage.vue'
+import SettingsPage from '@/system/SettingsPage.vue'
 import ViewerPage from '@/viewer2d/ViewerPage.vue'
 
 /** The pages that are built; every other destination shows what will come (`PlannedPage`). */
@@ -28,6 +29,7 @@ const PAGES: Record<string, Component | (() => Promise<{ default: Component }>)>
   live: LivePage,
   mosaic: MosaicPage,
   scan: ScanPage,
+  settings: SettingsPage,
   viewer: ViewerPage,
 }
 

@@ -2,7 +2,10 @@
 //! serial [`LineTransport`].
 //!
 //! - **Connecting:** a soft reset, the banner, and `$$` for the axes' rates, accelerations and
-//!   travel. Then `$X` if the controller is locked and the options allow it, and `G21 G90`.
+//!   travel, checked against the settings the options expect: a controller that differs is
+//!   refused, every difference told (P10.3). Then `$X` if the controller is locked and the
+//!   options allow it, and `G21 G90`.
+//! - **The status's round trip,** from `?` to its report, is kept: its least, mean and most.
 //! - **Moves complete with `G4 P0`:** its `ok` comes once the motion has finished. A fresh `Idle`
 //!   status then confirms it. The `ok` must come within a timeout from the distance and speed.
 //! - **A backlash-consistent approach** overshoots, so that each axis arrives from its configured
@@ -14,7 +17,7 @@
 //!
 //! The stage is open-loop: its positions are where the controller has stepped it, not measured.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
@@ -40,6 +43,8 @@ pub struct GrblOptions {
     pub poll: Hertz,
     /// How it moves: unlocking, and the backlash-consistent approach.
     pub motion: GrblMotion,
+    /// The controller's settings as they must be, by name: `"$100"`.
+    pub expect: BTreeMap<String, f64>,
 }
 
 impl From<&GrblStageConfig> for GrblOptions {
@@ -47,6 +52,7 @@ impl From<&GrblStageConfig> for GrblOptions {
         Self {
             poll: config.poll_hz,
             motion: config.motion.clone(),
+            expect: config.expect.clone(),
         }
     }
 }
@@ -56,8 +62,39 @@ impl From<&SimStageConfig> for GrblOptions {
         Self {
             poll: config.poll_hz,
             motion: config.motion.clone(),
+            expect: config.expect.clone(),
         }
     }
+}
+
+/// The status's round trips so far: from `?` to its report.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct RoundTrip {
+    /// How many.
+    pub count: u64,
+    /// The quickest.
+    pub min: Duration,
+    /// Their mean.
+    pub mean: Duration,
+    /// The slowest.
+    pub max: Duration,
+}
+
+/// Every difference between the controller's `settings` and `expect`: none if they agree to a
+/// millionth.
+fn differences(settings: &HashMap<u16, f64>, expect: &BTreeMap<String, f64>) -> Vec<String> {
+    let have = |name: &str| {
+        let number = name.trim_start_matches('$').parse::<u16>().ok()?;
+        settings.get(&number).copied()
+    };
+    expect
+        .iter()
+        .filter_map(|(name, &want)| match have(name) {
+            Some(value) if (value - want).abs() <= 1e-6 * want.abs().max(1.0) => None,
+            Some(value) => Some(format!("{name} is {value}, not {want}")),
+            None => Some(format!("{name} isn't one of its settings")),
+        })
+        .collect()
 }
 
 /// The axes as the controller's `$$` describes them.
@@ -97,6 +134,7 @@ pub struct GrblStage {
     lines: mpsc::UnboundedSender<Line>,
     urgent: mpsc::UnboundedSender<Urgent>,
     commanded: Mutex<Commanded>,
+    settings: HashMap<u16, f64>,
 }
 
 /// Sends `line` during the handshake, and gives back the lines before its `ok`.
@@ -165,6 +203,13 @@ impl GrblStage {
             travel: setting(130)?,
             seek: settings.get(&25).copied().unwrap_or(500.0),
         };
+        let wrong = differences(&settings, &options.expect);
+        if !wrong.is_empty() {
+            return Err(DeviceError::Fault(format!(
+                "the controller's settings aren't as expected: {}. Set them, or change the                  configuration's [stage.expect]",
+                wrong.join("; ")
+            )));
+        }
         // `G21` sets the units of moves, but `$13` those of the status.
         if settings.get(&13) == Some(&1.0) {
             let message = "the controller reports in inches: set $13=0";
@@ -181,6 +226,7 @@ impl GrblStage {
             homed: AtomicBool::new(false),
             alarm: AtomicU32::new(0),
             resets: AtomicU64::new(0),
+            round_trips: Mutex::new(None),
         });
         let (lines, line_queue) = mpsc::unbounded_channel();
         let (urgent, urgent_queue) = mpsc::unbounded_channel();
@@ -212,9 +258,27 @@ impl GrblStage {
             lines,
             urgent,
             commanded: Mutex::default(),
+            settings,
         };
         stage.resync().await?;
         Ok(stage)
+    }
+
+    /// The controller's settings, by number, as its `$$` gave them on connecting.
+    pub fn settings(&self) -> &HashMap<u16, f64> {
+        &self.settings
+    }
+
+    /// The status's round trips so far, if any.
+    pub fn round_trip(&self) -> Option<RoundTrip> {
+        let kept = self.shared.round_trips.lock();
+        let (count, [min, sum, max]) = (*kept.unwrap_or_else(PoisonError::into_inner))?;
+        Some(RoundTrip {
+            count,
+            min,
+            mean: sum / count.max(1) as u32,
+            max,
+        })
     }
 
     fn commanded(&self) -> MutexGuard<'_, Commanded> {

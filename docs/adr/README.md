@@ -37,8 +37,8 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0026](0026-simulated-camera-fidelity-and-the-noiseless-cache.md) | Simulated-camera fidelity versus performance, and the noiseless cache (amended in P1.7: timing, triggering and `TrueState`) | Accepted | P1.6 |
 | [0027](0027-protocol-level-emulation-and-the-serial-transport.md) | Protocol-level emulation, and the serial transport abstraction (amended in P1.9: resets as GRBL's) | Accepted | P1.8 |
 | [0028](0028-licence-exceptions-mpl-and-ijg.md) | Licence exceptions: MPL-2.0 for unmodified dependencies, and IJG with attribution (amended in P3.1: 0BSD and BlueOak-1.0.0) | Accepted | P1.8 |
-| [0029](0029-grbl-motion-completion-polling-stop-and-recovery.md) | GRBL motion completion, status polling, and stop and recovery | Accepted | P1.9 |
-| [0030](0030-data-driven-ascii-dialects.md) | Data-driven ASCII dialects: templates for both directions, and the dialect emulator (amended in P1.10b: the focus driver) | Accepted | P1.10a |
+| [0029](0029-grbl-motion-completion-polling-stop-and-recovery.md) | GRBL motion completion, status polling, and stop and recovery (amended in P10.3: the settings checked, the round trip, the repeatability, the ports) | Accepted | P1.9 |
+| [0030](0030-data-driven-ascii-dialects.md) | Data-driven ASCII dialects: templates for both directions, and the dialect emulator (amended in P1.10b: the focus driver; in P10.3: the instrument's waits for its protocol) | Accepted | P1.10a |
 | [0031](0031-frame-pose-association-and-context-stamping.md) | Frame↔pose time association, and context stamping | Accepted | P2.1 |
 | [0032](0032-preview-stream-design.md) | Preview stream design: two streams, server-side display mapping, latest-only, and rate caps | Accepted | P2.2 |
 | [0033](0033-thing-decomposition-and-naming.md) | Thing decomposition and naming: camera, display, stage and focus (amended after P2.5: a refused setting is a 422) | Accepted | P2.3 |

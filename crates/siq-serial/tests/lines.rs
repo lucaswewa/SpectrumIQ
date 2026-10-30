@@ -1,5 +1,5 @@
 //! Lines over the in-memory duplex: framing, partial lines across timeouts, realtime bytes, and
-//! a closed link.
+//! a closed link; and the ports listed.
 
 use std::time::Duration;
 
@@ -75,5 +75,18 @@ fn a_port_that_isnt_there_is_an_error_naming_it() {
             .unwrap_err()
             .to_string()
             .contains("parity")
+    );
+}
+
+// P10.3: this computer's serial ports, by name, each told what it is.
+#[test]
+fn the_ports_are_listed_by_name() {
+    let found = ports().expect("the ports can be listed");
+    let names: Vec<&str> = found.iter().map(|port| port.name.as_str()).collect();
+    assert!(names.is_sorted(), "{names:?}");
+    assert!(
+        found
+            .iter()
+            .all(|port| !port.name.is_empty() && !port.description.is_empty())
     );
 }

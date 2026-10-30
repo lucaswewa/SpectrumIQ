@@ -446,3 +446,47 @@ async fn a_controller_that_reports_in_inches_is_refused() {
     let named = matches!(&refused, Some(DeviceError::InvalidArgument(m)) if m.contains("$13=0"));
     assert!(named, "{refused:?}");
 }
+
+// P10.3: a controller whose `$$` differs from what the configuration expects is refused, every
+// difference told; one that agrees connects, and the status's round trips are kept.
+#[tokio::test]
+async fn a_controller_s_settings_are_checked_and_its_round_trips_kept() {
+    let connect = |expect: &[(&str, f64)]| {
+        let (clock, state) = (running_clock(), Arc::new(TrueState::new(0)));
+        let (host, device) = duplex(Framing::default(), "grbl");
+        let settings = GrblSettings::default();
+        let emulator = GrblEmulator::new(settings, GrblErrors::default(), 1, state, clock.clone());
+        tokio::spawn(emulator.run(device));
+        let options = GrblOptions {
+            expect: expect
+                .iter()
+                .map(|&(name, value)| (name.to_owned(), value))
+                .collect(),
+            ..options(GrblMotion::default())
+        };
+        GrblStage::connect(host, options, clock)
+    };
+    let wrong = [("$100", 800.0), ("$110", 3000.0), ("$999", 1.0)];
+    let refused = connect(&wrong).await.err();
+    let told = match &refused {
+        Some(DeviceError::Fault(why)) => {
+            why.contains("$100 is 1600, not 800")
+                && why.contains("$999 isn't one of its settings")
+                && !why.contains("$110")
+        }
+        _ => false,
+    };
+    assert!(told, "{refused:?}");
+
+    let right = [("$100", 1600.0), ("$22", 1.0), ("$130", 100.0)];
+    let stage = connect(&right).await.unwrap();
+    assert_eq!(stage.settings().get(&120), Some(&200.0));
+    // A few polls, at 5 a second on a clock ten times as fast.
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    let trips = stage.round_trip().expect("polled");
+    assert!(trips.count >= 2, "{trips:?}");
+    assert!(
+        trips.min <= trips.mean && trips.mean <= trips.max,
+        "{trips:?}"
+    );
+}

@@ -3,6 +3,7 @@
 //! Every section denies unknown keys, so a typo is an error rather than a silently ignored line.
 //! Device sections are tagged by `kind`; each kind has its own keys.
 
+use std::collections::BTreeMap;
 use std::net::{IpAddr, Ipv4Addr};
 use std::path::PathBuf;
 
@@ -252,6 +253,9 @@ pub struct SimStageConfig {
     pub poll_hz: Hertz,
     /// How the driver moves the stage.
     pub motion: GrblMotion,
+    /// The emulator's `$$` as it must be, by setting, as for a real controller.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub expect: BTreeMap<String, f64>,
 }
 
 impl Default for SimStageConfig {
@@ -259,6 +263,7 @@ impl Default for SimStageConfig {
         Self {
             poll_hz: poll_rate(),
             motion: GrblMotion::default(),
+            expect: BTreeMap::new(),
         }
     }
 }
@@ -278,6 +283,11 @@ pub struct GrblStageConfig {
     /// How the driver moves the stage.
     #[serde(default)]
     pub motion: GrblMotion,
+    /// The controller's `$$` as it must be, by setting, such as `"$100" = 1600.0`: steps/mm,
+    /// rates, accelerations, travel, soft limits, homing. A controller that differs is refused
+    /// (P10.3).
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub expect: BTreeMap<String, f64>,
 }
 
 /// How the GRBL driver moves the stage (P1.9).

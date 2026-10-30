@@ -10,7 +10,8 @@
 //! - **[`fit`]** solves `L` by least squares from the moves and the shifts measured, with an
 //!   offset common to them all (the reference frame's own position error), and each move's
 //!   residual on the stage, in µm. Moves that don't span the plane are refused.
-//! - **[`backlash`]** turns the shift between arriving at one place from either side into µm.
+//! - **[`backlash`]** turns the shift between arriving at one place from either side into µm, and
+//!   **[`repeatability`]** the shifts between arriving at it again from the same side (P10.3).
 //! - **[`CalibrationRecord`]** is a calibration as it is kept, and the [`CalibrationRegistry`]
 //!   keeps every one, in force or not.
 
@@ -199,6 +200,25 @@ pub fn backlash(fit: &Fit, shift: [f64; 2]) -> [f64; 2] {
     inverse.apply_vector(shift).map(f64::abs)
 }
 
+/// The stage's repeatability on each axis, in µm, from `shifts`: how far each arrival at a place
+/// from the same side landed from the first, in sensor pixels. The standard deviation on the stage
+/// of all the arrivals, the first's included; `None` without another.
+pub fn repeatability(fit: &Fit, shifts: &[[f64; 2]]) -> Option<[f64; 2]> {
+    let inverse = fit.affine.invert().unwrap_or(Affine2::IDENTITY);
+    let mut arrivals = vec![[0.0; 2]];
+    arrivals.extend(shifts.iter().map(|&shift| inverse.apply_vector(shift)));
+    let n = arrivals.len() as f64;
+    let mean = [0, 1].map(|axis| arrivals.iter().map(|a| a[axis]).sum::<f64>() / n);
+    let spread = |axis: usize| {
+        let squares: f64 = arrivals
+            .iter()
+            .map(|a| (a[axis] - mean[axis]).powi(2))
+            .sum();
+        (squares / (n - 1.0)).sqrt()
+    };
+    (n > 1.0).then(|| [spread(0), spread(1)])
+}
+
 /// A calibration as it is kept: the affine of one objective, and how well it was measured.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct CalibrationRecord {
@@ -224,6 +244,10 @@ pub struct CalibrationRecord {
     pub residual_max_um: f64,
     /// The stage's backlash on `x` and `y`, in µm, if it was measured.
     pub backlash_um: Option<[f64; 2]>,
+    /// The stage's repeatability on `x` and `y`, in µm: the standard deviation of a place's
+    /// arrivals from the same side, if it was measured (P10.3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub repeatability_um: Option<[f64; 2]>,
     /// The moves it was fitted from.
     pub moves: usize,
     /// How it was measured, such as `stage_camera`.
@@ -252,6 +276,7 @@ impl CalibrationRecord {
             residual_rms_um: fit.residual_rms(),
             residual_max_um: fit.residual_max(),
             backlash_um: backlash,
+            repeatability_um: None,
             moves: fit.residuals.len(),
             method: method.to_owned(),
         }

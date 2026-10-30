@@ -3237,8 +3237,9 @@ export interface paths {
          *
          *     Calibrates the objective in use against the stage: a star of 16 moves about where the stage
          *     is, out to 0.4 of the field, a frame at each registered against the first; the affine
-         *     fitted, checked, and the backlash measured. Kept as a new version, it is in force for the
-         *     objective's frames from then on. Something must be in the field to register.
+         *     fitted, checked, and the backlash and repeatability measured. Kept as a new version, it is
+         *     in force for the objective's frames from then on. Something must be in the field to
+         *     register.
          *
          *     ## Important note
          *
@@ -6275,6 +6276,11 @@ export interface components {
             residual_max_um: number;
             /** @description The stage's backlash on `x` and `y`, in µm, if it was measured. */
             backlash_um?: number[] | null;
+            /**
+             * @description The stage's repeatability on `x` and `y`, in µm: the standard deviation of a place's
+             *     arrivals from the same side, if it was measured (P10.3).
+             */
+            repeatability_um?: number[] | null;
             /** @description The moves it was fitted from. */
             moves: number;
             /** @description How it was measured, such as `stage_camera`. */
@@ -6331,6 +6337,11 @@ export interface components {
                 residual_max_um: number;
                 /** @description The stage's backlash on `x` and `y`, in µm, if it was measured. */
                 backlash_um?: number[] | null;
+                /**
+                 * @description The stage's repeatability on `x` and `y`, in µm: the standard deviation of a place's
+                 *     arrivals from the same side, if it was measured (P10.3).
+                 */
+                repeatability_um?: number[] | null;
                 /** @description The moves it was fitted from. */
                 moves: number;
                 /** @description How it was measured, such as `stage_camera`. */
