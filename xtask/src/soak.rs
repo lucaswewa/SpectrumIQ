@@ -36,6 +36,10 @@ pub struct Options {
     pub viewers: usize,
     /// For how long, from the end of the preparation.
     pub duration: Duration,
+    /// On the Euresys camera of this PC, named by the Adimec's map, for the simulator's. The stage
+    /// stays simulated, so it can't be calibrated against the camera: the operator snaps into
+    /// datasets, and doesn't scan.
+    pub euresys: bool,
 }
 
 impl Options {
@@ -43,6 +47,7 @@ impl Options {
     pub const SMOKE: Options = Options {
         viewers: 2,
         duration: Duration::from_secs(20),
+        euresys: false,
     };
 }
 
@@ -66,8 +71,14 @@ pub fn run(repo: &Path, options: Options) -> Result<Report> {
         "-p",
         "spectrumiq-server",
     ];
+    let features = if options.euresys {
+        ["--features", "euresys"].as_slice()
+    } else {
+        &[]
+    };
     let built = Command::new("cargo")
         .args(build)
+        .args(features)
         .current_dir(repo)
         .status()?;
     ensure!(built.success(), "the release build failed");
@@ -80,7 +91,14 @@ pub fn run(repo: &Path, options: Options) -> Result<Report> {
     }
     fs::create_dir_all(folder.join("config"))?;
     let config = folder.join("config/sim.toml");
-    fs::copy(repo.join("config/sim.toml"), &config)?;
+    let sim = fs::read_to_string(repo.join("config/sim.toml"))?;
+    let map = repo.join("config/cameras/adimec-d103a12c.toml");
+    let sim = if options.euresys {
+        on_the_camera(&sim, &map)?
+    } else {
+        sim
+    };
+    fs::write(&config, sim)?;
     add_user(&server, &config, "soak-admin", "admin")?;
     add_user(&server, &config, "soak-viewer", "viewer")?;
     let log = File::create(folder.join("service.log"))?;
@@ -99,6 +117,21 @@ pub fn run(repo: &Path, options: Options) -> Result<Report> {
     let json = serde_json::to_string_pretty(&report.json)?;
     fs::write(folder.join("report.json"), json)?;
     Ok(report)
+}
+
+/// `sim.toml` with the camera of this PC's grabber, named by `map`, for the simulator's.
+fn on_the_camera(sim: &str, map: &Path) -> Result<String> {
+    let start = sim
+        .find("\n[camera]\n")
+        .context("config/sim.toml has no [camera]")?
+        + 1;
+    let rest = &sim[start..];
+    let end = start + rest[1..].find("\n[").map_or(rest.len(), |at| at + 2);
+    let map = map.display().to_string().replace('\\', "/");
+    let camera = format!(
+        "[camera]\nkind = \"euresys\"\ninterface = 0\ndevice = 0\nfeatures = \"{map}\"\n\n"
+    );
+    Ok(format!("{}{camera}{}", &sim[..start], &sim[end..]))
 }
 
 /// Adds `name` with `role` through the service's CLI, the password given twice on its input.
@@ -129,13 +162,13 @@ fn soak(options: Options) -> Result<Report> {
     }
     let admin = Session::login("soak-admin", PASSWORD)?;
     println!("soak: preparing: the token, the calibration, live view and a snap to view");
-    let image = prepare(&admin)?;
+    let image = prepare(&admin, options.euresys)?;
     let (viewers, seconds) = (options.viewers, options.duration.as_secs_f64());
     println!("soak: {viewers} viewers and an operator for {seconds} s");
     let start = Instant::now();
     let until = start + options.duration;
     thread::scope(|scope| {
-        let operator = scope.spawn(|| operate(&admin, until));
+        let operator = scope.spawn(|| operate(&admin, until, options.euresys));
         let image = &image;
         let viewers: Vec<_> = (0..viewers)
             .map(|n| scope.spawn(move || view(n as u64 + 1, image, until)))
@@ -167,8 +200,9 @@ struct Image {
 }
 
 /// The operator's preparation: the token, scans unstitched since their data goes, the
-/// stage–camera calibration, live view, and a snap to view, with its pyramid.
-fn prepare(admin: &Session) -> Result<Image> {
+/// stage–camera calibration (not on the camera, with the stage simulated), live view, and a snap
+/// to view, with its pyramid.
+fn prepare(admin: &Session, euresys: bool) -> Result<Image> {
     let until = Instant::now() + PREPARING;
     let invoke = |action: &str| {
         admin
@@ -177,28 +211,16 @@ fn prepare(admin: &Session) -> Result<Image> {
     };
     admin.json("POST", "/api/siq/control/request", None)?;
     admin.json("PUT", "/api/v1/jobs/auto_stitch", Some(&json!(false)))?;
-    invoke("calibration/stage_camera")?;
+    if !euresys {
+        invoke("calibration/stage_camera")?;
+    }
     invoke("camera/start_live")?;
     let snap = invoke("datasets/snap_to_dataset")?;
     let id = snap["dataset"]["id"]
         .as_str()
         .context("the snap's dataset")?;
     let image = snap["image"].as_str().context("the snap's image")?;
-    loop {
-        let manifest = admin.json("GET", &format!("/api/siq/data/{id}/manifest"), None)?;
-        let history = manifest["history"].as_array().cloned().unwrap_or_default();
-        let pyramid = history
-            .iter()
-            .rev()
-            .find(|record| record["kind"] == "pyramid");
-        match pyramid.and_then(|record| record["state"].as_str()) {
-            Some("done") => break,
-            Some(state @ ("failed" | "cancelled")) => bail!("the snap's pyramid: {state}"),
-            _ => {}
-        }
-        ensure!(Instant::now() < until, "the snap's pyramid took too long");
-        thread::sleep(Duration::from_millis(200));
-    }
+    built(admin, id, until)?;
     let plane = format!("/api/siq/data/{id}/{image}/0/0/0");
     let dzi = admin.text(&format!("{plane}.dzi"))?;
     let attribute = |name: &str| -> Result<u32> {
@@ -214,17 +236,38 @@ fn prepare(admin: &Session) -> Result<Image> {
     })
 }
 
-/// What the operator did: its scans, their frames, and how long each took.
+/// Waits until dataset `id`'s pyramid is built.
+fn built(admin: &Session, id: &str, until: Instant) -> Result<()> {
+    loop {
+        let manifest = admin.json("GET", &format!("/api/siq/data/{id}/manifest"), None)?;
+        let history = manifest["history"].as_array().cloned().unwrap_or_default();
+        let pyramid = history
+            .iter()
+            .rev()
+            .find(|record| record["kind"] == "pyramid");
+        match pyramid.and_then(|record| record["state"].as_str()) {
+            Some("done") => break,
+            Some(state @ ("failed" | "cancelled")) => bail!("the snap's pyramid: {state}"),
+            _ => {}
+        }
+        ensure!(Instant::now() < until, "the snap's pyramid took too long");
+        thread::sleep(Duration::from_millis(200));
+    }
+    Ok(())
+}
+
+/// What the operator did: its scans or snaps, their frames, and how long each took.
 #[derive(Default)]
 struct Scans {
+    what: &'static str,
     done: u64,
     frames: u64,
     seconds: Vec<f64>,
 }
 
-/// Runs 2 × 2 tile scans until `until`, as `tile_scan.py` does, deleting each one's dataset, and
-/// looks at live view between them.
-fn operate(admin: &Session, until: Instant) -> Result<Scans> {
+/// Runs 2 × 2 tile scans until `until`, as `tile_scan.py` does, or on the camera snaps into
+/// datasets, deleting each one's dataset, and looks at live view between them.
+fn operate(admin: &Session, until: Instant, euresys: bool) -> Result<Scans> {
     let sensor = admin.json("GET", "/api/v1/camera/sensor", None)?;
     let number = |name: &str| sensor[name].as_f64().unwrap_or_default();
     // A frame's size on the stage through the 10× objective; a scan of a little under two each way.
@@ -240,16 +283,28 @@ fn operate(admin: &Session, until: Instant) -> Result<Scans> {
         "x1": x + 0.8 * step[0], "y1": y + 0.8 * step[1],
     });
     let scan = json!({ "name": "soak", "region": region, "overlap": 0.1, "channels": [1] });
-    let mut scans = Scans::default();
+    let (action, input) = match euresys {
+        true => ("datasets/snap_to_dataset", json!({})),
+        false => ("workflow/tile_scan", scan),
+    };
+    let mut scans = Scans {
+        what: if euresys { "snaps" } else { "scans" },
+        ..Scans::default()
+    };
     while Instant::now() < until {
         let started = Instant::now();
-        let Some(done) = admin.invoke("workflow/tile_scan", &scan, until)? else {
+        let Some(done) = admin.invoke(action, &input, until)? else {
             break;
         };
         scans.done += 1;
-        scans.frames += done["frames"].as_u64().unwrap_or_default();
+        scans.frames += done["frames"].as_u64().unwrap_or(1);
         scans.seconds.push(started.elapsed().as_secs_f64());
-        if let Some(dataset) = done["dataset"].as_str() {
+        let dataset = done["dataset"].as_str().or(done["dataset"]["id"].as_str());
+        if let Some(dataset) = dataset {
+            // A snap's pyramid holds its dataset until it is built.
+            if euresys {
+                built(admin, dataset, Instant::now() + PREPARING)?;
+            }
             let delete = json!({ "dataset": dataset });
             admin.invoke("datasets/delete", &delete, Instant::now() + PREPARING)?;
         }
@@ -428,9 +483,10 @@ impl Report {
         let (first, last) = (&samples[0], &samples[samples.len() - 1]);
         let seconds = last.at - first.at;
         let mut lines = vec![format!(
-            "{} viewers and an operator for {seconds:.0} s: {} scans, {} frames, {:.1} s a scan",
+            "{} viewers and an operator for {seconds:.0} s: {} {}, {} frames, {:.1} s each",
             options.viewers,
             scans.done,
+            scans.what,
             scans.frames,
             mean(&scans.seconds)
         )];

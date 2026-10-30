@@ -78,4 +78,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0067](0067-audit-trail-format.md) | The audit trail format, kept IVD-ready (amended in P9.4: a read by its class, and the users' passwords) | Accepted | P9.3 |
 | [0068](0068-multi-client-ux-rules.md) | Multi-client UX rules | Accepted | P9.4 |
 | [0069](0069-e2e-and-soak-strategy.md) | The end-to-end and soak strategy, with its targets | Accepted | P9.5 |
-| [0070](0070-euresys-acquisition-and-buffer-ownership.md) | Euresys acquisition: threading, buffer ownership, the feature map, and raw Bayer frames | Accepted | P10.1 |
+| [0070](0070-euresys-acquisition-and-buffer-ownership.md) | Euresys acquisition: threading, buffer ownership, the feature map, and raw Bayer frames (amended in P10.2: the Adimec measured, and the settings chosen) | Accepted | P10.1 |

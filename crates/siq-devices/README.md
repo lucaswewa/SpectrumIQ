@@ -24,7 +24,8 @@ The design is in [ADR-0023](../../docs/adr/0023-device-abstraction.md).
     ASCII focus drive and peripheral simulators, and P10.1's Euresys camera;
   - the engines, which use only the traits: P2.1's acquisition and every workflow;
   - P2.3's server, which picks the drivers.
-- **Phase:** P1.3; P10.1 added `CameraCapabilities::cfa`.
+- **Phase:** P1.3; P10.1 added `CameraCapabilities::cfa`; P10.2 `FrameRateModel::readout` and
+  `binned_rows`.
 
 ## API
 
@@ -33,7 +34,7 @@ The design is in [ADR-0023](../../docs/adr/0023-device-abstraction.md).
 | `Device` | Every device: `info()` → `DeviceInfo` (vendor, model, serial, firmware) |
 | `BoxFuture<'_, T>`, `DeviceResult<T>`, `DeviceError` | What operations return. Errors: `Timeout`, `Disconnected`, `Fault`, `InvalidArgument`, `Busy`, `Unsupported`, `Alarm(code)`, `Stopped` |
 | `Camera` | `capabilities`, `settings`, `configure(CameraSettings)`, `start(pool, Arc<dyn FrameSink>)`, `stop`, `trigger`, `stats` → `CameraStats` (delivered, lost for want of a slot, lost by the device) |
-| `CameraCapabilities` | Sensor, pixel size, formats, a colour sensor's filter array (`cfa`, P10.1), binnings, `RoiRules`, exposure range, `FrameRateModel`. `check(&settings)` is the one settings check, and `frame_rate.max_rate(&settings)` the rate for an ROI and binning |
+| `CameraCapabilities` | Sensor, pixel size, formats, a colour sensor's filter array (`cfa`, P10.1), binnings, `RoiRules`, exposure range, `FrameRateModel`. `check(&settings)` is the one settings check; `frame_rate.readout(&settings)` the readout's time and `frame_rate.max_rate(&settings)` the rate for an ROI and binning. `binned_rows` (P10.2) says whether vertical binning reads fewer rows: not on a sensor that reads them all and bins after, as the Adimec |
 | `CameraSettings` | ROI, binning, format, exposure, gain, `TriggerMode` (`FreeRun`, `Software`, `External`). `full_frame`, `image_size`, `frame_bytes`, `frame_meta` |
 | `FrameSink` | Where a camera hands each `(FillGuard, FrameMeta)`: the acquisition engine, which adds the pose and publishes |
 | `Stage`, `FocusDrive` | `move_to`, `move_by` (with `MoveOpts { speed, approach: Direct or Unidirectional }`), `jog(velocity)`, `stop`, `home`, `status()`, `limits()` → `Travel`. Moves resolve once settled, with the status. A `Stage`'s `kinematics()`, `Kinematics { speed_um_s, acceleration_um_s2 }` in the plane, for estimates, is `None` unless its driver says (P6.6) |

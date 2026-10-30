@@ -27,6 +27,9 @@ spectrumiq-server audit verify -c config/sim.toml
   start while there is no admin, and reads the file again when the commands change it. It makes
   `[auth] local_user` itself, an operator who logs in only by the local secret (ADR-0066); an
   admin manages the rest from the web app's Admin page too (ADR-0068).
+- **The frame pool** is checked at start: it logs the pool's slots and size against the
+  computer's RAM, and refuses a pool that, with `[memory]`'s jobs and tile cache, needs more than
+  90 % of it (P10.2).
 - **Shutting down** stops live view, then motion, then the Things.
 - **Exit codes:** 0 on a clean stop, 1 on an error, such as a configuration or a device that won't
   open. The message says which.

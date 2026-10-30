@@ -24,7 +24,8 @@ No allocation and no copy happen on the frame path. The designs are in
   - P2.1's acquisition engine;
   - P10.1's Euresys driver;
   - `siq-server`'s memory endpoint, and `siq-jobs`' `bench_stitch_500mp`.
-- **Phases:** P1.1 (the pool), P1.2 (the fan-out); P8.5 added the process's time and bytes.
+- **Phases:** P1.1 (the pool), P1.2 (the fan-out); P8.5 added the process's time and bytes; P10.2
+  the computer's RAM.
 
 ## API
 
@@ -40,6 +41,7 @@ No allocation and no copy happen on the frame path. The designs are in
 | `stats()` → `PoolStats` | Free, filling, leased, and the high-water mark |
 | `working_set()` | The process's minimum and maximum working set |
 | `process_memory()` → `ProcessMemory` | The process's working set, its peak, and its private bytes (since P2.4, for `/api/siq/system/memory`) |
+| `physical_memory()` | The computer's RAM, in bytes (since P10.2, for the service's check of the pool at start) |
 | `process_usage()` → `ProcessUsage` | The process's processors' time, user and kernel, and the bytes it has read and written by calls; a mapped file's pages aren't among them (since P8.5, for `bench_stitch_500mp`) |
 
 With a registry, the pool reports `<name>.free_slots`, `<name>.in_use_high_water` and

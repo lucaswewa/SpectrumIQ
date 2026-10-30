@@ -264,6 +264,34 @@ impl Instrument {
     }
 }
 
+/// Refuses a frame pool that, with the jobs' and the tile cache's budgets, would take more than 90 %
+/// of the computer's RAM (ADR-0005): the pool is locked, and the rest needs room too.
+fn fits_in_ram(pool: &PoolConfig, memory: &siq_config::model::MemoryConfig) -> anyhow::Result<()> {
+    let Ok(ram) = siq_buffer::physical_memory() else {
+        return Ok(());
+    };
+    let gb = |bytes: f64| bytes / 1e9;
+    let locked = f64::from(pool.slots) * pool.slot_bytes as f64;
+    let budgets = memory.job_ram_gb * 1e9 + f64::from(memory.tile_cache_mb) * 1e6;
+    let (slots, slot_mb) = (pool.slots, pool.slot_bytes as f64 / 1e6);
+    tracing::info!(
+        slots,
+        slot_mb,
+        locked_gb = gb(locked),
+        ram_gb = gb(ram as f64),
+        "the frame pool"
+    );
+    anyhow::ensure!(
+        locked + budgets <= 0.9 * ram as f64,
+        "the frame pool's {:.1} GB and the jobs' and tile cache's {:.1} GB need more than 90 % of \
+         the {:.1} GB of RAM: lower [memory] pool_slots or job_ram_gb",
+        gb(locked),
+        gb(budgets),
+        gb(ram as f64)
+    );
+    Ok(())
+}
+
 /// The Things, with their names and the server's options: the peripherals' Things only for those
 /// `fitted` says.
 fn things(camera: Camera, fitted: impl Fn(&str) -> bool) -> ThingServerBuilder {
@@ -318,6 +346,7 @@ impl Service {
             slot_bytes: full,
             backend: devices.backend,
         };
+        fits_in_ram(&pool, &config.memory)?;
         let (camera, stats, registry) = (
             Camera::default(),
             Arc::new(LatestStats::default()),

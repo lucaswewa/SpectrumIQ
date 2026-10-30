@@ -19,7 +19,8 @@ mod pool;
 mod slot;
 
 pub use alloc::{
-    Backend, PAGE, ProcessMemory, ProcessUsage, process_memory, process_usage, working_set,
+    Backend, PAGE, ProcessMemory, ProcessUsage, physical_memory, process_memory, process_usage,
+    working_set,
 };
 pub use fanout::{Fanout, Overflow, Policy, Recv, RecvError, Subscriber, SubscriberStats};
 pub use pool::{FramePool, PoolConfig, PoolError, PoolStats, ReleaseSink, ReturnToPool};

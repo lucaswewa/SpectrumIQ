@@ -121,3 +121,44 @@ instrument's camera, and its frames stay raw Bayer, demosaiced only for display.
     16 ms of the ROI's;
   - a snap through a software trigger.
 - After every run, the camera's features were as first found (`eg_features --save`).
+
+## Amendment (P10.2, 2026-10-29): the Adimec measured, and the settings chosen
+
+`hw_acquire_bench`, the hardware tests and a soak measured the camera on this PC
+([the camera bring-up runbook](../hardware/camera-bringup.md)):
+
+- **The readout:** a frame takes 2.0 ms and 8.63 µs a row, whatever the pixel format, so the full
+  frame's 12.28 frames/s is the sensor's, not the link's. Binned, the sensor still reads every row:
+  `FrameRateModel` gains `binned_rows`, false for it, and `readout()`. Every mode is within 1 % of
+  the model, where P2.5's figures (no overhead, 8.85 µs) put the regions up to 20 % high and the
+  binned modes at twice their rate.
+- **The link** runs at `CXP12_X2`, two of the camera's four. The full frame at 12 bits needs
+  1.9 GB/s, which two carry.
+- **The frame period:** free-running, the Adimec skips every other frame unless its period is more
+  than 2 ms longer than its exposure (150 ms gave a frame every 300 ms). The camera sets it to the
+  readout, or the exposure and 4 ms if that is longer: 154 ms at 150 ms, 6.49 frames/s.
+- **The grabber's timestamp** marks the start of a frame's readout, as its exposure ends: each
+  region arrives earlier after its stamp by the readout of the rows it lacks (52, 61 and 70 ms
+  for 3072, 2048 and 1024 rows), and a longer exposure doesn't move it. So the middle of an
+  exposure is the stamp less half the exposure. The clocks' offset is the least, over the last 64
+  frames, of the arrival less the readout less the stamp; the grabber's clock drifts from the
+  host's by up to 60 ppm. Consecutive frames' times then follow their stamps within 0.02 to
+  0.07 ms, where the arrivals jitter by 0.18 ms rms and 0.6 ms at worst.
+- **The acquisition thread** runs at `THREAD_PRIORITY_TIME_CRITICAL` (architecture §4.3). It is not
+  pinned to a core: nothing measured asked for it.
+- **The camera starts** as the simulated one does: the full frame, unbinned, in its deepest format,
+  at 10 ms and unity gain, free-running. It had kept whatever it was left in: an 8-bit format,
+  which datasets refuse, and a 350 ms exposure.
+- **At start, the service** checks that the locked pool and the jobs' and tile cache's budgets fit
+  in 90 % of the RAM, and logs the pool against it.
+- **Under load,** with `cargo xtask soak --euresys --viewers 8 --minutes 10` and the stage
+  simulated, so the operator snapped rather than scanned:
+  - 4,725 frames published and none lost;
+  - 76 snaps into datasets;
+  - every viewer received all 3,900 previews of each stream;
+  - 147 ms from mid-exposure to the overview's JPEG on average, p95 ≤ 200 ms;
+  - the pipeline's work 20 ms, p95 ≤ 35 ms;
+  - 8 % of the CPU, and 2.7 GB of private bytes, steady.
+
+  That meets ADR-0069's targets on the camera, where M9's soak on the simulator missed the
+  overview's work p95.

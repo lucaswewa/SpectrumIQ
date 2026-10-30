@@ -5,8 +5,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use serde::Deserialize;
-use siq_devices::TriggerMode;
-use siq_types::{Cfa, PixelFormat};
+use siq_devices::{FrameRateModel, TriggerMode};
+use siq_types::{Cfa, Millis, PixelFormat};
 
 use crate::grabber::Module;
 
@@ -44,6 +44,8 @@ pub struct FeatureMap {
     pub readout_overhead_ms: f64,
     /// The readout's time a row, in µs.
     pub line_time_us: f64,
+    /// Whether vertical binning reads fewer rows; `false` if the sensor bins after reading.
+    pub binned_rows: bool,
 }
 
 /// The features each trigger mode sets, in order.
@@ -96,6 +98,7 @@ impl Default for FeatureMap {
             trigger_module: Module::Remote,
             readout_overhead_ms: 0.0,
             line_time_us: 0.0,
+            binned_rows: true,
         }
     }
 }
@@ -136,6 +139,15 @@ pub fn module_of(feature: &str) -> (Module, &str) {
 }
 
 impl FeatureMap {
+    /// The readout's model.
+    pub fn readout(&self) -> FrameRateModel {
+        FrameRateModel {
+            overhead: Millis(self.readout_overhead_ms),
+            line_time: Millis(self.line_time_us / 1e3),
+            binned_rows: self.binned_rows,
+        }
+    }
+
     /// Reads the map in `path`.
     pub fn load(path: &Path) -> Result<Self, MapError> {
         let shown = path.display().to_string();

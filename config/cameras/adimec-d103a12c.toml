@@ -15,10 +15,11 @@ frame_period = "AcquisitionFramePeriod"
 trigger_command = "StartCycle"
 trigger_module = "device"
 
-# Measured in P2.5: 12.28 frames/s at a 1 ms exposure in BayerGB12, 81.4 ms a frame over 9200
-# rows. P10.2 measures each mode.
-readout_overhead_ms = 0.0
-line_time_us = 8.85
+# Measured in P10.2 (hw_acquire_bench): a frame takes 2.0 ms and 8.63 µs a row, 81.4 ms for the
+# full 9200 rows, whatever the pixel format. Binned, it still reads every row, then bins.
+readout_overhead_ms = 2.0
+line_time_us = 8.63
+binned_rows = false
 
 [pixel_formats]              # the camera's entries, and what they deliver: raw Bayer samples
 BayerGB8 = "Mono8"

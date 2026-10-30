@@ -53,6 +53,9 @@ enum Task {
         /// The smoke run: 2 viewers for 20 s.
         #[arg(long)]
         smoke: bool,
+        /// On the Euresys camera of this PC, with the stage simulated: snaps for scans.
+        #[arg(long)]
+        euresys: bool,
     },
 }
 
@@ -124,12 +127,20 @@ fn run(task: Task) -> anyhow::Result<ExitCode> {
             viewers,
             minutes,
             smoke,
+            euresys,
         } => {
             let options = if smoke {
-                soak::Options::SMOKE
+                soak::Options {
+                    euresys,
+                    ..soak::Options::SMOKE
+                }
             } else {
                 let duration = Duration::from_secs_f64(minutes * 60.0);
-                soak::Options { viewers, duration }
+                soak::Options {
+                    viewers,
+                    duration,
+                    euresys,
+                }
             };
             let report = soak::run(&repo, options)?;
             println!("{report}");

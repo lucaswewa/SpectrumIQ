@@ -55,20 +55,37 @@ pub struct RoiRules {
 }
 
 /// How fast a camera delivers frames. Reading the sensor takes `overhead`, plus `line_time` per
-/// row read, and the next exposure overlaps the readout. Vertical binning reads fewer rows.
+/// row read, and the next exposure overlaps the readout. Vertical binning reads fewer rows, unless
+/// the sensor reads every row and bins after.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
 pub struct FrameRateModel {
     /// The fixed part of each readout.
     pub overhead: Millis,
     /// The time to read one row.
     pub line_time: Millis,
+    /// Whether vertical binning reads fewer rows: `false` for a sensor that reads them all and bins
+    /// after, as the Adimec D-103A12c does (P10.2).
+    #[serde(default = "binned_rows")]
+    pub binned_rows: bool,
+}
+
+const fn binned_rows() -> bool {
+    true
 }
 
 impl FrameRateModel {
+    /// The time to read out a frame with `settings`.
+    pub fn readout(&self, settings: &CameraSettings) -> Millis {
+        let rows = match self.binned_rows {
+            true => settings.image_size().1,
+            false => settings.roi.height,
+        };
+        self.overhead + self.line_time * f64::from(rows)
+    }
+
     /// The highest frame rate with `settings`.
     pub fn max_rate(&self, settings: &CameraSettings) -> Hertz {
-        let rows = settings.image_size().1;
-        let readout = self.overhead + self.line_time * f64::from(rows);
+        let readout = self.readout(settings);
         Hertz::from_period(if settings.exposure > readout {
             settings.exposure
         } else {

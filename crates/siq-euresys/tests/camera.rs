@@ -253,7 +253,7 @@ fn the_capabilities_and_settings_come_from_the_camera_as_its_map_names_them() {
         (PixelFormat::Mono12, Millis(10.0))
     );
     assert_eq!(settings.roi, Roi::full(11264, 9200));
-    // Free-running, at the full frame's readout: 9200 rows of 8.85 µs, longer than 10 ms.
+    // Free-running, at the full frame's readout: 2 ms and 9200 rows of 8.63 µs, longer than 10 ms.
     let set = set.lock().unwrap();
     assert!(set.contains(&"ExposureMode=Timed".into()), "{set:?}");
     let period = set
@@ -262,7 +262,7 @@ fn the_capabilities_and_settings_come_from_the_camera_as_its_map_names_them() {
         .find(|s| s.starts_with("AcquisitionFramePeriod="))
         .unwrap();
     let us: f64 = period.split('=').nth(1).unwrap().parse().unwrap();
-    assert!((us - 81_420.0).abs() < 1.0, "{period}");
+    assert!((us - 81_396.0).abs() < 1.0, "{period}");
 }
 
 #[test]

@@ -258,3 +258,118 @@ async fn a_binned_region_comes_at_its_size() {
     drop(camera);
     put_back(&saved);
 }
+
+/// REQ-ACQ-003: the full frame, two regions about the centre, 2 × 2 binning, and the full frame at
+/// 150 ms, each at the rate the map's readout model gives, within 5 %, with none lost (P10.2).
+#[tokio::test]
+#[ignore = "hardware"]
+async fn each_mode_reaches_the_rate_its_model_gives() {
+    let Some(saved) = saved() else { return };
+    let camera = open();
+    let original = camera.settings();
+    let capabilities = camera.capabilities().clone();
+    let (width, height) = (capabilities.sensor_width, capabilities.sensor_height);
+    let centred = |side: u32| Roi {
+        offset_x: (width - side) / 4 * 2,
+        offset_y: (height - side) / 4 * 2,
+        width: side,
+        height: side,
+    };
+    let full = Roi::full(width, height);
+    // The last, longer than the readout: a period no longer than it would skip every other frame.
+    let modes = [
+        (full, siq_types::Binning::NONE, 1.0),
+        (centred(2048), siq_types::Binning::NONE, 1.0),
+        (centred(1024), siq_types::Binning::NONE, 1.0),
+        (full, siq_types::Binning::new(2, 2).unwrap(), 1.0),
+        (full, siq_types::Binning::NONE, 150.0),
+    ];
+    let mut missed = Vec::new();
+    for (roi, binning, exposure) in modes {
+        let settings = CameraSettings {
+            roi,
+            binning,
+            pixel_format: PixelFormat::Mono12,
+            exposure: Millis(exposure),
+            trigger: TriggerMode::FreeRun,
+            ..original
+        };
+        camera.configure(settings).await.unwrap();
+        let record = Arc::new(Record::default());
+        let lost = |camera: &EuresysCamera<EGrabber>| {
+            let stats = camera.stats();
+            stats.lost_no_slot + stats.lost_device
+        };
+        let before = lost(&camera);
+        camera.start(pool(&settings), record.clone()).await.unwrap();
+        tokio::time::sleep(Duration::from_secs(3)).await;
+        camera.stop().await.unwrap();
+        let frames = record.0.lock().unwrap();
+        let times: Vec<f64> = frames
+            .iter()
+            .map(|meta| meta.device_ts.unwrap().0 as f64)
+            .collect();
+        let rate = (times.len() - 1) as f64 / (times[times.len() - 1] - times[0]) * 1e6;
+        let model = capabilities.frame_rate.max_rate(&settings).0;
+        let lost = lost(&camera) - before;
+        let (across, down) = binning.factors();
+        eprintln!(
+            "{} × {}, binned {across} × {down}: {rate:.2} frames/s, the model {model:.2}, {lost} lost",
+            roi.width, roi.height
+        );
+        if (rate - model).abs() > 0.05 * model || lost > 0 {
+            missed.push(format!(
+                "{} × {}: {rate:.2} of {model:.2}, {lost} lost",
+                roi.width, roi.height
+            ));
+        }
+    }
+    drop(camera);
+    put_back(&saved);
+    assert!(missed.is_empty(), "{missed:?}");
+}
+
+/// The middle of each exposure, on the host's clock, follows the grabber's stamps (P10.2): after
+/// the first frames, consecutive frames are as far apart in it as their stamps are, the host's
+/// wake-ups' jitter left out.
+#[tokio::test]
+#[ignore = "hardware"]
+async fn each_exposures_middle_follows_the_grabbers_stamps() {
+    let Some(saved) = saved() else { return };
+    let camera = open();
+    let original = camera.settings();
+    let capabilities = camera.capabilities().clone();
+    let settings = CameraSettings {
+        roi: Roi::full(capabilities.sensor_width, capabilities.sensor_height),
+        pixel_format: PixelFormat::Mono12,
+        exposure: Millis(10.0),
+        trigger: TriggerMode::FreeRun,
+        ..original
+    };
+    camera.configure(settings).await.unwrap();
+    let record = Arc::new(Record::default());
+    camera.start(pool(&settings), record.clone()).await.unwrap();
+    wait_for(&record, 70, Duration::from_secs(30)).await;
+    camera.stop().await.unwrap();
+    drop(camera);
+    put_back(&saved);
+
+    let frames = record.0.lock().unwrap();
+    let apart = |a: &FrameMeta, b: &FrameMeta| {
+        let host = (b.host_ts_mid_exposure.0 as f64 - a.host_ts_mid_exposure.0 as f64) / 1e6;
+        let stamps = (b.device_ts.unwrap().0 as f64 - a.device_ts.unwrap().0 as f64) / 1e3;
+        (host - stamps).abs()
+    };
+    let worst = frames[10..]
+        .windows(2)
+        .map(|pair| apart(&pair[0], &pair[1]))
+        .fold(0.0, f64::max);
+    eprintln!(
+        "{} frames: the host's times and the stamps apart by {worst:.4} ms at worst",
+        frames.len()
+    );
+    assert!(
+        worst < 0.25,
+        "the frames' times drift from the stamps by {worst:.3} ms"
+    );
+}

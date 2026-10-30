@@ -51,3 +51,34 @@ fn a_percentile_is_a_value_at_or_above_its_share() {
     assert_eq!(percentile(&[3.0], 0.95), 3.0);
     assert_eq!(percentile(&[], 0.95), 0.0);
 }
+
+#[test]
+fn on_the_camera_the_simulators_camera_gives_way_and_nothing_else_does() {
+    let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+    let sim = std::fs::read_to_string(repo.join("config/sim.toml")).unwrap();
+    let map = repo.join("config/cameras/adimec-d103a12c.toml");
+    let changed = super::on_the_camera(&sim, &map).unwrap();
+    let camera = changed
+        .split("\n[camera]\n")
+        .nth(1)
+        .unwrap()
+        .split("\n[")
+        .next()
+        .unwrap();
+    assert!(camera.contains("kind = \"euresys\""), "{camera}");
+    assert!(
+        camera.contains("adimec-d103a12c.toml") && !camera.contains('\\'),
+        "{camera}"
+    );
+    assert!(
+        !changed.contains("width = 11648"),
+        "the simulator's sensor is gone"
+    );
+    let sections = |text: &str| -> Vec<String> {
+        text.lines()
+            .filter(|line| line.starts_with('['))
+            .map(str::to_owned)
+            .collect()
+    };
+    assert_eq!(sections(&changed), sections(&sim));
+}

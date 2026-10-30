@@ -3,6 +3,7 @@
 //! requeues each slot once its last lease drops: a slot is queued only while the camera holds it,
 //! so the grabber never writes a frame that is being read.
 
+use std::collections::VecDeque;
 use std::future::ready;
 use std::iter;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -16,7 +17,9 @@ use siq_devices::{
     BoxFuture, Camera, CameraCapabilities, CameraSettings, CameraStats, Device, DeviceError,
     DeviceInfo, DeviceResult, FrameRateModel, FrameSink, RoiRules, TriggerMode,
 };
-use siq_types::{Binning, Clock, DeviceMicros, FrameMeta, Micrometers, Millis, Roi};
+use siq_types::{
+    Binning, Clock, DeviceMicros, FrameMeta, Micrometers, Millis, PixelFormat, Timestamp,
+};
 use tracing::warn;
 
 use crate::grabber::{ErrorKind, Grabber, GrabberError, Module, Popped};
@@ -24,6 +27,9 @@ use crate::map::{FeatureMap, module_of};
 
 /// How long a pop waits before the camera's thread looks for a stop and for released slots.
 const TICK: Duration = Duration::from_millis(20);
+/// The frames whose arrival times the clocks' offset: the grabber's clock drifts from the host's
+/// by tens of ppm, so it is taken again over the last of them.
+const OFFSETS: usize = 64;
 
 /// A camera on a frame grabber, named as its [`FeatureMap`] says.
 pub struct EuresysCamera<G: Grabber> {
@@ -122,61 +128,24 @@ fn capabilities<G: Grabber>(g: &mut G, map: &FeatureMap) -> DeviceResult<CameraC
         roi,
         exposure_min: exposure(g, "Min")?,
         exposure_max: exposure(g, "Max")?,
-        frame_rate: FrameRateModel {
-            overhead: Millis(map.readout_overhead_ms),
-            line_time: Millis(map.line_time_us / 1e3),
-        },
+        frame_rate: map.readout(),
     })
 }
 
-/// The settings in the camera now, free-running. GenICam's region is in binned pixels.
-fn current<G: Grabber>(
-    g: &mut G,
-    map: &FeatureMap,
-    capabilities: &CameraCapabilities,
-) -> DeviceResult<CameraSettings> {
-    let entry = remote(g, "PixelFormat")?;
-    let format = map.pixel_formats.get(&entry).copied();
-    let factor = |g: &mut G, f: &str| whole(g, f).map_or(1, |n| n.clamp(1, 255) as u8);
-    let binning = Binning::new(factor(g, "BinningHorizontal"), factor(g, "BinningVertical"));
-    let binning = binning.unwrap_or(Binning::NONE);
-    let (across, down) = binning.factors();
-    let (across, down) = (u32::from(across), u32::from(down));
-    let gain = number(g, &map.gain)?;
-    Ok(CameraSettings {
-        roi: Roi {
-            offset_x: whole(g, "OffsetX")? * across,
-            offset_y: whole(g, "OffsetY")? * down,
-            width: whole(g, "Width")? * across,
-            height: whole(g, "Height")? * down,
-        },
-        binning,
-        pixel_format: format.unwrap_or(capabilities.pixel_formats[0]),
-        exposure: Millis(number(g, &map.exposure)? / 1e3),
-        gain: if map.gain_db {
-            10f64.powf(gain / 20.0)
-        } else {
-            gain
-        },
-        trigger: TriggerMode::FreeRun,
-    })
-}
-
-/// The time to read a frame out with `settings`.
-fn readout(model: &FrameRateModel, settings: &CameraSettings) -> Millis {
-    model.overhead + model.line_time * f64::from(settings.image_size().1)
-}
-
-/// Sets the exposure and the gain, and, free-running, the frame period: the exposure, or the
-/// readout if it is longer. These change while acquiring. A camera may shorten an exposure to fit
-/// its period, so the period is set before the exposure, and again after it.
+/// Sets the exposure and the gain, and, free-running, the frame period: the readout, or the
+/// exposure and a margin if that is longer. The Adimec skips every other frame unless its period
+/// is more than 2 ms longer than its exposure (P10.2): the readout's fixed part and 2 ms clear it. These change while acquiring. A camera may shorten an
+/// exposure to fit its period, so the period is set before the exposure, and again after it.
 fn timing<G: Grabber>(
     g: &mut G,
     map: &FeatureMap,
     settings: &CameraSettings,
     model: &FrameRateModel,
 ) -> DeviceResult<()> {
-    let longest = readout(model, settings).0.max(settings.exposure.0);
+    let longest = model
+        .readout(settings)
+        .0
+        .max(settings.exposure.0 + model.overhead.0 + 2.0);
     let free = map
         .frame_period
         .as_ref()
@@ -231,8 +200,8 @@ fn apply<G: Grabber>(
 }
 
 impl<G: Grabber> EuresysCamera<G> {
-    /// The camera `grabber` has open, named as `map` says, timed by `clock`. It keeps the camera's
-    /// format, region, exposure and gain, and sets it free-running.
+    /// The camera `grabber` has open, named as `map` says, timed by `clock`: set up for its full
+    /// frame, in its deepest pixel format, at 10 ms and unity gain, free-running.
     pub fn new(mut grabber: G, map: FeatureMap, clock: Arc<dyn Clock>) -> DeviceResult<Self> {
         let model = remote(&mut grabber, "DeviceModelName")?;
         if let Some(expected) = map.model.as_ref().filter(|expected| **expected != model) {
@@ -251,7 +220,17 @@ impl<G: Grabber> EuresysCamera<G> {
             firmware: remote(&mut grabber, "DeviceFirmwareVersion").ok(),
         };
         let capabilities = capabilities(&mut grabber, &map)?;
-        let settings = current(&mut grabber, &map, &capabilities)?;
+        // As the simulated camera starts: the full frame at 10 ms, whatever the camera was left in,
+        // in the deepest format, since datasets take 16-bit frames.
+        let deepest = capabilities
+            .pixel_formats
+            .iter()
+            .max_by_key(|f| f.bits())
+            .copied();
+        let settings = CameraSettings {
+            pixel_format: deepest.unwrap_or(PixelFormat::Mono16),
+            ..CameraSettings::full_frame(&capabilities, Millis(10.0))
+        };
         apply(&mut grabber, &map, &capabilities, &settings)?;
         let shared = Shared {
             map,
@@ -315,12 +294,14 @@ impl<G: Grabber> EuresysCamera<G> {
         let thread = thread::Builder::new()
             .name("euresys-camera".into())
             .spawn(move || {
+                time_critical();
                 let mut running = Running {
                     shared: &shared,
                     pool,
                     returned,
                     queued: slots.into_iter().map(Some).collect(),
                     seq: 0,
+                    offsets: VecDeque::new(),
                 };
                 running.run(sink.as_ref());
             });
@@ -357,6 +338,19 @@ impl<G> Shared<G> {
     }
 }
 
+/// Raises the calling thread to time-critical priority (architecture §4.3): a frame popped late
+/// holds its slot from the grabber. The thread waits in `pop` or sleeps, so it starves no one.
+fn time_critical() {
+    use windows_sys::Win32::System::Threading::{
+        GetCurrentThread, SetThreadPriority, THREAD_PRIORITY_TIME_CRITICAL,
+    };
+    // SAFETY: the pseudo-handle of the calling thread, valid in it, which the call only reads.
+    let raised = unsafe { SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL) };
+    if raised == 0 {
+        warn!("the camera's thread couldn't be raised to time-critical priority");
+    }
+}
+
 /// Where a slot goes when its last lease drops: back to the camera's thread, to be filled again.
 /// Once the thread has ended, it goes back to the pool's free list.
 struct Requeue(Sender<FillGuard>);
@@ -375,6 +369,8 @@ struct Running<'a, G: Grabber> {
     /// The slots queued to the grabber, by index.
     queued: Vec<Option<FillGuard>>,
     seq: u64,
+    /// The host's clock less the grabber's, as the last frames arrived.
+    offsets: VecDeque<i64>,
 }
 
 impl<G: Grabber> Running<'_, G> {
@@ -436,18 +432,22 @@ impl<G: Grabber> Running<'_, G> {
         Ok(())
     }
 
-    /// A frame's metadata. Its buffer was filled as its readout ended, so the middle of its
-    /// exposure came the readout and half the exposure before it was popped (P10.2 checks this
-    /// against the grabber's clock).
-    fn meta(&self, settings: &CameraSettings, popped: &Popped) -> FrameMeta {
-        let model = FrameRateModel {
-            overhead: Millis(self.shared.map.readout_overhead_ms),
-            line_time: Millis(self.shared.map.line_time_us / 1e3),
-        };
-        let back = readout(&model, settings) + settings.exposure * 0.5;
-        let now = self.shared.clock.now();
-        let mid = now - back.to_duration().unwrap_or_default();
-        let mut meta = settings.frame_meta(self.seq, mid);
+    /// A frame's metadata. The grabber stamps a frame as its readout starts, as its exposure ends,
+    /// and it arrives its readout later (P10.2): the stamp, on the host's clock, less half the
+    /// exposure, is the middle of the exposure. The clocks' offset is the least of the last frames'
+    /// arrival, less their readout, less their stamp: the quickest arrival is the least delayed.
+    fn meta(&mut self, settings: &CameraSettings, popped: &Popped) -> FrameMeta {
+        let ns = |millis: Millis| (millis.0 * 1e6) as i64;
+        let stamp = popped.timestamp_ns as i64;
+        let readout = ns(self.shared.map.readout().readout(settings));
+        let arrived = self.shared.clock.now().0 as i64;
+        self.offsets.push_back(arrived - readout - stamp);
+        if self.offsets.len() > OFFSETS {
+            self.offsets.pop_front();
+        }
+        let offset = self.offsets.iter().copied().min().unwrap_or_default();
+        let mid = stamp + offset - ns(settings.exposure) / 2;
+        let mut meta = settings.frame_meta(self.seq, Timestamp(mid.max(0) as u64));
         meta.device_ts = Some(DeviceMicros(popped.timestamp_ns / 1000));
         let (x, y) = (settings.roi.offset_x, settings.roi.offset_y);
         meta.cfa = self.shared.map.cfa.map(|cfa| cfa.shifted(x, y));

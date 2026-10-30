@@ -260,6 +260,7 @@ pub fn small_sensor() -> CameraCapabilities {
         frame_rate: FrameRateModel {
             overhead: Millis(0.4),
             line_time: Millis(0.2),
+            binned_rows: true,
         },
     }
 }

@@ -12,9 +12,9 @@ Scientific microscope instrument software:
 ## Status
 
 **In progress:** Milestone 10, the hardware: the Adimec camera on its Coaxlink, then the stage and
-the focus drive. P10.1 is the latest: the camera filling the frame pool by DMA, its raw Bayer
-frames at 12.28 frames/s full frame, none lost, and the service's live view on it
-(`siq-euresys --example eg_live`).
+the focus drive. P10.2 is the latest: every mode of the camera within 1 % of its measured readout,
+each exposure timed from the grabber's stamps, and 10 minutes with 8 viewers on it losing no frame
+(`siq-euresys --example hw_acquire_bench`, the [runbook](docs/hardware/camera-bringup.md)).
 
 Done so far:
 
@@ -203,7 +203,12 @@ Done so far:
     pool slot a grabber buffer filled by DMA and requeued once read; its features named by a map
     for the camera model (`config/cameras/`); software triggers through the grabber's camera
     controller; each frame's colour filter array; and the service's `euresys` feature
-    (`siq-euresys --example eg_live`, `eg_features`).
+    (`siq-euresys --example eg_live`, `eg_features`);
+  - P10.2, the camera's bring-up: each mode's rate, a readout of 2.0 ms and 8.63 µs a row, binning
+    that reads every row, the period a long exposure needs, the grabber's timestamp marking the
+    start of each readout, a time-critical acquisition thread, the pool checked against the RAM at
+    start, and a soak on the camera (`cargo xtask soak --euresys`); the
+    [camera bring-up runbook](docs/hardware/camera-bringup.md).
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

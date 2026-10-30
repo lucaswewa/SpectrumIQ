@@ -15,6 +15,7 @@ use windows_sys::Win32::System::Memory::{
     VirtualUnlock,
 };
 use windows_sys::Win32::System::ProcessStatus::{K32GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
+use windows_sys::Win32::System::SystemInformation::{GlobalMemoryStatusEx, MEMORYSTATUSEX};
 use windows_sys::Win32::System::Threading::{
     GetCurrentProcess, GetProcessIoCounters, GetProcessTimes, GetProcessWorkingSetSize,
     IO_COUNTERS, SetProcessWorkingSetSize,
@@ -195,6 +196,18 @@ pub fn process_memory() -> io::Result<ProcessMemory> {
         peak_working_set: counters.PeakWorkingSetSize,
         private: counters.PagefileUsage,
     })
+}
+
+/// The computer's physical memory, in bytes.
+pub fn physical_memory() -> io::Result<u64> {
+    // SAFETY: an all-zero struct of integers is valid; its length is set before the call.
+    let mut status: MEMORYSTATUSEX = unsafe { std::mem::zeroed() };
+    status.dwLength = size_of::<MEMORYSTATUSEX>() as u32;
+    // SAFETY: `status` is a struct to fill, of the length it says.
+    if unsafe { GlobalMemoryStatusEx(&mut status) } == 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(status.ullTotalPhys)
 }
 
 /// The process's work so far: its processors' time, and what it read and wrote by calls.

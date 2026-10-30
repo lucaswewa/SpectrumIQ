@@ -173,6 +173,7 @@ impl SimCameraSetup {
             frame_rate: FrameRateModel {
                 overhead: Millis(1.0),
                 line_time: Millis((full - 1.0).max(0.0) / f64::from(height.max(1))),
+                binned_rows: true,
             },
         }
     }
