@@ -227,50 +227,102 @@ With the service running:
 
 ### M10 — Hardware bring-up: the camera, colour, the stage's bring-up, trigger and strobe
 
-On the instrument's PC, with the eGrabber SDK installed: the camera's commands build with
-`--features sdk`, and the service with `--features euresys`. The stage and the focus drive are
-still simulated: what M10 says of them runs on the emulators. Each camera command puts back the
-camera's settings as it found them. To keep them yourself, run `eg_features --save before.txt`
-first and `eg_features --restore before.txt` after: the
-[camera runbook](../../hardware/camera-bringup.md), step 2.
+On the instrument's PC, with the eGrabber SDK installed. The stage and the focus drive are still
+simulated: what M10 says of them runs on the emulators. Each step's detail is in the
+[camera runbook](../../hardware/camera-bringup.md) and the
+[motion runbook](../../hardware/motion-bringup.md).
 
-- **The camera** ([runbook](../../hardware/camera-bringup.md)):
-  - `cargo run --release -p siq-euresys --features sdk --example eg_live` gives about 12.3 frames
-    a second at the full frame, none lost;
-  - `--example hw_acquire_bench` gives each mode within a few percent of its model, none lost;
-  - the hardware tests, in `siq-euresys`'s README: six pass;
-  - `--example strobe_timing -- --triggers 40`: each exposure starts about 0.6 ms after its
-    trigger, and as many strobes as triggers are counted on `IOUT11`.
-- **The service on the camera:** copy `config/sim.toml` into a folder of its own, set its
-  `[camera]` as the runbook's step 8 says, and add a user. Run
-  `cargo run --release -p spectrumiq-server --features euresys -- -c <that file>`, and start live
-  view:
-  - both previews stream in colour, the white balanced;
-  - turn off **Automatic white balance**, or press **White from ROI** on a blank of the slide;
-  - snap into a dataset: the viewer shows it in colour at every zoom.
+1. **Build the service with the camera.** Without `euresys`, a configuration of the Euresys camera
+   is refused at start:
 
-  Under load: `cargo xtask soak --euresys --viewers 8 --minutes 10`. No frame is lost.
-- **Colour on the simulator:** in a copy of `config/sim.toml`, uncomment `cfa = "gbrg"`:
-  - the histogram shows red, green and blue;
-  - calibrate, take a dark and a flat, and autofocus, as in M5 and M6: each works on the frames'
-    luminance;
-  - the live mosaic paints in grey, the luminance;
-  - make a colour scan with `cargo run --release -p siq-datagen -- tilescan --colour --columns 3
-    --rows 3`, and stitch it from the Datasets page: the mosaic has three channels, red, green and
-    blue, and shows in colour.
-- **The stage, on the emulator** ([runbook](../../hardware/motion-bringup.md)):
-  - `target\release\spectrumiq-server --list-ports` lists this PC's ports, as does the Settings
-    page;
-  - `cargo run --release -p siq-grbl --example grbl_drive` prints the status's round trip, about
-    10 ms;
-  - set `"$100" = 800.0` under `[stage.expect]` in a copy of `config/sim.toml`: the service
-    refuses to start, naming `$100`;
-  - `cargo run --release -p siq-server --example motion_repeatability -- --repeats 20` gives a
-    repeatability of about 0.6 µm against the emulator's 0.5, and a backlash of about 2 µm;
-  - a calibration's record in `status` has its `repeatability_um`.
-- **Not yet, until the real stage and focus drive are in:**
-  - the full frame live for 10 minutes with the live mosaic and the recorder;
-  - a real 3 × 3 tile scan stitched;
-  - the focus drive's dialect, which needs its protocol document.
+   ```text
+   cd web && npm ci && npm run build && cd ..
+   cargo build --release -p spectrumiq-server --features euresys
+   ```
 
-  On the camera, the stage can't be calibrated against a simulated stage.
+2. **The camera alone,** with no service running. Keep its settings first; each command puts back
+   what it changes, and this file is your own way back at any time
+   (`eg_features -- --restore C:\siq-test\camera-before.txt`):
+
+   ```text
+   cargo run --release -p siq-euresys --features sdk --example eg_features -- --save C:\siq-test\camera-before.txt
+   cargo run --release -p siq-euresys --features sdk --example eg_live
+   cargo run --release -p siq-euresys --features sdk --example hw_acquire_bench
+   set SIQ_EURESYS_DEVICE=0:0
+   cargo test --release -p siq-euresys --features sdk --test hardware -- --ignored --test-threads 1
+   cargo run --release -p siq-euresys --features sdk --example strobe_timing -- --triggers 40
+   ```
+
+   - `eg_live`: about 12.3 frames a second at the full frame, none lost.
+   - `hw_acquire_bench`: each mode within a few percent of its model, none lost.
+   - The hardware tests: six pass.
+   - `strobe_timing`: each exposure starts about 0.6 ms after its trigger, and the grabber counts
+     40 camera triggers, 40 strobes and 40 rising edges on `IOUT11`.
+
+3. **The service on the camera.** Make `C:\siq-cam\config`, copy `config\sim.toml` into it, and
+   replace the copy's `[camera]` with:
+
+   ```toml
+   [camera]
+   kind = "euresys"
+   interface = 0
+   device = 0
+   features = "C:/repos/SpectrumIQ/config/cameras/adimec-d103a12c.toml"
+   ```
+
+   Then add a user, and start it:
+
+   ```text
+   target\release\spectrumiq-server user add ada -c C:\siq-cam\config\sim.toml
+   target\release\spectrumiq-server -c C:\siq-cam\config\sim.toml
+   ```
+
+   Open <http://127.0.0.1:5000/>, log in, **Take control**, and start live view:
+
+   - both previews stream in colour, and the histogram draws red, green and blue;
+   - turn off **Automatic white balance**, or put the ROI on a blank of the slide and press
+     **White from ROI**: the view is neutral;
+   - snap into a dataset, and open it in the Viewer: it is in colour at every zoom.
+
+   Stop the service, and run the soak, which starts a service of its own:
+   `cargo xtask soak --euresys --viewers 8 --minutes 10`. No frame is lost. The service leaves the
+   camera at its own settings (the full frame, 10 ms, 12-bit): put yours back from
+   `camera-before.txt` after.
+
+4. **Colour on the simulator.** Make `C:\siq-colour\config`, copy `config\sim.toml` into it, and
+   uncomment the copy's `cfa = "gbrg"`. Before starting the service, make a colour scan in its data
+   root:
+
+   ```text
+   cargo run --release -p siq-datagen -- tilescan --colour --columns 3 --rows 3 --out C:\siq-colour\data
+   ```
+
+   Add a user, and start the service on that configuration, as in step 3:
+
+   - live view: the histogram's three lines, and the white balance as on the camera;
+   - calibrate the stage and the camera, take a dark and a flat, and autofocus, as in M5 and M6:
+     each works on the frames' luminance;
+   - the Mosaic page paints in grey, the luminance;
+   - on the Datasets page, **Stitch…** the colour scan: the mosaic has three channels, red, green
+     and blue, and shows in colour in the Viewer.
+
+5. **The stage, on the emulator:**
+
+   - `target\release\spectrumiq-server --list-ports` lists this PC's serial ports (COM7, an FTDI
+     adapter, on 2026-10-29); the app's **Settings** page shows the same, with what each is
+     configured for;
+   - `cargo run --release -p siq-grbl --example grbl_drive` prints the status's round trip, about
+     10 ms;
+   - in a copy of `config/sim.toml`, change `"$100" = 1600.0` to `800.0` under `[stage.expect]`:
+     the service refuses to start, naming `$100`;
+   - `cargo run --release -p siq-server --example motion_repeatability -- --repeats 20`: a
+     repeatability of about 0.6 µm against the emulator's 0.5, and a backlash of about 2 µm;
+   - after a calibration, `GET /api/v1/calibration/status` has its record's `repeatability_um`.
+
+6. **Not yet, until the real stage and focus drive are in:**
+
+   - the full frame live for 10 minutes with the live mosaic and the recorder;
+   - a real 3 × 3 tile scan stitched;
+   - the focus drive's dialect, which needs its protocol document.
+
+   On the camera, the stage can't be calibrated against a simulated stage.
