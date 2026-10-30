@@ -25,8 +25,10 @@ use tracing::warn;
 use crate::grabber::{ErrorKind, Grabber, GrabberError, Module, Popped};
 use crate::map::{FeatureMap, module_of};
 
-/// How long a pop waits before the camera's thread looks for a stop and for released slots.
-const TICK: Duration = Duration::from_millis(20);
+/// How long a pop waits before the camera's thread looks for a stop and for released slots, and
+/// steps aside for a caller: a software trigger waits at most this for the grabber. 20 ms put a
+/// trigger's exposure up to 21 ms after the call; 2 ms, within 1.05 ms (P10.4, ADR-0072).
+const TICK: Duration = Duration::from_millis(2);
 /// The frames whose arrival times the clocks' offset: the grabber's clock drifts from the host's
 /// by tens of ppm, so it is taken again over the last of them.
 const OFFSETS: usize = 64;
@@ -40,6 +42,7 @@ pub struct EuresysCamera<G: Grabber> {
 
 struct Shared<G> {
     map: FeatureMap,
+    strobe: Option<Strobe>,
     clock: Arc<dyn Clock>,
     control: Mutex<Control>,
     grabber: Mutex<G>,
@@ -80,6 +83,35 @@ fn whole<G: Grabber>(grabber: &mut G, feature: &str) -> DeviceResult<u32> {
 
 fn set<G: Grabber>(grabber: &mut G, feature: &str, value: impl ToString) -> DeviceResult<()> {
     Ok(grabber.set(Module::Remote, feature, &value.to_string())?)
+}
+
+/// A strobe (P10.4, ADR-0072): a pulse on one of the grabber's output lines during each triggered
+/// exposure, to light it. The grabber's camera controller makes it, so only a triggered camera
+/// has one.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Strobe {
+    /// The output line, such as `IOUT11`.
+    pub line: String,
+    /// From the exposure's start to the pulse's.
+    pub delay: Millis,
+    /// The pulse; the exposure if `None`.
+    pub duration: Option<Millis>,
+}
+
+/// Sets the grabber's camera controller to time `strobe` in an exposure of `settings`, and its
+/// line to carry it while triggered, or to stay low free-running.
+fn strobe<G: Grabber>(g: &mut G, strobe: &Strobe, settings: &CameraSettings) -> DeviceResult<()> {
+    let triggered = settings.trigger != TriggerMode::FreeRun;
+    if triggered {
+        let us = |millis: Millis| (millis.0 * 1e3).to_string();
+        let duration = strobe.duration.unwrap_or(settings.exposure);
+        g.set(Module::Device, "ExposureTime", &us(settings.exposure))?;
+        g.set(Module::Device, "StrobeDelay", &us(strobe.delay))?;
+        g.set(Module::Device, "StrobeDuration", &us(duration))?;
+    }
+    g.set(Module::Interface, "LineSelector", &strobe.line)?;
+    let source = if triggered { "Device0Strobe" } else { "Low" };
+    Ok(g.set(Module::Interface, "LineSource", source)?)
 }
 
 /// What the camera can do, read from it: GenICam's `Feature.Min`, `.Max` and `.Inc`, with what
@@ -134,11 +166,12 @@ fn capabilities<G: Grabber>(g: &mut G, map: &FeatureMap) -> DeviceResult<CameraC
 
 /// Sets the exposure and the gain, and, free-running, the frame period: the readout, or the
 /// exposure and a margin if that is longer. The Adimec skips every other frame unless its period
-/// is more than 2 ms longer than its exposure (P10.2): the readout's fixed part and 2 ms clear it. These change while acquiring. A camera may shorten an
-/// exposure to fit its period, so the period is set before the exposure, and again after it.
+/// is more than 2 ms longer than its exposure (P10.2): the readout's fixed part and 2 ms clear
+/// it. These change while acquiring. A camera may shorten an exposure to fit its period, so the
+/// period is set before the exposure, and again after it. A strobe follows the exposure.
 fn timing<G: Grabber>(
     g: &mut G,
-    map: &FeatureMap,
+    (map, lit): (&FeatureMap, Option<&Strobe>),
     settings: &CameraSettings,
     model: &FrameRateModel,
 ) -> DeviceResult<()> {
@@ -163,14 +196,15 @@ fn timing<G: Grabber>(
         } else {
             gain
         },
-    )
+    )?;
+    lit.map_or(Ok(()), |lit| strobe(g, lit, settings))
 }
 
 /// Applies every setting: the format, the binning, then the region, its offsets cleared first
 /// so that any size fits, then the timing and the trigger.
 fn apply<G: Grabber>(
     g: &mut G,
-    map: &FeatureMap,
+    (map, lit): (&FeatureMap, Option<&Strobe>),
     capabilities: &CameraCapabilities,
     settings: &CameraSettings,
 ) -> DeviceResult<()> {
@@ -196,7 +230,7 @@ fn apply<G: Grabber>(
         let (module, name) = module_of(feature);
         g.set(module, name, value)?;
     }
-    timing(g, map, settings, &capabilities.frame_rate)
+    timing(g, (map, lit), settings, &capabilities.frame_rate)
 }
 
 impl<G: Grabber> EuresysCamera<G> {
@@ -231,9 +265,10 @@ impl<G: Grabber> EuresysCamera<G> {
             pixel_format: deepest.unwrap_or(PixelFormat::Mono16),
             ..CameraSettings::full_frame(&capabilities, Millis(10.0))
         };
-        apply(&mut grabber, &map, &capabilities, &settings)?;
+        apply(&mut grabber, (&map, None), &capabilities, &settings)?;
         let shared = Shared {
             map,
+            strobe: None,
             clock,
             control: Mutex::new(Control {
                 settings,
@@ -252,6 +287,35 @@ impl<G: Grabber> EuresysCamera<G> {
             capabilities,
             shared: Arc::new(shared),
         })
+    }
+
+    /// The camera, its exposures lit by `strobe` while triggered (P10.4). Its settings are set
+    /// again; it must not have started.
+    pub fn with_strobe(mut self, strobe: Strobe) -> DeviceResult<Self> {
+        let shared = Arc::get_mut(&mut self.shared)
+            .ok_or_else(|| DeviceError::Busy("the camera has started".into()))?;
+        let settings = shared
+            .control
+            .get_mut()
+            .map_or_else(|e| e.into_inner().settings, |c| c.settings);
+        let grabber = shared
+            .grabber
+            .get_mut()
+            .unwrap_or_else(PoisonError::into_inner);
+        apply(
+            grabber,
+            (&shared.map, Some(&strobe)),
+            &self.capabilities,
+            &settings,
+        )?;
+        shared.strobe = Some(strobe);
+        Ok(self)
+    }
+
+    /// Runs `read` on the grabber, beside the camera's thread: for its counters and events, which
+    /// a test or a bring-up reads.
+    pub fn with_grabber<R>(&self, read: impl FnOnce(&mut G) -> R) -> R {
+        read(&mut self.shared.grab())
     }
 
     /// Announces every slot of `pool`, and starts the camera's thread.
@@ -493,7 +557,8 @@ impl<G: Grabber> Camera for EuresysCamera<G> {
         let result = self.capabilities.check(&settings).and_then(|()| {
             let mut control = lock(&self.shared.control);
             let mut grabber = self.shared.grab();
-            let (map, capabilities) = (&self.shared.map, &self.capabilities);
+            let lit = (&self.shared.map, self.shared.strobe.as_ref());
+            let capabilities = &self.capabilities;
             if control.thread.is_some() {
                 let live = CameraSettings {
                     exposure: settings.exposure,
@@ -504,9 +569,9 @@ impl<G: Grabber> Camera for EuresysCamera<G> {
                     let why = "only the exposure and gain change while acquiring";
                     return Err(DeviceError::Busy(why.into()));
                 }
-                timing(&mut *grabber, map, &settings, &capabilities.frame_rate)?;
+                timing(&mut *grabber, lit, &settings, &capabilities.frame_rate)?;
             } else {
-                apply(&mut *grabber, map, capabilities, &settings)?;
+                apply(&mut *grabber, lit, capabilities, &settings)?;
             }
             control.settings = settings;
             Ok(())

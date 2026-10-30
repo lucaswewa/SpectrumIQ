@@ -12,10 +12,9 @@ Scientific microscope instrument software:
 ## Status
 
 **In progress:** Milestone 10, the hardware: the Adimec camera on its Coaxlink, then the stage and
-the focus drive. P10.3 is the latest, on the emulators: the controller's settings checked on
-connecting, the status's round trip, the serial ports listed, and the stage's repeatability and
-backlash measured (`siq-server --example motion_repeatability`, the
-[motion runbook](docs/hardware/motion-bringup.md)).
+the focus drive. P10.4 is the latest: a strobe on the grabber's output line in each triggered
+exposure, and a software trigger's exposure within about 1 ms of the call
+(`siq-euresys --example strobe_timing`, ADR-0072), which also designs continuous scanning.
 
 Done so far:
 
@@ -221,7 +220,10 @@ Done so far:
     against the controller's `$$`, the round trip kept, the ports listed (`--list-ports`, the
     Settings page), the repeatability kept with the calibration; the
     [motion bring-up runbook](docs/hardware/motion-bringup.md). The focus drive's dialect waits for
-    its protocol document.
+    its protocol document;
+  - P10.4, the trigger and the strobe (ADR-0072): `[camera.strobe]` on a grabber output line, the
+    acquisition thread's tick at 2 ms, a trigger's exposure 0.45–1.05 ms after the call, and a
+    design for scanning continuously, the camera triggered at positions.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

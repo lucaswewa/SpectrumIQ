@@ -1,7 +1,7 @@
 # Camera bring-up runbook
 
-How to bring up a CoaXPress camera on the Coaxlink, from the SDK to the service, and what P10.1
-and P10.2 found for the Adimec D-103A12c/CXP-T01 (ADR-0070). Run each step from the repository's
+How to bring up a CoaXPress camera on the Coaxlink, from the SDK to the service, and what P10.1,
+P10.2 and P10.4 found for the Adimec D-103A12c/CXP-T01 (ADR-0070, ADR-0072). Run each step from the repository's
 root, in a terminal with the eGrabber SDK installed.
 
 ## 1. What is needed
@@ -117,13 +117,47 @@ set SIQ_EURESYS_DEVICE=0:0
 cargo test --release -p siq-euresys --features sdk --test hardware -- --ignored --test-threads 1
 ```
 
-Five pass, each putting back the camera's features:
+Six pass, each putting back the camera's features, and the grabber's it changes:
 
 - 100 full frames in sequence, evenly timed, none lost;
 - one frame for each software trigger;
 - a binned region at its size, with its colour filter's phases;
 - each mode at its model's rate within 5 %, the full frame at 150 ms too;
-- each exposure's middle following the grabber's stamps.
+- each exposure's middle following the grabber's stamps;
+- each software trigger strobing `IOUT11` once, its exposure within 2 ms of the call (P10.4).
+
+## 7a. The trigger and the strobe (P10.4)
+
+```text
+cargo run --release -p siq-euresys --features sdk --example strobe_timing -- --triggers 40
+```
+
+A software trigger is the grabber's camera controller's (CIC) `StartCycle`, in
+`CameraControlMethod` `RC`. The CIC also times a strobe in each exposure, on one of the grabber's
+output lines (ADR-0072):
+
+- `IOUT11`–`IOUT22` are opto-isolated;
+- `TTLIO11`–`TTLIO22` are TTL, set as outputs.
+
+`strobe_timing` triggers a 2048 × 2048 region at 5 ms, 200 ms apart, a strobe on `IOUT11` for the
+whole exposure. It prints when each exposure started after its call, and the grabber's counts:
+
+- the camera's triggers;
+- the strobes;
+- the line's own rising edges, read back through a line input tool, with no wiring.
+
+On 2026-10-29, over 40 triggers:
+
+| What | P10.1's 20 ms tick | P10.4's 2 ms tick |
+|---|---|---|
+| The call | 0.07–20.7 ms | 0.06–0.93 ms |
+| The exposure's start, after the call | 0.40–20.9 ms, 6.6 on average | 0.45–1.05 ms, 0.60 on average, 0.13 rms |
+| Triggers, strobes, edges | 20 of each, of 20 | 40 of each, of 40 |
+
+The acquisition thread held the grabber through its `pop`, and a trigger waited for it. With the
+2 ms tick it waits at most 2 ms. Wire the illumination's strobe input to the line, and set it in
+the service's `[camera]`: `strobe = { line = "IOUT11" }`, with `delay_ms` and `duration_ms` if
+wanted. Free-running, the line stays low: the CIC runs only when triggered.
 
 ## 8. The service on the camera
 
@@ -135,6 +169,7 @@ kind = "euresys"
 interface = 0
 device = 0
 features = "C:/repos/SpectrumIQ/config/cameras/adimec-d103a12c.toml"
+# strobe = { line = "IOUT11" }   # once the illumination's strobe input is wired (step 7a)
 ```
 
 Add a user to it, and run:

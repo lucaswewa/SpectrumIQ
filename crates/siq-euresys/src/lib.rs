@@ -15,7 +15,7 @@ mod egrabber;
 mod grabber;
 mod map;
 
-pub use camera::EuresysCamera;
+pub use camera::{EuresysCamera, Strobe};
 #[cfg(feature = "sdk")]
 pub use egrabber::EGrabber;
 pub use grabber::{Counters, ErrorKind, Grabber, GrabberError, Module, Popped};

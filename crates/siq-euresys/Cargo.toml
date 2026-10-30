@@ -46,3 +46,7 @@ workspace = true
 [[example]]
 name = "hw_acquire_bench"
 required-features = ["sdk"]
+
+[[example]]
+name = "strobe_timing"
+required-features = ["sdk"]

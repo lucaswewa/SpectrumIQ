@@ -233,6 +233,22 @@ pub struct EuresysCameraConfig {
     pub device: u32,
     /// The camera's feature-name map (P10.2), if it differs from GenICam SFNC.
     pub features: Option<PathBuf>,
+    /// A strobe on one of the grabber's output lines during each triggered exposure, for the
+    /// illumination (P10.4); none if not given.
+    pub strobe: Option<StrobeConfig>,
+}
+
+/// A strobe: a pulse on a grabber's output line during each triggered exposure.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StrobeConfig {
+    /// The output line, such as `IOUT11`.
+    pub line: String,
+    /// From the exposure's start to the pulse's, in ms.
+    #[serde(default)]
+    pub delay_ms: f64,
+    /// The pulse, in ms; the exposure if not given.
+    pub duration_ms: Option<f64>,
 }
 
 /// The XYZ stage.

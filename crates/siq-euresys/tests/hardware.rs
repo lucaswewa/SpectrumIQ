@@ -1,7 +1,7 @@
 //! The camera on the grabber of this PC (ADR-0070), with the `sdk` feature: 100 full frames
-//! free-running, in sequence and evenly timed by the grabber's clock, with none lost; and one
-//! frame for each software trigger. Each test reads the camera's own features first, and puts them
-//! back after.
+//! free-running, in sequence and evenly timed by the grabber's clock, with none lost; one frame
+//! for each software trigger; and a strobe for each (P10.4, ADR-0072). Each test reads the
+//! camera's own features first, and the grabber's it changes, and puts them back after.
 //!
 //! ```text
 //! set SIQ_EURESYS_DEVICE=0:0
@@ -80,6 +80,11 @@ fn put_back(saved: &[(String, String)]) {
 
 /// The camera, named by its map: `SIQ_EURESYS_MAP`, or the Adimec's.
 fn open() -> EuresysCamera<EGrabber> {
+    open_on(Arc::new(SystemClock::new()))
+}
+
+/// [`open`], timed by `clock`.
+fn open_on(clock: Arc<dyn siq_types::Clock>) -> EuresysCamera<EGrabber> {
     let map = std::env::var_os("SIQ_EURESYS_MAP").map_or_else(
         || {
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -88,7 +93,7 @@ fn open() -> EuresysCamera<EGrabber> {
         PathBuf::from,
     );
     let map = FeatureMap::load(&map).unwrap();
-    EuresysCamera::new(grabber().unwrap(), map, Arc::new(SystemClock::new())).unwrap()
+    EuresysCamera::new(grabber().unwrap(), map, clock).unwrap()
 }
 
 /// The metadata of every frame, each slot given back at once.
@@ -371,5 +376,137 @@ async fn each_exposures_middle_follows_the_grabbers_stamps() {
     assert!(
         worst < 0.25,
         "the frames' times drift from the stamps by {worst:.3} ms"
+    );
+}
+
+/// What the strobe changes on the grabber, to put back after: its camera controller as `RC`
+/// shows it, the line's source, and the line input tool that reads the line back. In the order
+/// they are put back, a selector before what it selects.
+fn saved_strobe(line: &str) -> Vec<(String, String)> {
+    let mut g = grabber().unwrap();
+    let mut kept: Vec<(String, String)> = Vec::new();
+    let mut read = |g: &mut EGrabber, feature: &str| {
+        let (module, name) = module_of(feature);
+        let value = g.get(module, name).unwrap();
+        kept.push((feature.to_owned(), value.clone()));
+        value
+    };
+    let set = |g: &mut EGrabber, feature: &str, value: &str| {
+        let (module, name) = module_of(feature);
+        g.set(module, name, value).unwrap();
+    };
+    let method = g.get(Module::Device, "CameraControlMethod").unwrap();
+    set(&mut g, "device:CameraControlMethod", "RC");
+    read(&mut g, "device:CameraControlMethod");
+    for feature in [
+        "CycleTriggerSource",
+        "ExposureTime",
+        "StrobeDelay",
+        "StrobeDuration",
+    ] {
+        read(&mut g, &format!("device:{feature}"));
+    }
+    read(&mut g, "device:EventSelector");
+    set(&mut g, "device:CameraControlMethod", &method);
+    read(&mut g, "device:CameraControlMethod");
+    let selected = read(&mut g, "interface:LineSelector");
+    set(&mut g, "interface:LineSelector", line);
+    read(&mut g, "interface:LineSelector");
+    read(&mut g, "interface:LineSource");
+    let tool = read(&mut g, "interface:LineInputToolSelector");
+    set(&mut g, "interface:LineInputToolSelector", "LIN1");
+    read(&mut g, "interface:LineInputToolSelector");
+    read(&mut g, "interface:LineInputToolSource");
+    read(&mut g, "interface:LineInputToolActivation");
+    read(&mut g, "interface:EventSelector");
+    set(&mut g, "interface:LineSelector", &selected);
+    set(&mut g, "interface:LineInputToolSelector", &tool);
+    kept.extend([
+        ("interface:LineSelector".to_owned(), selected),
+        ("interface:LineInputToolSelector".to_owned(), tool),
+    ]);
+    kept
+}
+
+/// The grabber's counts of the camera's triggers, the strobes, and the line tool's rising edges.
+fn strobe_counts(g: &mut EGrabber) -> [u64; 3] {
+    let count = |g: &mut EGrabber, module, event| {
+        g.set(module, "EventSelector", event).unwrap();
+        g.get(module, "EventCount").unwrap().parse::<u64>().unwrap()
+    };
+    [
+        count(g, Module::Device, "CameraTriggerRisingEdge"),
+        count(g, Module::Device, "StrobeRisingEdge"),
+        count(g, Module::Interface, "LIN1"),
+    ]
+}
+
+// P10.4 (ADR-0072): each software trigger strobes the line once, read back through a line input
+// tool with no wiring; and its exposure starts within 2 ms of the call, after the first frames
+// have settled the clocks' offset.
+#[tokio::test]
+#[ignore = "hardware"]
+async fn each_trigger_strobes_its_line_and_exposes_soon_after() {
+    let Some(saved) = saved() else { return };
+    let line = "IOUT11";
+    let strobed = saved_strobe(line);
+    let strobe = siq_euresys::Strobe {
+        line: line.to_owned(),
+        delay: Millis(0.0),
+        duration: None,
+    };
+    let clock = Arc::new(SystemClock::new());
+    let camera = open_on(clock.clone()).with_strobe(strobe).unwrap();
+    let settings = CameraSettings {
+        roi: Roi {
+            offset_x: 4608,
+            offset_y: 3584,
+            width: 2048,
+            height: 2048,
+        },
+        exposure: Millis(5.0),
+        trigger: TriggerMode::Software,
+        ..camera.settings()
+    };
+    camera.configure(settings).await.unwrap();
+    let before = camera.with_grabber(|g| {
+        g.set(Module::Interface, "LineInputToolSelector", "LIN1")
+            .unwrap();
+        g.set(Module::Interface, "LineInputToolSource", line)
+            .unwrap();
+        g.set(Module::Interface, "LineInputToolActivation", "RisingEdge")
+            .unwrap();
+        strobe_counts(g)
+    });
+    let record = Arc::new(Record::default());
+    camera.start(pool(&settings), record.clone()).await.unwrap();
+    let mut called = Vec::new();
+    for n in 1..=15 {
+        called.push(siq_types::Clock::now(&*clock));
+        camera.trigger().await.unwrap();
+        wait_for(&record, n, Duration::from_secs(2)).await;
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    camera.stop().await.unwrap();
+    let after = camera.with_grabber(strobe_counts);
+    drop(camera);
+    put_back(&strobed);
+    put_back(&saved);
+
+    let counted = [0, 1, 2].map(|k| after[k] - before[k]);
+    assert_eq!(counted, [15; 3], "triggers, strobes, and the line's edges");
+    let frames = record.0.lock().unwrap().clone();
+    let latencies: Vec<f64> = called
+        .iter()
+        .zip(&frames)
+        .skip(5)
+        .map(|(call, meta)| {
+            let started = meta.host_ts_mid_exposure.0 as i64 - 2_500_000;
+            (started - call.0 as i64) as f64 / 1e6
+        })
+        .collect();
+    assert!(
+        latencies.iter().all(|ms| (0.0..2.0).contains(ms)),
+        "{latencies:?}"
     );
 }

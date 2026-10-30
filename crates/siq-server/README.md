@@ -236,8 +236,9 @@ with `# @name` feed the ones after them: the snap's state and JPEG, and cancelli
 ## Features
 
 - **`euresys`:** the Euresys camera, `[camera] kind = "euresys"` (`siq-euresys`, ADR-0070),
-  through the installed eGrabber SDK. Its pool is locked in RAM. Without it, such a configuration
-  is refused at start, saying so.
+  through the installed eGrabber SDK, with its strobe if `[camera] strobe` gives one (P10.4,
+  ADR-0072). Its pool is locked in RAM. Without it, such a configuration is refused at start,
+  saying so.
 
 ## Testing
 

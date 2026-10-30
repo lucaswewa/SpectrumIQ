@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 use siq_buffer::{Backend, FillGuard, FrameLease, FramePool, PoolConfig};
 use siq_devices::{Camera, CameraSettings, DeviceError, FrameSink, TriggerMode};
 use siq_euresys::{
-    Counters, ErrorKind, EuresysCamera, FeatureMap, Grabber, GrabberError, Module, Popped,
+    Counters, ErrorKind, EuresysCamera, FeatureMap, Grabber, GrabberError, Module, Popped, Strobe,
 };
 use siq_types::{Binning, Cfa, FrameMeta, Millis, PixelFormat, Roi, SystemClock};
 
@@ -430,4 +430,64 @@ async fn an_incomplete_buffer_is_lost_and_filled_again_and_a_held_slot_stops_a_s
         "the incomplete buffer was filled again"
     );
     camera.stop().await.unwrap();
+}
+
+// P10.4 (ADR-0072): a strobe is timed in each triggered exposure, on its line, follows the
+// exposure, and its line stays low free-running.
+#[tokio::test]
+async fn a_strobe_follows_the_triggered_exposure_and_stays_low_free_running() {
+    let (fake, set, _, _) = fake();
+    let strobe = Strobe {
+        line: "IOUT11".into(),
+        delay: Millis(0.5),
+        duration: None,
+    };
+    let camera = EuresysCamera::new(fake, adimec(), Arc::new(SystemClock::new()))
+        .and_then(|camera| camera.with_strobe(strobe))
+        .unwrap();
+    let low = [
+        "LineSelector=IOUT11".to_owned(),
+        "LineSource=Low".to_owned(),
+    ];
+    assert!(set.lock().unwrap().ends_with(&low), "free-running at first");
+
+    set.lock().unwrap().clear();
+    let triggered = CameraSettings {
+        exposure: Millis(5.0),
+        trigger: TriggerMode::Software,
+        ..camera.settings()
+    };
+    camera.configure(triggered).await.unwrap();
+    let log = set.lock().unwrap().clone();
+    let lit = [
+        "StrobeDelay=500",
+        "StrobeDuration=5000",
+        "LineSource=Device0Strobe",
+    ];
+    assert!(lit.iter().all(|s| log.contains(&s.to_string())), "{log:?}");
+
+    set.lock().unwrap().clear();
+    let longer = CameraSettings {
+        exposure: Millis(8.0),
+        ..triggered
+    };
+    camera.configure(longer).await.unwrap();
+    assert!(
+        set.lock()
+            .unwrap()
+            .contains(&"StrobeDuration=8000".to_owned())
+    );
+
+    set.lock().unwrap().clear();
+    let free = CameraSettings {
+        trigger: TriggerMode::FreeRun,
+        ..longer
+    };
+    camera.configure(free).await.unwrap();
+    let log = set.lock().unwrap().clone();
+    assert!(log.ends_with(&low), "{log:?}");
+    assert!(
+        !log.iter().any(|s| s.starts_with("StrobeDuration")),
+        "{log:?}"
+    );
 }

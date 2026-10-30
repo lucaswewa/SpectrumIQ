@@ -141,13 +141,22 @@ fn euresys(
     config: &siq_config::model::EuresysCameraConfig,
     clock: Arc<dyn Clock>,
 ) -> anyhow::Result<(Arc<dyn Camera>, Backend)> {
-    use siq_euresys::{EGrabber, EuresysCamera, FeatureMap};
+    use siq_euresys::{EGrabber, EuresysCamera, FeatureMap, Strobe};
+    use siq_types::Millis;
     let map = match &config.features {
         Some(path) => FeatureMap::load(path)?,
         None => FeatureMap::default(),
     };
     let grabber = EGrabber::open(None, config.interface, config.device)?;
-    let camera = EuresysCamera::new(grabber, map, clock).context("the Euresys camera")?;
+    let mut camera = EuresysCamera::new(grabber, map, clock).context("the Euresys camera")?;
+    if let Some(strobe) = &config.strobe {
+        let strobe = Strobe {
+            line: strobe.line.clone(),
+            delay: Millis(strobe.delay_ms),
+            duration: strobe.duration_ms.map(Millis),
+        };
+        camera = camera.with_strobe(strobe).context("the camera's strobe")?;
+    }
     Ok((Arc::new(camera), Backend::WindowsLocked))
 }
 

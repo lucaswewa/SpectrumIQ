@@ -416,6 +416,18 @@ expression: schema
               ],
               "default": null
             },
+            "strobe": {
+              "description": "A strobe on one of the grabber's output lines during each triggered exposure, for the\nillumination (P10.4); none if not given.",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/StrobeConfig"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
             "kind": {
               "type": "string",
               "const": "euresys"
@@ -491,6 +503,34 @@ expression: schema
           "type": "string",
           "const": "bggr"
         }
+      ]
+    },
+    "StrobeConfig": {
+      "description": "A strobe: a pulse on a grabber's output line during each triggered exposure.",
+      "type": "object",
+      "properties": {
+        "line": {
+          "description": "The output line, such as `IOUT11`.",
+          "type": "string"
+        },
+        "delay_ms": {
+          "description": "From the exposure's start to the pulse's, in ms.",
+          "type": "number",
+          "format": "double",
+          "default": 0.0
+        },
+        "duration_ms": {
+          "description": "The pulse, in ms; the exposure if not given.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "format": "double"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "line"
       ]
     },
     "StageConfig": {

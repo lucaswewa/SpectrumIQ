@@ -80,3 +80,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0069](0069-e2e-and-soak-strategy.md) | The end-to-end and soak strategy, with its targets | Accepted | P9.5 |
 | [0070](0070-euresys-acquisition-and-buffer-ownership.md) | Euresys acquisition: threading, buffer ownership, the feature map, and raw Bayer frames (amended in P10.2: the Adimec measured, and the settings chosen) | Accepted | P10.1 |
 | [0071](0071-colour-from-raw-bayer-frames.md) | Colour from raw Bayer frames: the simulator, the previews, the pyramid and the tiles (amended in P10.7: processing on luminance, and the stitch in colour) | Accepted | P10.6 |
+| [0072](0072-trigger-strobe-and-continuous-scanning.md) | Trigger and strobe, and a design for continuous scanning | Accepted | P10.4 |
