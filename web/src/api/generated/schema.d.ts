@@ -816,6 +816,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/display/white_from_roi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All invocations of white_from_roi.
+         * @description List all the invocations of white_from_roi that the server is keeping, with their times and links.
+         */
+        get: operations["list_invocations_api_v1_display_white_from_roi_get"];
+        put?: never;
+        /**
+         * Fixes a colour frame's white balance at the ROI's latest: red's and blue's 99.9th
+         * @description ## Fixes a colour frame's white balance at the ROI's latest: red's and blue's 99.9th
+         *
+         *     Fixes a colour frame's white balance at the ROI's latest: red's and blue's 99.9th
+         *     percentiles brought to green's. The ROI on a blank of the slide makes it white.
+         *
+         *     ## Important note
+         *
+         *     This `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.
+         */
+        post: operations["start_action_api_v1_display_white_from_roi_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/display/properties": {
         parameters: {
             query?: never;
@@ -4728,9 +4759,9 @@ export interface components {
          *     This may be either an empty dictionary or ``None``.
          */
         display_auto_contrast_once_input: Record<string, never> | null;
-        /** @description How the previews show a frame: the contrast and the colours. */
+        /** @description How the previews show a frame: the contrast, the colours, and a colour frame's white balance. */
         display_auto_contrast_once_output: {
-            /** @description The window, fixed or automatic. */
+            /** @description The window, fixed or automatic: on a colour frame, green's, after the white balance. */
             contrast: {
                 /** @description The value shown black, and below. */
                 min: number;
@@ -4748,9 +4779,26 @@ export interface components {
                 /** @constant */
                 kind: "auto";
             };
-            /** @description The colours. */
+            /** @description The colours of a mono frame. A colour frame shows its own, inverted or not. */
             colormap: "grey" | "inverted" | {
                 colour: number[];
+            };
+            /**
+             * @description How a colour frame's colours are balanced.
+             * @default {
+             *       "kind": "auto"
+             *     }
+             */
+            white_balance?: {
+                /** @constant */
+                kind: "auto";
+            } | {
+                /** @description Red's gain. */
+                red: number;
+                /** @description Blue's gain. */
+                blue: number;
+                /** @constant */
+                kind: "fixed";
             };
         };
         display_auto_contrast_once_invocation: {
@@ -4778,12 +4826,22 @@ export interface components {
             bins: number[];
             /** @description The 0.1th and 99.9th percentiles. */
             window: number[];
-            /** @description The focus measure: the mean squared Sobel gradient. */
+            /** @description The focus measure: the mean squared Sobel gradient, of a colour frame's luminance. */
             focus: number;
+            /**
+             * @description A colour frame's red, green and blue, `bins` and `window` being green's; none for a mono
+             *     frame.
+             */
+            colours?: {
+                /** @description The counts. */
+                bins: number[];
+                /** @description The percentiles. */
+                window: number[];
+            }[];
         } | null;
-        /** @description How the previews show a frame: the contrast and the colours. */
+        /** @description How the previews show a frame: the contrast, the colours, and a colour frame's white balance. */
         display_lut_value: {
-            /** @description The window, fixed or automatic. */
+            /** @description The window, fixed or automatic: on a colour frame, green's, after the white balance. */
             contrast: {
                 /** @description The value shown black, and below. */
                 min: number;
@@ -4801,9 +4859,26 @@ export interface components {
                 /** @constant */
                 kind: "auto";
             };
-            /** @description The colours. */
+            /** @description The colours of a mono frame. A colour frame shows its own, inverted or not. */
             colormap: "grey" | "inverted" | {
                 colour: number[];
+            };
+            /**
+             * @description How a colour frame's colours are balanced.
+             * @default {
+             *       "kind": "auto"
+             *     }
+             */
+            white_balance?: {
+                /** @constant */
+                kind: "auto";
+            } | {
+                /** @description Red's gain. */
+                red: number;
+                /** @description Blue's gain. */
+                blue: number;
+                /** @constant */
+                kind: "fixed";
             };
         };
         /** @description The ROI stream's region and zoom. */
@@ -4821,6 +4896,70 @@ export interface components {
             } | null;
             /** @description The zoom. */
             zoom: "native" | "half";
+        };
+        /**
+         * @description Represent the input of an action that never takes parameters.
+         *
+         *     This may be either an empty dictionary or ``None``.
+         */
+        display_white_from_roi_input: Record<string, never> | null;
+        /** @description How the previews show a frame: the contrast, the colours, and a colour frame's white balance. */
+        display_white_from_roi_output: {
+            /** @description The window, fixed or automatic: on a colour frame, green's, after the white balance. */
+            contrast: {
+                /** @description The value shown black, and below. */
+                min: number;
+                /** @description The value shown full, and above. */
+                max: number;
+                /** @description The gamma: above 1 brightens the shadows. */
+                gamma: number;
+                /** @constant */
+                kind: "manual";
+            } | {
+                /** @description The low percentile, from 0 to 100. */
+                low_pct: number;
+                /** @description The high percentile, from 0 to 100. */
+                high_pct: number;
+                /** @constant */
+                kind: "auto";
+            };
+            /** @description The colours of a mono frame. A colour frame shows its own, inverted or not. */
+            colormap: "grey" | "inverted" | {
+                colour: number[];
+            };
+            /**
+             * @description How a colour frame's colours are balanced.
+             * @default {
+             *       "kind": "auto"
+             *     }
+             */
+            white_balance?: {
+                /** @constant */
+                kind: "auto";
+            } | {
+                /** @description Red's gain. */
+                red: number;
+                /** @description Blue's gain. */
+                blue: number;
+                /** @constant */
+                kind: "fixed";
+            };
+        };
+        display_white_from_roi_invocation: {
+            status: components["schemas"]["InvocationStatus"];
+            /** Format: uuid */
+            id: string;
+            action: string;
+            /** Format: uri */
+            href: string;
+            timeStarted: string | null;
+            timeRequested: string | null;
+            timeCompleted: string | null;
+            links?: components["schemas"]["LinkElement"][];
+            input: components["schemas"]["display_white_from_roi_input"];
+            output?: components["schemas"]["display_white_from_roi_output"] | null;
+            log: components["schemas"]["LogRecordModel"][];
+            error?: components["schemas"]["ProblemDetails"] | null;
         };
         stage_alarm_data: number;
         /** @description A position, or a velocity, on the stage's three axes. */
@@ -8600,6 +8739,68 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_invocations_api_v1_display_white_from_roi_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A list of every invocation of white_from_roi. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvocationSummary"][];
+                };
+            };
+        };
+    };
+    start_action_api_v1_display_white_from_roi_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["display_white_from_roi_input"];
+            };
+        };
+        responses: {
+            /** @description Action completed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["display_white_from_roi_output"];
+                };
+            };
+            /** @description Action has been invoked (and may still be running). */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["display_white_from_roi_invocation"];
                 };
             };
             /** @description Validation Error */

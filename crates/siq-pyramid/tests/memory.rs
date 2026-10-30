@@ -81,6 +81,7 @@ fn building_holds_a_few_chunks_per_thread_not_the_image() {
             colour: [255; 3],
             window: (0.0, 1.0),
         }],
+        cfa: None,
     };
     let mut image = ZarrImage::create(&folder.path().join("big.ome.zarr"), info).unwrap();
     for (row, col) in (0..8).flat_map(|row| (0..8).map(move |col| (row, col))) {

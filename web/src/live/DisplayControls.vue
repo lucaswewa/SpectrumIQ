@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // How the live previews show the frames (`display.lut`): automatic or manual contrast, the
-// window's ends and gamma, the colours, and the ROI's histogram, whose markers move the window.
+// window's ends and gamma, the colours, and the ROI's histogram, whose markers move the window. A
+// colour frame's white balance is automatic, or fixed from the ROI.
 import { computed, ref } from 'vue'
 
 import { useCameraStore } from '@/stores/camera'
@@ -45,15 +46,22 @@ const auto = computed({
   set: (on: boolean) => {
     const lut = display.lut
     if (!lut) return
-    if (on)
-      void send({
-        contrast: { kind: 'auto', low_pct: 0.1, high_pct: 99.9 },
-        colormap: lut.colormap,
-      })
+    if (on) void send({ ...lut, contrast: { kind: 'auto', low_pct: 0.1, high_pct: 99.9 } })
     else
       void send(
         withEnd(lut, window.value ?? [0, fullScale(bits.value)], 'min', window.value?.[0] ?? 0),
       )
+  },
+})
+
+/** Whether the frames are in colour: their histogram has red, green and blue. */
+const colour = computed(() => (display.histogram?.colours?.length ?? 0) > 0)
+const autoWhite = computed({
+  get: () => display.lut?.white_balance?.kind !== 'fixed',
+  set: (on: boolean) => {
+    const lut = display.lut
+    if (on && lut) void send({ ...lut, white_balance: { kind: 'auto' } })
+    else if (!on) void display.whiteFromRoi()
   },
 })
 
@@ -101,6 +109,7 @@ const colourChoice = computed({
       :bits="bits"
       :window="window"
       :log="log"
+      :colours="display.histogram?.colours?.map((counts) => counts.bins)"
       @update="setEnd"
     />
     <div class="display-controls__row">
@@ -128,7 +137,11 @@ const colourChoice = computed({
         <AppSlider v-model="gamma" label="Gamma" :min="0.2" :max="5" :step="0.05" />
       </FormField>
     </template>
-    <FormField label="Colours">
+    <div v-if="colour" class="display-controls__row">
+      <AppToggle v-model="autoWhite" label="Automatic white balance" />
+      <AppButton size="sm" @click="display.whiteFromRoi()">White from ROI</AppButton>
+    </div>
+    <FormField v-else label="Colours">
       <AppSelect v-model="colourChoice" :options="colourOptions" size="sm" />
     </FormField>
   </div>

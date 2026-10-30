@@ -61,6 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             channel("rings", [0, 255, 0]),
             channel("grid", [255, 0, 255]),
         ],
+        cfa: None,
     };
     let image = ZarrImage::create(&path, info)?;
     let (rows, cols) = image.info().chunks(0);

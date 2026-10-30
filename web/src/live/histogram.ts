@@ -46,7 +46,7 @@ export function shownWindow(
 
 /**
  * The mapping with one end of its window moved: manual from then on, keeping the other end, the
- * gamma (1 from auto) and the colours. The ends stay at least one value apart.
+ * gamma (1 from auto), the colours and the white balance. The ends stay at least one value apart.
  */
 export function withEnd(
   lut: Lut,
@@ -59,8 +59,11 @@ export function withEnd(
     end === 'min'
       ? [Math.min(Math.round(value), window[1] - 1), window[1]]
       : [window[0], Math.max(Math.round(value), window[0] + 1)]
-  return { contrast: { kind: 'manual', min: Math.max(min, 0), max, gamma }, colormap: lut.colormap }
+  return { ...lut, contrast: { kind: 'manual', min: Math.max(min, 0), max, gamma } }
 }
+
+/** A colour frame's red, green and blue, as its histogram draws them. */
+export const CHANNEL_COLOURS = ['rgb(220 60 50)', 'rgb(40 170 70)', 'rgb(50 110 230)'] as const
 
 /** The colormap's CSS colour at full scale, for its swatch. */
 export function colormapColour(colormap: Colormap): string {

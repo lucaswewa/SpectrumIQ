@@ -1,6 +1,6 @@
 //! The preview pipelines: geometry, display mapping, auto-contrast, the flat-field correction and
-//! statistics on synthetic frames; then the running streams on the simulated camera, for their
-//! rate caps and latency.
+//! statistics on synthetic frames, mono and colour; then the running streams on the simulated
+//! camera, for their rate caps and latency.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
@@ -11,10 +11,11 @@ use siq_acquire::Acquisition;
 use siq_buffer::{Backend, PoolConfig};
 use siq_calib::shading::FlatField;
 use siq_devices::{CameraSettings, TriggerMode};
-use siq_imgproc::{Colormap, DisplayMapping, Histogram, Lut};
+use siq_imgproc::{Colormap, DisplayMapping, Lut};
 use siq_preview::{
-    Contrast, DisplaySettings, FrameStats, PreviewConfig, PreviewSink, Previews, Renderer,
-    RoiSettings, StatsSink, StreamKind, Zoom, fit, measure, roi_region,
+    Contrast, DisplaySettings, FrameStats, Mapping, Measuring, PreviewConfig, PreviewSink,
+    Previews, Renderer, RoiSettings, StatsSink, StreamKind, WhiteBalance, Zoom, fit, measure,
+    roi_region,
 };
 use siq_sim::camera::{Lens, SimCamera, SimCameraSetup};
 use siq_sim::optics::{OpticsModel, SensorModel};
@@ -22,8 +23,8 @@ use siq_sim::state::TrueState;
 use siq_synth::{Cells, CellsParams};
 use siq_telemetry::{MetricValue, Registry};
 use siq_types::{
-    Affine2, Binning, FrameMeta, Hertz, ManualClock, Micrometers, Millis, OwnedImage, PixelFormat,
-    RectPx, Roi, Timestamp,
+    Affine2, Binning, Cfa, FrameMeta, Hertz, ManualClock, Micrometers, Millis, OwnedImage,
+    PixelFormat, RectPx, Roi, Timestamp,
 };
 
 fn meta(roi: Roi, binning: Binning) -> FrameMeta {
@@ -58,7 +59,7 @@ fn the_overview_fits_its_box_and_keeps_the_frame_s_aspect() {
 
     let frame = OwnedImage::<u16>::from_fn(1000, 700, |x, y| ((x * 7 + y * 13) % 16_384) as u16);
     let mut renderer = Renderer::default();
-    let mapping = renderer.mapping(&frame.view(), 14, &DisplaySettings::default());
+    let mapping = renderer.mapping(&frame.view(), 14, None, &DisplaySettings::default());
     let size = fit((1000, 700), (400, 400));
     renderer
         .show(
@@ -115,7 +116,7 @@ fn a_shaded_frame_shows_flat_once_corrected_wherever_the_region_is() {
                 &frame.view(),
                 region,
                 size,
-                mapping,
+                Mapping::Mono(mapping),
                 Some((&shading, &frame_meta)),
             )
             .unwrap();
@@ -128,7 +129,7 @@ fn a_shaded_frame_shows_flat_once_corrected_wherever_the_region_is() {
             &frame.view(),
             RectPx::new(0, 0, 600, 500),
             (150, 125),
-            mapping,
+            Mapping::Mono(mapping),
             None,
         )
         .unwrap();
@@ -227,14 +228,19 @@ fn a_lut_maps_the_window_through_its_gamma_and_colormap() {
             max: 9000,
             gamma: 2.0,
         };
-        let mapping = renderer.mapping(&frame.view(), 14, &DisplaySettings { contrast, colormap });
+        let settings = DisplaySettings {
+            contrast,
+            colormap,
+            white_balance: WhiteBalance::Auto,
+        };
+        let mapping = renderer.mapping(&frame.view(), 14, None, &settings);
         let expected = DisplayMapping {
             min: 1000,
             max: 9000,
             gamma: 2.0,
             colormap,
         };
-        assert_eq!(mapping, expected);
+        assert_eq!(mapping, Mapping::Mono(expected));
         renderer
             .show(&frame.view(), whole, (256, 4), mapping, None)
             .unwrap();
@@ -262,15 +268,19 @@ fn auto_contrast_takes_the_frame_s_percentiles() {
     };
     let settings = DisplaySettings {
         contrast,
-        colormap: Colormap::Grey,
+        ..DisplaySettings::default()
     };
-    let mapping = renderer.mapping(&frame.view(), 14, &settings);
+    let Mapping::Mono(mapping) = renderer.mapping(&frame.view(), 14, None, &settings) else {
+        panic!("a mono frame's mapping")
+    };
     assert!((96..=104).contains(&mapping.min), "{mapping:?}");
     assert!((9896..=9904).contains(&mapping.max), "{mapping:?}");
     assert_eq!(mapping.gamma, 1.0);
     // A flat frame still has a window.
     let flat = OwnedImage::<u16>::from_fn(64, 64, |_, _| 500);
-    let mapping = renderer.mapping(&flat.view(), 14, &settings);
+    let Mapping::Mono(mapping) = renderer.mapping(&flat.view(), 14, None, &settings) else {
+        panic!("a mono frame's mapping")
+    };
     assert!(mapping.min < mapping.max);
 }
 
@@ -285,7 +295,7 @@ fn statistics_count_the_region_and_measure_its_sharpness() {
     let flat = OwnedImage::<u16>::from_fn(200, 100, |_, _| 2000);
     let frame = meta(Roi::full(200, 100), Binning::NONE);
     let region = RectPx::new(50, 25, 100, 50);
-    let mut counts = Histogram::new(14);
+    let mut counts = Measuring::default();
     let sharp = measure(&textured.view(), &frame, 14, region, &mut counts).unwrap();
     assert_eq!(sharp.region, region);
     assert_eq!(
@@ -304,6 +314,72 @@ fn statistics_count_the_region_and_measure_its_sharpness() {
     );
     let blurred = measure(&flat.view(), &frame, 14, region, &mut counts).unwrap();
     assert!(sharp.focus > 0.0 && blurred.focus == 0.0);
+    assert_eq!(sharp.colours, None, "a mono frame");
+}
+
+/// A colour frame of `width` × `height` whose filter array, `cfa`, passes red at 3000, green at
+/// 4000 and blue at 2000.
+fn colour_frame(cfa: Cfa, width: usize, height: usize) -> OwnedImage<u16> {
+    OwnedImage::from_fn(width, height, |x, y| [3000, 4000, 2000][cfa.colour(x, y)])
+}
+
+#[test]
+fn a_colour_frame_shows_in_its_colours_balanced_wherever_the_region_starts() {
+    let frame = colour_frame(Cfa::Gbrg, 200, 100);
+    let mut renderer = Renderer::default();
+    let contrast = Contrast::Manual {
+        min: 0,
+        max: 4000,
+        gamma: 1.0,
+    };
+    let shown = |renderer: &mut Renderer, white_balance, region, size| {
+        let settings = DisplaySettings {
+            contrast,
+            colormap: Colormap::Grey,
+            white_balance,
+        };
+        let mapping = renderer.mapping(&frame.view(), 14, Some(Cfa::Gbrg), &settings);
+        renderer
+            .show(&frame.view(), region, size, mapping, None)
+            .unwrap();
+        let ((width, height), bytes) = renderer.shown();
+        assert_eq!(bytes.len(), (width * height * 3) as usize, "in colour");
+        // Every pixel the same: the middle one's.
+        let at = ((height / 2 * width + width / 2) * 3) as usize;
+        let pixel = [bytes[at], bytes[at + 1], bytes[at + 2]];
+        assert!(bytes.chunks(3).all(|p| p == pixel), "{region:?}");
+        pixel
+    };
+    let raw = WhiteBalance::Fixed {
+        red: 1.0,
+        blue: 1.0,
+    };
+    // Shrunk from whole cells, and at 1:1 from an odd corner, whose cell starts with red.
+    for (region, size) in [
+        (RectPx::new(0, 0, 200, 100), (50, 25)),
+        (RectPx::new(1, 1, 99, 49), (99, 49)),
+    ] {
+        assert_eq!(shown(&mut renderer, raw, region, size), [191, 255, 128]);
+        let white = shown(&mut renderer, WhiteBalance::Auto, region, size);
+        assert_eq!(white, [255; 3], "the brightest shows white");
+    }
+}
+
+#[test]
+fn a_colour_frame_s_statistics_are_per_colour_and_its_sharpness_on_luminance() {
+    let frame = colour_frame(Cfa::Rggb, 200, 100);
+    let mut meta = meta(Roi::full(200, 100), Binning::NONE);
+    meta.cfa = Some(Cfa::Rggb);
+    let region = RectPx::new(51, 25, 100, 50);
+    let stats = measure(&frame.view(), &meta, 14, region, &mut Measuring::default()).unwrap();
+    let colours = stats.colours.expect("per colour");
+    let windows = colours.map(|(_, window)| window);
+    for (window, value) in windows.into_iter().zip([3000, 4000, 2000]) {
+        assert!(window.0 <= value && value <= window.1, "{windows:?}");
+        assert!(window.1 - window.0 < 8, "{windows:?}");
+    }
+    assert_eq!(stats.window, windows[1], "green's");
+    assert_eq!(stats.focus, 0.0, "one colour, flat");
 }
 
 /// Counts what each stream pushes, and keeps the last JPEG's size.

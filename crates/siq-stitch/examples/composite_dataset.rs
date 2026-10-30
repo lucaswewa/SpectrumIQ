@@ -134,6 +134,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             colour: [255; 3],
             window: (0.0, 16_383.0),
         }],
+        cfa: None,
     };
     let mut image = ZarrImage::create(&dataset.zarr_dir().join("stitched.ome.zarr"), info)?;
     let plane = Plane {

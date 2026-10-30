@@ -38,6 +38,7 @@ fn a_dataset_s_pyramid_is_built_as_a_job_and_recorded() {
             colour: [255; 3],
             window: (0.0, 16383.0),
         }],
+        cfa: None,
     };
     let image = ZarrImage::create(&path, info).unwrap();
     for (row, col) in (0..3).flat_map(|row| (0..4).map(move |col| (row, col))) {

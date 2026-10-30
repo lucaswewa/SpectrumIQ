@@ -76,7 +76,8 @@ This is the only crate that depends on teta-wot.
   the sessions: the auth routes and the layer; P9.2 the authorization, the control token and its
   Thing, and the local console's login; P9.3 the audit trail and its query; P9.4 the users
   routes, the local console's user made at start, and where its secret is; P10.1 the Euresys
-  camera, with `euresys`.
+  camera, with `euresys`; P10.2 the pool checked against the RAM at start; P10.6 colour: the
+  histogram per colour, `white_from_roi`, and a snap's image keeping its filter array.
 
 ## API
 
@@ -99,7 +100,7 @@ This is the only crate that depends on teta-wot.
 | Thing | Properties | Actions | Events and streams |
 |---|---|---|---|
 | `camera` | `exposure_ms`, `region`, `binning`, `pixel_format` (writable); `frame_rate`, `sensor`, `stats` | `start_live`, `stop_live`, `snap` → JPEG | `frames_lost`; MJPEG `overview` and `roi` |
-| `display` | `lut`, `roi_region`, `flat_field` (writable): the previews corrected by the dark and flat in force; `histogram`, `focus_measure` | `auto_contrast_once` | — |
+| `display` | `lut` (writable), with a colour frame's `white_balance`, `auto` or `fixed`; `roi_region`, `flat_field` (writable): the previews corrected by the dark and flat in force; `histogram`, a colour frame's with its `colours`, red, green and blue, its `bins` and `window` being green's; `focus_measure`, of a colour frame's luminance | `auto_contrast_once`; `white_from_roi`: a colour frame's white balance fixed at the ROI's latest, red's and blue's 99.9th percentiles brought to green's (ADR-0071) | — |
 | `stage` | `position`, `state`, `homed` (observable); `speed`; `limits` | `move_to`, `move_by`, `jog`, `home`, `halt` | `arrived`, `alarm` |
 | `focus` | `position`, `state`, `homed` (observable); `limits` | `move_to`, `move_by`, `halt` | `arrived` |
 | `illumination` | `levels` (observable); `sources` | `set_level(source, level)`, by the source's name | `changed` |
@@ -283,6 +284,10 @@ with its parameters, a viewer's refusal, a logout ending the token, a job's end 
 run of one snap, all recorded by whom and from where; a read that is a `POST` not recorded; the
 query refused to a viewer and given to an admin; no password in the trail; its chain intact.
 
+`colour` (P10.6), the simulated sensor given a filter array: the histogram per colour, blue
+below red below green under the warm lamp; `white_from_roi` raising red and blue; a snap's image
+keeping its filter array, and a tile of it in colour.
+
 `peripherals`:
 
 - each peripheral's Thing over HTTP: its properties, its action, its event, and a refusal;
@@ -359,11 +364,10 @@ with its reason where there is no GPU:
 
 ## Limitations
 
-- **The Euresys camera** is refused until P10.1.
+- **The Euresys camera** needs the `euresys` feature, and eGrabber's SDK to build it.
 - **The peripherals are simulated only,** until P10.5.
 - **The simulated camera images transmitted light only:** a fluorescence channel's snap is a
   brighter brightfield, tinted.
-- **No authentication yet:** P9.1. Bind to `127.0.0.1` until then.
 - **The lifecycle copies `ThingServer::serve_with` at v0.1.0:** check it on each teta-wot upgrade.
 - **A run holds the global lock throughout:** for hours, a time-lapse leaves only `pause`,
   `resume`, the halts and what reads.

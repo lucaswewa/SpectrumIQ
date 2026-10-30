@@ -183,6 +183,7 @@ impl Scan {
                 colour: [255; 3],
                 window: (0.0, 16_383.0),
             }],
+            cfa: None,
         };
         let path = self.folder.path().join("tuned.ome.zarr");
         let _ = std::fs::remove_dir_all(&path);

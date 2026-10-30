@@ -12,9 +12,9 @@ Scientific microscope instrument software:
 ## Status
 
 **In progress:** Milestone 10, the hardware: the Adimec camera on its Coaxlink, then the stage and
-the focus drive. P10.2 is the latest: every mode of the camera within 1 % of its measured readout,
-each exposure timed from the grabber's stamps, and 10 minutes with 8 viewers on it losing no frame
-(`siq-euresys --example hw_acquire_bench`, the [runbook](docs/hardware/camera-bringup.md)).
+the focus drive. P10.6 is the latest: the camera's raw Bayer frames shown in colour, live and in
+the viewer, with white balance, and a colour sensor in the simulator
+(`siq-preview --example preview_to_files -- <folder> gbrg`, ADR-0071).
 
 Done so far:
 
@@ -208,7 +208,11 @@ Done so far:
     that reads every row, the period a long exposure needs, the grabber's timestamp marking the
     start of each readout, a time-critical acquisition thread, the pool checked against the RAM at
     start, and a soak on the camera (`cargo xtask soak --euresys`); the
-    [camera bring-up runbook](docs/hardware/camera-bringup.md).
+    [camera bring-up runbook](docs/hardware/camera-bringup.md);
+  - P10.6, colour for display (ADR-0071): a colour sensor in the simulator (`[camera] cfa`); the
+    previews demosaiced, the overview from whole filter cells and the ROI interpolated at 1:1;
+    a window on each colour, with automatic white balance or one fixed from the ROI; the
+    statistics per colour; and the pyramid keeping the cells whole, its tiles demosaiced.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

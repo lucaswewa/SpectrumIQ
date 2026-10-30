@@ -3,10 +3,11 @@
 //! stream made, their mean time of work and from mid-exposure, and where the files are.
 //!
 //! ```text
-//! cargo run --release -p siq-preview --example preview_to_files [-- <folder>]
+//! cargo run --release -p siq-preview --example preview_to_files [-- <folder> [<cfa>]]
 //! ```
 //!
-//! The folder defaults to `target/preview_to_files`. It uses the full sensor, about 100 MP. Smoke
+//! The folder defaults to `target/preview_to_files`. A filter array, such as `gbrg`, makes the
+//! sensor a colour one (ADR-0071). It uses the full sensor, about 100 MP. Smoke
 //! mode (`SIQ_SMOKE=1`) uses the `fast` profile with a 1024 × 768 sensor.
 
 use std::error::Error;
@@ -25,7 +26,7 @@ use siq_sim::camera::{SimCamera, SimCameraSetup};
 use siq_sim::state::TrueState;
 use siq_synth::WorldInfo;
 use siq_telemetry::{MetricValue, Registry};
-use siq_types::{Clock, FrameMeta, SystemClock};
+use siq_types::{Cfa, Clock, FrameMeta, SystemClock};
 
 /// Keeps each stream's last JPEG, the number made, and the last statistics.
 #[derive(Default)]
@@ -60,11 +61,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let folder = std::env::args()
         .nth(1)
         .map_or_else(|| PathBuf::from("target/preview_to_files"), PathBuf::from);
+    let cfa = match std::env::args().nth(2).as_deref() {
+        None => None,
+        Some("rggb") => Some(Cfa::Rggb),
+        Some("grbg") => Some(Cfa::Grbg),
+        Some("gbrg") => Some(Cfa::Gbrg),
+        Some("bggr") => Some(Cfa::Bggr),
+        Some(other) => {
+            return Err(format!("{other} isn't a filter array: rggb, grbg, gbrg, bggr").into());
+        }
+    };
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config/sim.toml");
     let mut config = siq_config::load(&path)?;
     let CameraConfig::Sim(mut camera) = config.camera.clone() else {
         return Err("config/sim.toml's camera isn't simulated".into());
     };
+    camera.cfa = cfa;
     if std::env::var_os("SIQ_SMOKE").is_some() {
         config.sim.profile = SimProfile::Fast;
         (camera.width, camera.height) = (1024, 768);
@@ -81,8 +93,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let settings = sim.settings();
     let (width, height) = settings.image_size();
     println!(
-        "{width} × {height} {:?}, live for 3 s",
-        settings.pixel_format
+        "{width} × {height} {:?}{}, live for 3 s",
+        settings.pixel_format,
+        cfa.map_or_else(String::new, |cfa| format!(", colour {cfa:?}"))
     );
     let pool = PoolConfig {
         name: "camera.pool".into(),

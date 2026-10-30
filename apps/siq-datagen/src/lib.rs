@@ -244,6 +244,7 @@ pub fn write_stack(
             colour: [255; 3],
             window: (0.0, 12_000.0),
         }],
+        cfa: None,
     };
     let mut image = ZarrImage::create(&path, info)?;
     for (z, plane) in planes.iter().enumerate() {

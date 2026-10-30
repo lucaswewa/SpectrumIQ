@@ -3,7 +3,8 @@
 //!
 //! - **The filter** is the mean of each 2 × 2 block, of what is inside the image at the edges:
 //!   rounded to the nearest for `u16`, exact for `f32`. A level halves the one before it in `y` and
-//!   `x`, rounding up.
+//!   `x`, rounding up. A colour image's levels keep its filter's cells whole (ADR-0071): each
+//!   pixel is the mean of its colour in the 2 × 2 cells below its cell.
 //! - **The levels** go on until the image fits [`TOP`] pixels both ways.
 //! - **Chunk alignment:** a chunk of level `l + 1` is the mean of exactly four chunks of level `l`,
 //!   the 2 × 2 block below it. Each is built alone, in parallel, read once and written once, with no
@@ -115,29 +116,32 @@ fn halve<T: Mean>(
     let (width, height) = ((2 * chunk).min(below.x - x0), (2 * chunk).min(below.y - y0));
     let rect = RectPx::new(x0 as u32, y0 as u32, width as u32, height as u32);
     let source = image.read_region::<T>(level - 1, plane, rect)?;
-    let (pixels, width, height) = mean_2x2(source.view());
+    let (pixels, width, height) = mean_2x2(source.view(), info.cfa.is_some());
     let view = ImageView::new(&pixels, width, height, width).expect("a chunk of its own size");
     image.write_chunk(level, plane, (row, col), view)
 }
 
 /// `source` halved: each pixel the mean of the 2 × 2 block of `source` it covers, or of what is
 /// left of the block at the right and bottom edges. Its pixels, width and height.
-pub fn mean_2x2<T: Mean>(source: ImageView<'_, T>) -> (Vec<T>, usize, usize) {
+///
+/// With `cells`, `source` is a colour filter's mosaic, and its cells are kept whole: each pixel is
+/// the mean of the same colour in the 2 × 2 cells its cell covers, so the halved image is a mosaic
+/// of the same pattern.
+pub fn mean_2x2<T: Mean>(source: ImageView<'_, T>, cells: bool) -> (Vec<T>, usize, usize) {
     let (width, height) = (source.width().div_ceil(2), source.height().div_ceil(2));
+    // The two columns, or rows, of `source` that pixel `i` takes.
+    let pair = |i: usize| match cells {
+        false => [2 * i, 2 * i + 1],
+        true => [4 * (i / 2) + i % 2, 4 * (i / 2) + i % 2 + 2],
+    };
     let mut pixels = Vec::with_capacity(width * height);
     let mut block = Vec::with_capacity(4);
     for y in 0..height {
-        let rows = [
-            Some(source.row(2 * y)),
-            (2 * y + 1 < source.height()).then(|| source.row(2 * y + 1)),
-        ];
+        let rows = pair(y).map(|y| (y < source.height()).then(|| source.row(y)));
         for x in 0..width {
             block.clear();
             for row in rows.into_iter().flatten() {
-                block.extend(
-                    row.get(2 * x..(2 * x + 2).min(row.len()))
-                        .unwrap_or_default(),
-                );
+                block.extend(pair(x).into_iter().filter_map(|x| row.get(x)));
             }
             pixels.push(T::mean(&block));
         }

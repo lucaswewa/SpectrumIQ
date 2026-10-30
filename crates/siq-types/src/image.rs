@@ -89,6 +89,22 @@ impl Cfa {
             (Cfa::Bggr, _) => Cfa::Grbg,
         }
     }
+
+    /// The colour at (`x`, `y`) of an image with this pattern at its top left: 0 for red, 1 for
+    /// green, 2 for blue.
+    pub const fn colour(self, x: usize, y: usize) -> usize {
+        let red = match self {
+            Cfa::Rggb => (0, 0),
+            Cfa::Grbg => (1, 0),
+            Cfa::Gbrg => (0, 1),
+            Cfa::Bggr => (1, 1),
+        };
+        match (x % 2 == red.0, y % 2 == red.1) {
+            (true, true) => 0,
+            (false, false) => 2,
+            _ => 1,
+        }
+    }
 }
 
 /// A region of the sensor, in unbinned sensor pixels, as GenICam's `OffsetX`, `OffsetY`,

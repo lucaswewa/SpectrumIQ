@@ -36,7 +36,7 @@ keeps its look and feel, its components on Reka UI, and its rules (ADR-0008).
 | `src/app/`         | The shell: the navigation rail, keyboard shortcuts, and the placeholder of pages not built yet                                                                                                                 |
 | `src/ui/`          | The components: native elements, and wrappers of Reka UI. Only this folder imports `reka-ui`. `AppDataTable`, on TanStack Table; `GatedFields`, controls disabled with the reason                              |
 | `src/router/`      | One hash route per destination of the rail, and the development galleries                                                                                                                                      |
-| `src/live/`        | The Live page: the overview and the ROI streams, the ROI dragged on the overview, the display and camera controls, the histogram, the focus readout                                                            |
+| `src/live/`        | The Live page: the overview and the ROI streams, the ROI dragged on the overview, the display and camera controls, the histogram (a line per colour for a colour camera), its white balance, the focus readout |
 | `src/control/`     | The stage, focus and peripherals on the Live page: the keys and the d-pad, the wheel, click-to-move, STOP, Home, the steps, saved positions (ADR-0039), kept by the server; the control token's bar (ADR-0068) |
 | `src/datasets/`    | The Datasets page: cards with thumbnails, filtered by kind and name, a dataset's manifest and history beside them, its exports, Stitch… with its options, and deleting it                                      |
 | `src/viewer2d/`    | The Viewer page: OpenSeadragon with an additive tiled image per channel, the channels' LUT store and controls, z and t, the scale bar, the probe                                                               |
@@ -72,7 +72,8 @@ npm run dev
    themes, side by side.
 3. Open `/#/dev/live`: the Live page against a fake camera drawn in the browser, which needs no
    server. With the server, `/#/live` is the real one: start live view, drag on the overview to
-   choose the ROI, and move the histogram's markers.
+   choose the ROI, and move the histogram's markers. A colour camera's histogram is three lines,
+   with "Automatic white balance" and "White from ROI" in place of the colours (P10.6).
 4. Open `/#/dev/control`: the same page against a fake stage, focus and peripherals, with the
    commands the controls send listed beside it. Tap or hold the arrow keys and PgUp/PgDn, turn the
    wheel on the image, double-click the overview, and press Esc or STOP. With the server, `/#/live`

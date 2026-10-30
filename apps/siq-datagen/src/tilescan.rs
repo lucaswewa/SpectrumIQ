@@ -193,6 +193,7 @@ fn mosaic(
             colour: [255; 3],
             window: (offset, gain + offset),
         }],
+        cfa: None,
     };
     let path = dataset.zarr_dir().join("truth.ome.zarr");
     let mut image = ZarrImage::create(&path, info)?;

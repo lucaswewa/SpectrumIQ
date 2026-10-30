@@ -107,6 +107,7 @@ impl SimCameraSetup {
             optics: OpticsModel::default(),
             sensor_model: SensorModel {
                 seed: sim.seed,
+                cfa: camera.cfa,
                 ..SensorModel::default()
             },
             trigger_latency: Millis(0.1),
@@ -158,7 +159,7 @@ impl SimCameraSetup {
             sensor_height: height,
             pixel_size: self.pixel_size,
             pixel_formats: formats,
-            cfa: None,
+            cfa: self.sensor_model.cfa,
             binnings: [1, 2, 4]
                 .map(|b| Binning::new(b, b).expect("not 0"))
                 .to_vec(),
@@ -421,8 +422,10 @@ fn run(shared: &Shared, epoch: Timestamp, pool: &FramePool, sink: &dyn FrameSink
         match frame {
             Some(slot) => {
                 let device = DeviceMicros(mid.saturating_since(epoch).as_micros() as u64);
+                let (x, y) = (settings.roi.offset_x, settings.roi.offset_y);
                 let meta = FrameMeta {
                     device_ts: Some(device),
+                    cfa: setup.sensor_model.cfa.map(|cfa| cfa.shifted(x, y)),
                     ..settings.frame_meta(seq, mid)
                 };
                 sink.frame(slot, meta);

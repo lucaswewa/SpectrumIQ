@@ -22,6 +22,7 @@ fn info(size: Size5, sample: SampleType, chunk: u64, levels: usize) -> ImageInfo
         pixel_size: [2.0, 0.376, 0.376],
         origin: [10.0, -500.0, 250.0],
         channels,
+        cfa: None,
     }
 }
 

@@ -42,6 +42,7 @@ fn dataset(root: &Path) -> DatasetId {
         pixel_size: [1.0, 0.376, 0.376],
         origin: [0.0; 3],
         channels: vec![channel("white", [255; 3]), channel("green", [0, 255, 0])],
+        cfa: None,
     };
     let mut image = ZarrImage::create(&dataset.zarr_dir().join("snap.ome.zarr"), info).unwrap();
     for c in 0..2u64 {

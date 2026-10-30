@@ -17,6 +17,7 @@ expression: classes
   "POST /api/v1/datasets/snap_to_dataset": "Hardware",
   "POST /api/v1/datasets/summary": "Read",
   "POST /api/v1/display/auto_contrast_once": "Hardware",
+  "POST /api/v1/display/white_from_roi": "Hardware",
   "POST /api/v1/filter_wheel/select": "Hardware",
   "POST /api/v1/focus/halt": "Stop",
   "POST /api/v1/focus/move_by": "Hardware",

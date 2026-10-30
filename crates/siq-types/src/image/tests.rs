@@ -203,3 +203,25 @@ fn an_odd_offset_shifts_the_colour_filter_cell() {
     // The Adimec's BayerGB, one column and one row in: green and red, then blue and green.
     assert_eq!(Gbrg.shifted(1, 1), Grbg);
 }
+
+#[test]
+fn each_pixel_has_the_colour_its_cell_names_and_a_shift_keeps_it() {
+    use Cfa::{Bggr, Gbrg, Grbg, Rggb};
+    // Red 0, green 1, blue 2, across the cell's top row, then its bottom row.
+    let cells = [
+        (Rggb, [0, 1, 1, 2]),
+        (Grbg, [1, 0, 2, 1]),
+        (Gbrg, [1, 2, 0, 1]),
+        (Bggr, [2, 1, 1, 0]),
+    ];
+    for (cfa, colours) in cells {
+        let cell = [(0, 0), (1, 0), (0, 1), (1, 1)].map(|(x, y)| cfa.colour(x, y));
+        assert_eq!(cell, colours, "{cfa:?}");
+        for (x, y) in [(3, 0), (0, 5), (7, 9)] {
+            let at = cfa.colour(x, y);
+            assert_eq!(cfa.colour(x + 2, y + 4), at, "the pattern repeats");
+            let shifted = cfa.shifted(x as u32, y as u32);
+            assert_eq!(shifted.colour(0, 0), at, "{cfa:?} from ({x}, {y})");
+        }
+    }
+}

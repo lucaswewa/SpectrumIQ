@@ -7,6 +7,9 @@
 //! - **Overview:** the whole frame, area-averaged to fit 1920 × 1080.
 //! - **ROI:** a region in sensor pixels, at 1:1 or 2:1, clamped to the frame.
 //! - **Statistics:** the ROI's histogram, window and focus measure.
+//! - **A colour frame** (ADR-0071), raw Bayer samples, is demosaiced: the overview from whole
+//!   filter cells, the ROI by interpolation at 1:1. It is white balanced, and the display mapping
+//!   applies to each colour. Its statistics are per colour, and its focus measure on luminance.
 //! - **Display mapping is the server's:** a window, gamma and colormap, fixed or from the frame's
 //!   percentiles. Only 8-bit JPEGs and statistics leave, never raw frames (REQ-PRV-004).
 //! - **The flat-field correction is optional** (ADR-0050): the dark level and the flat in force,
@@ -23,7 +26,7 @@ use rayon::{ThreadPool, ThreadPoolBuilder};
 use siq_acquire::Acquisition;
 use siq_buffer::{FrameLease, Policy, RecvError, Subscriber};
 use siq_devices::watch;
-use siq_imgproc::{Histogram, KernelError};
+use siq_imgproc::KernelError;
 use siq_telemetry::{Histogram as Latency, MetricError, Registry};
 use siq_types::{Clock, FrameMeta, ImageError, RectPx};
 use tracing::warn;
@@ -31,8 +34,8 @@ use tracing::warn;
 mod view;
 
 pub use view::{
-    Contrast, DisplaySettings, FrameStats, Renderer, RoiSettings, Shading, Zoom, fit, measure,
-    roi_region,
+    Contrast, Counts, DisplaySettings, FrameStats, Mapping, Measuring, Renderer, RoiSettings,
+    Shading, WhiteBalance, Zoom, fit, measure, roi_region,
 };
 
 /// The previews' flat-field correction (ADR-0050).
@@ -154,7 +157,8 @@ impl Jpegs {
         };
         let taken = self.clock.now();
         let renderer = &mut self.renderer;
-        let mapping = renderer.mapping(&image, meta.pixel_format.bits(), &self.display.borrow());
+        let bits = meta.pixel_format.bits();
+        let mapping = renderer.mapping(&image, bits, meta.cfa, &self.display.borrow());
         let flat = self.flat.borrow().clone();
         let shading = flat.shading.filter(|_| flat.enabled);
         let (region, size) = match self.kind {
@@ -231,14 +235,14 @@ impl Previews {
         };
         let mut overview = jpegs(StreamKind::Overview, config.overview_size, "overview")?;
         let mut region = jpegs(StreamKind::Roi, config.roi_size, "roi")?;
-        let (rois, size, mut counts) = (roi.clone(), config.roi_size, Box::new(Histogram::new(16)));
+        let (rois, size, mut scratch) = (roi.clone(), config.roi_size, Measuring::default());
         let statistics = move |frame: &FrameLease| -> Result<(), PreviewError> {
             let (meta, Some(image)) = (frame.meta(), frame.image::<u16>()) else {
                 return Ok(());
             };
             let (rect, _) = roi_region(meta, &rois.borrow(), size);
             let bits = meta.pixel_format.bits();
-            stats.push_stats(&measure(&image, meta, bits, rect, &mut counts)?);
+            stats.push_stats(&measure(&image, meta, bits, rect, &mut scratch)?);
             Ok(())
         };
 

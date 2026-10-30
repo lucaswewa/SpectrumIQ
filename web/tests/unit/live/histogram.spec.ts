@@ -59,6 +59,13 @@ describe('the histogram and the mapping', () => {
     expect(withEnd(manual, [200, 9000], 'min', 12_000).contrast).toMatchObject({ min: 8999 })
     expect(withEnd(manual, [200, 9000], 'max', 100).contrast).toMatchObject({ max: 201 })
     expect(withEnd(manual, [200, 9000], 'min', -50).contrast).toMatchObject({ min: 0 })
+    // A colour frame's white balance stays as it was.
+    const balanced: Lut = { ...auto, white_balance: { kind: 'fixed', red: 1.4, blue: 1.9 } }
+    expect(withEnd(balanced, [1828, 8923], 'min', 2000).white_balance).toEqual({
+      kind: 'fixed',
+      red: 1.4,
+      blue: 1.9,
+    })
   })
 
   it('names each colormap’s colour', () => {

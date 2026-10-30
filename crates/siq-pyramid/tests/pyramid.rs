@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use siq_pyramid::*;
 use siq_storage::zarr::{ChannelInfo, ImageInfo, SampleType, Size5, ZarrImage, ZarrSample};
-use siq_types::{OwnedImage, RectPx};
+use siq_types::{Cfa, OwnedImage, RectPx};
 
 fn info(size: Size5, sample: SampleType, chunk: u64) -> ImageInfo {
     let channels = (0..size.c)
@@ -24,6 +24,7 @@ fn info(size: Size5, sample: SampleType, chunk: u64) -> ImageInfo {
         pixel_size: [1.0, 0.5, 0.5],
         origin: [0.0; 3],
         channels,
+        cfa: None,
     }
 }
 
@@ -245,4 +246,61 @@ fn a_build_stops_when_cancelled() {
         control.reports.load(Ordering::Relaxed) < 85,
         "it stopped well before the 85 chunks"
     );
+}
+
+// ADR-0071: a colour image's levels keep its filter's cells whole, each pixel the mean of its
+// colour in the 2 × 2 cells below its cell, at odd sizes and across chunks.
+#[test]
+fn a_colour_image_s_levels_keep_its_filter_s_cells_whole() {
+    let folder = tempfile::tempdir().unwrap();
+    let size = Size5 {
+        t: 1,
+        c: 1,
+        z: 1,
+        y: 173,
+        x: 300,
+    };
+    let colour = ImageInfo {
+        cfa: Some(Cfa::Grbg),
+        ..info(size, SampleType::U16, 64)
+    };
+    let mut image = ZarrImage::create(&folder.path().join("c.ome.zarr"), colour).unwrap();
+    let pixel = |_, x: u64, y: u64| ((x * 37 + y * 101) % 4093) as u16;
+    write_level_0(&image, pixel);
+    build(&mut image, 16, &()).unwrap();
+
+    let (mut level, mut width, mut height): (Vec<u16>, usize, usize) = (
+        (0..173)
+            .flat_map(|y| (0..300).map(move |x| pixel(0, x, y)))
+            .collect(),
+        300,
+        173,
+    );
+    for l in 1..image.info().levels {
+        let (w, h) = (width.div_ceil(2), height.div_ceil(2));
+        let mut next = Vec::new();
+        for y in 0..h {
+            for x in 0..w {
+                // The same phase of the cell's own colour, in the 2 × 2 cells below.
+                let mut block = Vec::new();
+                for (i, j) in [(0, 0), (1, 0), (0, 1), (1, 1)] {
+                    let sx = 4 * (x / 2) + x % 2 + 2 * i;
+                    let sy = 4 * (y / 2) + y % 2 + 2 * j;
+                    if sx < width && sy < height {
+                        assert_eq!(Cfa::Grbg.colour(sx, sy), Cfa::Grbg.colour(x, y));
+                        block.push(level[sy * width + sx]);
+                    }
+                }
+                next.push(u16::mean(&block));
+            }
+        }
+        (level, width, height) = (next, w, h);
+        assert_eq!(whole::<u16>(&image, l, 0), level, "level {l}");
+    }
+    // A colour image's chunks hold whole cells.
+    let odd = ImageInfo {
+        cfa: Some(Cfa::Rggb),
+        ..info(size, SampleType::U16, 63)
+    };
+    assert!(ZarrImage::create(&folder.path().join("odd.ome.zarr"), odd).is_err());
 }

@@ -71,7 +71,8 @@ expression: descriptions
       "roi_region"
     ],
     "actions": [
-      "auto_contrast_once"
+      "auto_contrast_once",
+      "white_from_roi"
     ],
     "events": []
   },

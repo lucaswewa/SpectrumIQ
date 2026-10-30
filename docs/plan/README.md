@@ -243,8 +243,8 @@ A phase is Done once it is merged.
 | Phase | Title | Budget | Depends on | Status |
 |---|---|---|---|---|
 | P10.1 | Euresys safe wrapper and `Camera` implementation | 900 | P2.5, P1.1, P1.3 | Review: merged (`f2e5fff`), for the owner's run |
-| P10.2 | Camera bring-up and performance tuning | 500 | P10.1 | Review |
-| P10.6 | Colour I: a Bayer sensor in the simulator, and colour for display | 900 | P10.1 | — |
+| P10.2 | Camera bring-up and performance tuning | 500 | P10.1 | Review: merged (`dc9eb95`), for the owner's run |
+| P10.6 | Colour I: a Bayer sensor in the simulator, and colour for display | 900 | P10.1 | Review |
 | P10.7 | Colour II: luminance for registration, focus and stitching | 900 | P10.6 | — |
 | P10.3 | Real stage and focus drive bring-up (on the emulators for now) | 500 | P1.9, P1.10b, P5.1 | — |
 | P10.4 | (Optional) Hardware trigger and strobe | 600 | P10.2 | — |

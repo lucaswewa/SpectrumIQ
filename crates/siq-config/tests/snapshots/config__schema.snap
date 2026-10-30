@@ -369,6 +369,17 @@ expression: schema
               "$ref": "#/$defs/Micrometers",
               "default": 3.76
             },
+            "cfa": {
+              "description": "A colour sensor's filter array at its top left, such as `gbrg`: its frames are then raw\nBayer samples. Mono if not given.",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Cfa"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "kind": {
               "type": "string",
               "const": "sim"
@@ -456,6 +467,31 @@ expression: schema
       "description": "A length in micrometres (µm): SpectrumIQ's unit for positions and distances.",
       "type": "number",
       "format": "double"
+    },
+    "Cfa": {
+      "description": "A colour sensor's filter array, by the colours of the 2 × 2 cell at an image's top left, row by\nrow: `Gbrg` is green and blue, then red and green, as GenICam's `BayerGB`. A frame from a colour\nsensor stays raw: one sample a pixel, of the colour its filter passes.",
+      "oneOf": [
+        {
+          "description": "Red, green; green, blue.",
+          "type": "string",
+          "const": "rggb"
+        },
+        {
+          "description": "Green, red; blue, green.",
+          "type": "string",
+          "const": "grbg"
+        },
+        {
+          "description": "Green, blue; red, green.",
+          "type": "string",
+          "const": "gbrg"
+        },
+        {
+          "description": "Blue, green; green, red.",
+          "type": "string",
+          "const": "bggr"
+        }
+      ]
     },
     "StageConfig": {
       "description": "The XYZ stage.",

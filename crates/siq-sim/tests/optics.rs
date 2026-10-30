@@ -8,7 +8,7 @@ use siq_imgproc::{FocusMeasure, focus};
 use siq_sim::optics::*;
 use siq_synth::{Cells, CellsParams, World, WorldInfo};
 use siq_types::{
-    Affine2, Binning, ImageView, Micrometers, Millis, OwnedImage, PixelFormat, RectPx, Roi,
+    Affine2, Binning, Cfa, ImageView, Micrometers, Millis, OwnedImage, PixelFormat, RectPx, Roi,
     StagePose, Vec2Um,
 };
 
@@ -392,4 +392,63 @@ fn the_renderer_drafts_while_moving_keeps_a_still_signal_and_samples_strong_blur
         "a strong blur is still sampled coarsely at full detail"
     );
     assert!(render(&shot(80.0), 7).cached, "and then kept");
+}
+
+// REQ-ACQ-001, REQ-SIM-001: a colour sensor's pixel takes its colour's share of the light. A
+// region is still a crop, its pattern the sensor's from its corner, and a binned frame keeps the
+// pattern, as the Adimec's does.
+#[test]
+fn a_colour_sensor_samples_each_pixel_s_colour_through_its_filter() {
+    let sensor = SensorModel {
+        cfa: Some(Cfa::Gbrg),
+        ..quiet()
+    };
+    let optics = OpticsModel::default();
+    // Each colour's mean above the dark offset, against green's.
+    let shares = |image: &OwnedImage<u16>, cfa: Cfa| {
+        let mut sums = [(0.0, 0.0); 3];
+        for (y, row) in image.view().rows().enumerate() {
+            for (x, &value) in row.iter().enumerate() {
+                let sum = &mut sums[cfa.colour(x, y)];
+                *sum = (sum.0 + f64::from(value) - sensor.dark_offset, sum.1 + 1.0);
+            }
+        }
+        let means = sums.map(|(sum, n)| sum / n);
+        [means[0] / means[1], means[2] / means[1]]
+    };
+    let full = shot(0.0);
+    let whole = frame(&Uniform(0.5), &optics, &sensor, &full, 0);
+    let [red, blue] = shares(&whole, Cfa::Gbrg);
+    assert!(
+        (red - 0.75).abs() < 0.01 && (blue - 0.55).abs() < 0.01,
+        "{red}, {blue}"
+    );
+
+    // Binned, a pixel sums four: less light, so that none clips.
+    let mut binned = full;
+    binned.settings.binning = Binning::new(2, 2).unwrap();
+    let [red, blue] = shares(
+        &frame(&Uniform(0.1), &optics, &sensor, &binned, 0),
+        Cfa::Gbrg,
+    );
+    assert!(
+        (red - 0.75).abs() < 0.01 && (blue - 0.55).abs() < 0.01,
+        "binned: {red}, {blue}"
+    );
+
+    let world = cells();
+    let mut odd = full;
+    odd.settings.roi = Roi {
+        offset_x: 65,
+        offset_y: 33,
+        width: 96,
+        height: 64,
+    };
+    let (whole, part) = (
+        frame(&world, &optics, &sensor, &full, 3),
+        frame(&world, &optics, &sensor, &odd, 3),
+    );
+    let inner = |x: u32, y: u32| RectPx::new(x + 4, y + 4, 88, 56);
+    let crop = pixels(whole.view().sub_view(inner(65, 33)).unwrap());
+    assert_eq!(crop, pixels(part.view().sub_view(inner(0, 0)).unwrap()));
 }

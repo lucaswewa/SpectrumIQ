@@ -45,7 +45,7 @@ The shipped files are the reference:
 | `[gpu]` | `enabled` (true), `software` (false), `mosaic_vram_gb` (2): the live mosaic's GPU and its pages' budget |
 | `[log]` | `filter` (`info`), `console` (true), `directory` (none), `keep_days` (30) |
 | `[auth]` | `enforce` (true: who may do what, and the control token, ADR-0066), `control_timeout_s` (30), `local_user` (none: the user the local console logs in as); `idle_minutes` (60), `session_hours` (12), `max_failures` (5), `failure_minutes` (5), `allowed_origins` (none): sessions and logins (ADR-0065). The users are in `users.json` in `[server] settings`. `config/sim.toml` sets `enforce = false` until the web app logs in (P9.4) |
-| `[camera]` | `kind = "sim"`: `width` (11648), `height` (8742), `pixel_format` (`Mono14`), `frame_rate` (9), `pixel_size` (3.76 µm). `kind = "euresys"`: `interface` (0), `device` (0), `features` |
+| `[camera]` | `kind = "sim"`: `width` (11648), `height` (8742), `pixel_format` (`Mono14`), `frame_rate` (9), `pixel_size` (3.76 µm), and `cfa` for a colour sensor, such as `gbrg` (mono if not given, P10.6). `kind = "euresys"`: `interface` (0), `device` (0), `features` |
 | `[stage]` | `kind = "sim"`: `poll_hz` (5). `kind = "grbl"`: `port`, `baud` (115200), `poll_hz` (5). Both: `[stage.motion]`, with `unlock` (true), `approach` (`[1, 1, 1]`, each 1 or −1) and `overshoot` (50 µm) |
 | `[focus]` | `kind = "sim"`: `dialect`. `kind = "ascii"`: `port`, `baud` (9600), `dialect` |
 | `[[objectives]]` | `id`, `name`, `magnification`, `numerical_aperture`, `immersion` (`air`), `turret_position`, `parfocal_offset` (0 µm) |

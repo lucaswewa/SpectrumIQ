@@ -61,6 +61,7 @@ expression: paths
   "/api/v1/display/lut",
   "/api/v1/display/properties",
   "/api/v1/display/roi_region",
+  "/api/v1/display/white_from_roi",
   "/api/v1/filter_wheel/",
   "/api/v1/filter_wheel/actions",
   "/api/v1/filter_wheel/changed",

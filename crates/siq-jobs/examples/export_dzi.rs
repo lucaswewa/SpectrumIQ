@@ -57,6 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             colour: [255, 255, 255],
             window: (0.0, 16_000.0),
         }],
+        cfa: None,
     };
     let image = ZarrImage::create(&path, info)?;
     let (rows, cols) = image.info().chunks(0);

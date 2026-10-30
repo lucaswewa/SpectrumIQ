@@ -6,7 +6,9 @@
 //!   level 0, one pixel. DZI level `l` is Zarr level `max − l`, which has the same size. Levels
 //!   coarser than the image's top level are halved from it.
 //! - **A tile** is the region read at its level, mapped through a [`TileLut`] (window, gamma,
-//!   colours), and encoded as JPEG or PNG.
+//!   colours), and encoded as JPEG or PNG. A colour image's tile is demosaiced from its level,
+//!   which keeps the filter's cells whole, balanced by the image's own white, and shown through
+//!   the window on each colour (ADR-0071).
 //! - **The [`TileService`]** caches tiles, bounded by bytes, least recently used first out, each
 //!   with an ETag that changes when the image does.
 //! - **A [`thumbnail`]** is a plane's channels composited at the top level, as JPEG.
@@ -19,10 +21,12 @@ use std::time::SystemTime;
 
 use jpeg_encoder::{ColorType, Encoder};
 use lru::LruCache;
-use siq_imgproc::{Colormap, DisplayMapping, Lut};
+use siq_imgproc::{
+    Colormap, DisplayMapping, Histogram, Lut, balanced, demosaic, histogram_cfa, white_gains,
+};
 use siq_storage::StorageError;
 use siq_storage::zarr::{SampleType, ZarrImage};
-use siq_types::{ImageView, RectPx};
+use siq_types::{Cfa, ImageView, ImageViewMut, RectPx};
 
 use crate::mean_2x2;
 
@@ -32,6 +36,11 @@ pub const TILE: u64 = 254;
 pub const OVERLAP: u64 = 1;
 /// The JPEG quality of tiles.
 const QUALITY: u8 = 85;
+/// The pixels read about a colour tile, so that its edges interpolate as its inside does.
+const MARGIN: u32 = 2;
+/// The largest top level a colour image's white is taken from: before its pyramid is built, it
+/// is shown unbalanced.
+const WHITE_FROM: u64 = 1 << 20;
 
 /// The DZI levels and tiles of an image of `width` × `height`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -245,17 +254,74 @@ pub fn render(
     let lut = lut.unwrap_or_else(|| channel_lut(image, c));
     lut.check()?;
     let zarr_level = (geometry.max_level() - at.level) as usize;
-    let rgb = match info.sample {
-        SampleType::U16 => {
+    let rgb = match (info.sample, info.cfa) {
+        (SampleType::U16, Some(cfa)) => {
+            let (width, height) = geometry.level_size(at.level);
+            let size = (width as u32, height as u32);
+            let rgb = colours(image, zarr_level, at.plane, (rect, size), cfa, &lut)?;
+            encode(rgb.as_flattened(), rect.width as usize, true, format)?
+        }
+        (SampleType::U16, None) => {
             let (pixels, width) = read::<u16>(image, zarr_level, at.plane, rect)?;
             encode_rgb(&map_u16(&pixels, &lut)?, width, &lut, format)?
         }
-        SampleType::F32 => {
+        (SampleType::F32, _) => {
             let (pixels, width) = read::<f32>(image, zarr_level, at.plane, rect)?;
             encode_rgb(&map_f32(&pixels, &lut), width, &lut, format)?
         }
     };
     Ok(rgb)
+}
+
+/// `rect` of a colour image's `plane` at Zarr level `level`, of `size`, in colour, through `lut`
+/// on each colour: demosaiced from the level, read with a margin, and balanced by the image's
+/// white.
+fn colours(
+    image: &ZarrImage,
+    level: usize,
+    plane: (u64, u64, u64),
+    (rect, (width, height)): (RectPx, (u32, u32)),
+    cfa: Cfa,
+    lut: &TileLut,
+) -> Result<Vec<[u8; 3]>, TileError> {
+    let (x0, y0) = (rect.x.saturating_sub(MARGIN), rect.y.saturating_sub(MARGIN));
+    let x1 = (rect.x + rect.width + MARGIN).min(width);
+    let y1 = (rect.y + rect.height + MARGIN).min(height);
+    let around = RectPx::new(x0, y0, x1 - x0, y1 - y0);
+    let (pixels, w) = read::<u16>(image, level, plane, around)?;
+    let h = pixels.len() / w;
+    let mut rgb = vec![[0u16; 3]; w * h];
+    let view = ImageView::new(&pixels, w, h, w).expect("a region of its own size");
+    let mut out = ImageViewMut::new(&mut rgb, w, h, w).expect("a region of its own size");
+    demosaic(&view, cfa.shifted(x0, y0), &mut out).map_err(bad)?;
+    let mappings = balanced(&mapping(lut), white(image, plane, cfa)?);
+    let [red, green, blue] = mappings.each_ref().map(Lut::new);
+    let luts = [red.map_err(bad)?, green.map_err(bad)?, blue.map_err(bad)?];
+    let (dx, dy) = ((rect.x - x0) as usize, (rect.y - y0) as usize);
+    let rows = (dy..dy + rect.height as usize).map(|y| &rgb[y * w + dx..][..rect.width as usize]);
+    Ok(rows
+        .flatten()
+        .map(|value| std::array::from_fn(|c| luts[c].level(value[c])))
+        .collect())
+}
+
+/// The gains that show plane `plane` of a colour image's brightest white: from its top level, once
+/// that is small enough to read for every tile.
+fn white(image: &ZarrImage, plane: (u64, u64, u64), cfa: Cfa) -> Result<[f32; 3], TileError> {
+    let top = image.info().levels - 1;
+    let size = image.info().size(top);
+    if size.x * size.y > WHITE_FROM {
+        return Ok([1.0; 3]);
+    }
+    let whole = RectPx::new(0, 0, size.x as u32, size.y as u32);
+    let region = image.read_region::<u16>(top, plane, whole)?;
+    let mut counts = Box::new(std::array::from_fn(|_| Histogram::new(16)));
+    histogram_cfa(&region.view(), cfa, 1, &mut counts).map_err(bad)?;
+    Ok(white_gains(&counts, 0.999))
+}
+
+fn bad(error: impl std::fmt::Display) -> TileError {
+    TileError::BadRequest(error.to_string())
 }
 
 /// The value at (`x`, `y`) of Zarr level `level`'s plane: the true pixel, not a shown one.
@@ -337,17 +403,33 @@ pub fn composite(
     let mut sums = vec![0u32; size.x as usize * size.y as usize * 3];
     for c in 0..info.size.c {
         let lut = channel_lut(image, c);
-        let levels = match info.sample {
-            SampleType::U16 => map_u16(&read::<u16>(image, level, (t, c, z), whole)?.0, &lut)?,
-            SampleType::F32 => map_f32(&read::<f32>(image, level, (t, c, z), whole)?.0, &lut),
-        };
         let colour = match lut.colormap {
             Colormap::Colour(colour) => colour,
             Colormap::Grey | Colormap::Inverted => [255; 3],
         };
-        for (pixel, &level) in sums.chunks_mut(3).zip(&levels) {
-            for (sum, c) in pixel.iter_mut().zip(colour) {
-                *sum += (u32::from(c) * u32::from(level) + 127) / 255;
+        let shown: Vec<[u8; 3]> = match (info.sample, info.cfa) {
+            (SampleType::U16, Some(cfa)) => {
+                let all = (whole, (whole.width, whole.height));
+                colours(image, level, (t, c, z), all, cfa, &lut)?
+            }
+            (SampleType::U16, None) => {
+                let levels = map_u16(&read::<u16>(image, level, (t, c, z), whole)?.0, &lut)?;
+                levels
+                    .into_iter()
+                    .map(|level| colour.map(|c| tint(c, level)))
+                    .collect()
+            }
+            (SampleType::F32, _) => {
+                let levels = map_f32(&read::<f32>(image, level, (t, c, z), whole)?.0, &lut);
+                levels
+                    .into_iter()
+                    .map(|level| colour.map(|c| tint(c, level)))
+                    .collect()
+            }
+        };
+        for (pixel, shown) in sums.chunks_mut(3).zip(&shown) {
+            for (sum, &c) in pixel.iter_mut().zip(shown) {
+                *sum += u32::from(c);
             }
         }
     }
@@ -376,7 +458,7 @@ fn read<T: crate::Mean>(
     for _ in top..level {
         let height = region.pixels.len() / width;
         let view = ImageView::new(&region.pixels, width, height, width).expect("a whole level");
-        let (pixels, w, _) = mean_2x2(view);
+        let (pixels, w, _) = mean_2x2(view, image.info().cfa.is_some());
         (region.pixels, width) = (pixels, w);
     }
     let (x0, y0, w) = (rect.x as usize, rect.y as usize, rect.width as usize);
@@ -386,18 +468,27 @@ fn read<T: crate::Mean>(
     Ok((pixels, w))
 }
 
-/// Display levels of `u16` values, through `siq-imgproc`'s tables.
-fn map_u16(pixels: &[u16], lut: &TileLut) -> Result<Vec<u8>, TileError> {
+/// `lut` for `u16` values, as `siq-imgproc` maps them.
+fn mapping(lut: &TileLut) -> DisplayMapping {
     let clamp = |v: f64| v.round().clamp(0.0, 65535.0) as u16;
     let (min, max) = (clamp(lut.min), clamp(lut.max));
-    let mapping = DisplayMapping {
+    DisplayMapping {
         min,
         max: max.max(min.saturating_add(1)),
         gamma: lut.gamma as f32,
         colormap: lut.colormap,
-    };
-    let table = Lut::new(&mapping).map_err(|error| TileError::BadRequest(error.to_string()))?;
+    }
+}
+
+/// Display levels of `u16` values, through `siq-imgproc`'s tables.
+fn map_u16(pixels: &[u16], lut: &TileLut) -> Result<Vec<u8>, TileError> {
+    let table = Lut::new(&mapping(lut)).map_err(bad)?;
     Ok(pixels.iter().map(|&p| table.level(p)).collect())
+}
+
+/// A display level in `colour`.
+fn tint(colour: u8, level: u8) -> u8 {
+    ((u32::from(colour) * u32::from(level) + 127) / 255) as u8
 }
 
 /// Display levels of `f32` values, by the same formula.
@@ -424,19 +515,26 @@ fn encode_rgb(
     lut: &TileLut,
     format: TileFormat,
 ) -> Result<Vec<u8>, TileError> {
-    let height = levels.len() / width.max(1);
-    let (bytes, colour) = match lut.colormap {
+    match lut.colormap {
         Colormap::Colour(colour) => {
-            let rgb = levels
+            let rgb: Vec<u8> = levels
                 .iter()
-                .flat_map(|&level| {
-                    colour.map(|c| ((u32::from(c) * u32::from(level) + 127) / 255) as u8)
-                })
+                .flat_map(|&level| colour.map(|c| tint(c, level)))
                 .collect();
-            (rgb, true)
+            encode(&rgb, width, true, format)
         }
-        _ => (levels.to_vec(), false),
-    };
+        _ => encode(levels, width, false, format),
+    }
+}
+
+/// Encodes `bytes`, a pixel each in grey, or three in colour, `width` pixels a row.
+fn encode(
+    bytes: &[u8],
+    width: usize,
+    colour: bool,
+    format: TileFormat,
+) -> Result<Vec<u8>, TileError> {
+    let height = bytes.len() / width.max(1) / if colour { 3 } else { 1 };
     let encode_error = |error: &dyn std::fmt::Display| TileError::Encode(error.to_string());
     let mut out = Vec::new();
     match format {
@@ -447,7 +545,7 @@ fn encode_rgb(
                 ColorType::Luma
             };
             Encoder::new(&mut out, QUALITY)
-                .encode(&bytes, width as u16, height as u16, kind)
+                .encode(bytes, width as u16, height as u16, kind)
                 .map_err(|e| encode_error(&e))?;
         }
         TileFormat::Png => {
@@ -460,7 +558,7 @@ fn encode_rgb(
             encoder.set_depth(png::BitDepth::Eight);
             let mut writer = encoder.write_header().map_err(|e| encode_error(&e))?;
             writer
-                .write_image_data(&bytes)
+                .write_image_data(bytes)
                 .map_err(|e| encode_error(&e))?;
         }
     }

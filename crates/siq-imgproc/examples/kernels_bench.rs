@@ -11,7 +11,7 @@
 use std::time::{Duration, Instant};
 
 use siq_imgproc::*;
-use siq_types::{Binning, OwnedImage, RectPx};
+use siq_types::{Binning, Cfa, OwnedImage, RectPx};
 
 fn main() {
     let smoke = std::env::var_os("SIQ_SMOKE").is_some();
@@ -113,6 +113,36 @@ fn main() {
         (rw * rh * 2) as f64 / 1e6,
         "budget ≤ 15 ms with JPEG",
     );
+    // A colour frame (ADR-0071): demosaiced from whole cells for the overview, interpolated at
+    // 1:1 for the ROI, and mapped through a table per colour.
+    let (mut overview_rgb, mut shown) = (OwnedImage::new(ow, oh), OwnedImage::new(ow, oh));
+    let t = best(&mut || demosaic(&raw.view(), Cfa::Gbrg, &mut overview_rgb.view_mut()).unwrap());
+    let luts = [0.75, 1.0, 0.55].map(|gain| Lut::new(&balanced(&mapping, [gain; 3])[0]).unwrap());
+    let map_t =
+        best(&mut || map_colours(&luts, &overview_rgb.view(), &mut shown.view_mut()).unwrap());
+    report(
+        "colour overview: cells + 3 LUTs",
+        t + map_t,
+        frame_mb,
+        "budget ≤ 35 ms with JPEG",
+    );
+    let raw_crop = raw.view().sub_view(roi).expect("the ROI is inside");
+    let (mut roi_colour, mut roi_shown) = (OwnedImage::new(rw, rh), OwnedImage::new(rw, rh));
+    let t = best(&mut || demosaic(&raw_crop, Cfa::Gbrg, &mut roi_colour.view_mut()).unwrap());
+    let map_t =
+        best(&mut || map_colours(&luts, &roi_colour.view(), &mut roi_shown.view_mut()).unwrap());
+    report(
+        &format!("colour ROI: bilinear {rw}×{rh} + LUTs"),
+        t + map_t,
+        (rw * rh * 2) as f64 / 1e6,
+        "budget ≤ 15 ms with JPEG",
+    );
+    let mut colours = std::array::from_fn(|_| Histogram::new(14));
+    let t = best(&mut || {
+        colours = std::array::from_fn(|_| Histogram::new(14));
+        histogram_cfa(&raw.view(), Cfa::Gbrg, 4, &mut colours).unwrap()
+    });
+    report("colour stats: histograms, step 4", t, frame_mb / 16.0, "");
     let mut counts = Histogram::new(14);
     let t = best(&mut || histogram(&corrected.view(), 4, &mut counts).unwrap());
     let focus_t = best(&mut || {

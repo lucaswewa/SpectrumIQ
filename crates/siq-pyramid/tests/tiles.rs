@@ -9,7 +9,7 @@ use siq_imgproc::Colormap;
 use siq_pyramid::build;
 use siq_pyramid::tiles::*;
 use siq_storage::zarr::{ChannelInfo, ImageInfo, SampleType, Size5, ZarrImage};
-use siq_types::{OwnedImage, RectPx};
+use siq_types::{Cfa, OwnedImage, RectPx};
 
 /// OpenSeadragon's `DziTileSource`, as its JavaScript computes it, written apart from ours.
 mod openseadragon {
@@ -118,6 +118,7 @@ fn image(folder: &std::path::Path) -> ZarrImage {
             channel("white", [255, 255, 255]),
             channel("green", [0, 255, 0]),
         ],
+        cfa: None,
     };
     let mut image = ZarrImage::create(&path, info).unwrap();
     for c in 0..2u64 {
@@ -438,4 +439,82 @@ fn the_thumbnail_adds_every_channel_in_its_colour_at_the_top_level() {
         thumbnail(&image, (0, 1)),
         Err(TileError::NotFound(_))
     ));
+}
+
+/// A 1000 × 600 colour image, `Gbrg`, of a warm lamp's light, red 3000, green 4000 and blue 2000,
+/// left of x = 500, and a stain that takes half its green right of it; its pyramid built.
+fn colour_image(folder: &std::path::Path) -> ZarrImage {
+    let info = ImageInfo {
+        name: "colour".to_owned(),
+        sample: SampleType::U16,
+        size: Size5 {
+            t: 1,
+            c: 1,
+            z: 1,
+            y: 600,
+            x: 1000,
+        },
+        levels: 1,
+        chunk: 256,
+        pixel_size: [1.0, 0.5, 0.5],
+        origin: [0.0; 3],
+        channels: vec![ChannelInfo {
+            label: "brightfield".to_owned(),
+            colour: [255; 3],
+            window: (0.0, 4000.0),
+        }],
+        cfa: Some(Cfa::Gbrg),
+    };
+    let mut image = ZarrImage::create(&folder.join("colour.ome.zarr"), info).unwrap();
+    let level_0 = OwnedImage::from_fn(1000, 600, |x, y| {
+        let light = if x < 500 {
+            [3000, 4000, 2000]
+        } else {
+            [3000, 2000, 2000]
+        };
+        light[Cfa::Gbrg.colour(x, y)]
+    });
+    image.write_plane(0, (0, 0, 0), level_0.view()).unwrap();
+    build(&mut image, 256, &()).unwrap();
+    image
+}
+
+// REQ-VIS-001: a colour image's tiles show its colours, balanced by its own white, at every
+// level, and so does its thumbnail.
+#[test]
+fn a_colour_image_s_tiles_and_thumbnail_are_demosaiced_and_balanced() {
+    let folder = tempfile::tempdir().unwrap();
+    let image = colour_image(folder.path());
+    let image = ZarrImage::open(image.path()).unwrap();
+    assert_eq!(image.info().cfa, Some(Cfa::Gbrg), "kept in the metadata");
+    let (white, stain) = ([255; 3], [255, 128, 255]);
+    // Each tile's pixel at `x`, `y`, at a DZI level: 10 is the image, 8 its top level, 250 × 150,
+    // and 7 halved from it.
+    let pixel = |level, col, x: usize, y: usize| {
+        let at = TileAt {
+            plane: (0, 0, 0),
+            level,
+            col,
+            row: 0,
+        };
+        let (rgb, colour, width, _) = decode(&render(&image, at, None, TileFormat::Png).unwrap());
+        assert_eq!(colour, png::ColorType::Rgb);
+        let i = (y * width as usize + x) * 3;
+        [rgb[i], rgb[i + 1], rgb[i + 2]]
+    };
+    assert_eq!(pixel(10, 0, 100, 100), white);
+    assert_eq!(pixel(10, 3, 100, 100), stain, "x = 861");
+    assert_eq!(
+        pixel(10, 1, 0, 0),
+        white,
+        "at a tile's edge, from its margin"
+    );
+    assert_eq!(pixel(8, 0, 10, 75), white);
+    assert_eq!(pixel(8, 0, 240, 75), stain);
+    assert_eq!(pixel(7, 0, 3, 30), white);
+    assert_eq!(pixel(7, 0, 120, 30), stain);
+
+    let (rgb, width, _) = composite(&image, (0, 0), 256).unwrap();
+    let at = |x: usize, y: usize| rgb[(y * width as usize + x) * 3..][..3].to_vec();
+    assert_eq!((at(10, 75), at(240, 75)), (white.to_vec(), stain.to_vec()));
 }

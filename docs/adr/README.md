@@ -79,3 +79,4 @@ ADRs follow [0000-template.md](0000-template.md).
 | [0068](0068-multi-client-ux-rules.md) | Multi-client UX rules | Accepted | P9.4 |
 | [0069](0069-e2e-and-soak-strategy.md) | The end-to-end and soak strategy, with its targets | Accepted | P9.5 |
 | [0070](0070-euresys-acquisition-and-buffer-ownership.md) | Euresys acquisition: threading, buffer ownership, the feature map, and raw Bayer frames (amended in P10.2: the Adimec measured, and the settings chosen) | Accepted | P10.1 |
+| [0071](0071-colour-from-raw-bayer-frames.md) | Colour from raw Bayer frames: the simulator, the previews, the pyramid and the tiles | Accepted | P10.6 |

@@ -1,7 +1,9 @@
 //! The optics and the sensor of the simulated camera, and the shot: what one frame is of.
 
 use siq_devices::CameraSettings;
-use siq_types::{Affine2, Micrometers, Nanometers, PixelToStage, PointPx, StagePose, StageToPixel};
+use siq_types::{
+    Affine2, Cfa, Micrometers, Nanometers, PixelToStage, PointPx, StagePose, StageToPixel,
+};
 
 /// How light falls off toward the corners of the sensor.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -104,7 +106,7 @@ impl OpticsModel {
     }
 }
 
-/// The sensor: its noise and its fixed pattern.
+/// The sensor: its noise, its fixed pattern, and a colour sensor's filters.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SensorModel {
     /// The seed of the fixed pattern: the same seed, the same sensor.
@@ -119,11 +121,16 @@ pub struct SensorModel {
     pub dsnu: f64,
     /// The spread of each pixel's own gain, relative RMS: photo-response non-uniformity.
     pub prnu: f64,
+    /// A colour sensor's filter array at its top left; `None` for a mono sensor.
+    pub cfa: Option<Cfa>,
+    /// Behind its filter, red's, green's and blue's share of the light: the lamp's colour.
+    pub response: [f64; 3],
 }
 
 impl Default for SensorModel {
     /// A 14-bit sensor of about 32 000 e⁻ full well at 2 e⁻/ADU, with 2.5 e⁻ read noise, an
-    /// offset of 100 ADU, 1 ADU of offset spread and 0.5 % of gain spread.
+    /// offset of 100 ADU, 1 ADU of offset spread and 0.5 % of gain spread; mono, or if given a
+    /// filter array, under a warm lamp, red at 75 % and blue at 55 % of green.
     fn default() -> Self {
         Self {
             seed: 0,
@@ -132,6 +139,8 @@ impl Default for SensorModel {
             dark_offset: 100.0,
             dsnu: 1.0,
             prnu: 0.005,
+            cfa: None,
+            response: [0.75, 1.0, 0.55],
         }
     }
 }

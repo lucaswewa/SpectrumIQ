@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Serialize};
 use siq_telemetry::LogConfig;
-use siq_types::{ChannelId, Hertz, Micrometers, Millis, ObjectiveId, PixelFormat};
+use siq_types::{Cfa, ChannelId, Hertz, Micrometers, Millis, ObjectiveId, PixelFormat};
 
 /// The modality unit's imaging modes, from `siq-types`, where the device traits use them too.
 pub use siq_types::ModalityMode;
@@ -203,6 +203,10 @@ pub struct SimCameraConfig {
     pub frame_rate: Hertz,
     /// The sensor's pixel pitch, in µm.
     pub pixel_size: Micrometers,
+    /// A colour sensor's filter array at its top left, such as `gbrg`: its frames are then raw
+    /// Bayer samples. Mono if not given.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cfa: Option<Cfa>,
 }
 
 impl Default for SimCameraConfig {
@@ -213,6 +217,7 @@ impl Default for SimCameraConfig {
             pixel_format: PixelFormat::Mono14,
             frame_rate: Hertz(9.0),
             pixel_size: Micrometers(3.76),
+            cfa: None,
         }
     }
 }

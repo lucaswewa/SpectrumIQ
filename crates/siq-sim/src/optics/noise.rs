@@ -111,7 +111,8 @@ const GAUSSIAN_ABOVE: f64 = 20.0;
 /// Digitizes `signal`, as [`render_signal`](super::render_signal) leaves it, into frame `seq`
 /// of `shot`:
 ///
-/// - electrons are the signal times the flux and the exposure;
+/// - electrons are the signal times the flux and the exposure, and on a colour sensor the
+///   response of the pixel's colour: binned, a pixel keeps its place in the pattern;
 /// - shot noise, Poisson below 20 e⁻ and Gaussian above, and the read noise of every binned
 ///   pixel;
 /// - divided by the electrons per ADU, times the gain;
@@ -150,11 +151,16 @@ pub fn digitize(
         u64::from(settings.roi.offset_x),
         u64::from(settings.roi.offset_y),
     );
+    let roi = settings.roi;
+    let cfa = sensor
+        .cfa
+        .map(|cfa| cfa.shifted(roi.offset_x, roi.offset_y));
     for_each_row(out, |row, line| {
         let sy = y0 + row as u64 * by;
         for ((column, value), &s) in (0u64..).zip(line.iter_mut()).zip(signal.row(row)) {
             let sx = x0 + column * bx;
-            let (mean, h) = (f64::from(s) * electrons, hash(frame, sx, sy));
+            let response = cfa.map_or(1.0, |cfa| sensor.response[cfa.colour(column as usize, row)]);
+            let (mean, h) = (f64::from(s) * electrons * response, hash(frame, sx, sy));
             let collected = match mean > GAUSSIAN_ABOVE {
                 true => mean + (mean + read_variance).sqrt() * f64::from(gaussian(h)),
                 false => {

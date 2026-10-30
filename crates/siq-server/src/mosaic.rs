@@ -29,7 +29,7 @@ use siq_gpu::{Compute, GpuHandle};
 use siq_imgproc::{DisplayMapping, Lut};
 use siq_jobs::Priority;
 use siq_jobs::kinds::PyramidJob;
-use siq_preview::Renderer;
+use siq_preview::{Mapping, Renderer};
 use siq_stitch_live::{
     Canvas, CanvasGeometry, CanvasOptions, PAGE_BYTES, Preparer, Viewport, frame_to_canvas, paints,
 };
@@ -250,7 +250,11 @@ fn paint(
     let prepared = pool.install(|| preparer.prepare(&image, &meta, scale, shading))?;
     drop(frame);
     let display = instrument.previews.display();
-    let mapping = renderer.mapping(&prepared.view()?, meta.pixel_format.bits(), &display);
+    // The prepared frame is mono: its colour waits for P10.7.
+    let bits = meta.pixel_format.bits();
+    let mapping = match renderer.mapping(&prepared.view()?, bits, None, &display) {
+        Mapping::Mono(mapping) | Mapping::Colour(_, [_, mapping, _]) => mapping,
+    };
     *lock(&shared.mapping) = Some(mapping);
     let size = [prepared.width, prepared.height];
     let at = [pose.x.0, pose.y.0];
@@ -311,6 +315,7 @@ fn snapshot(
             colour: [255; 3],
             window,
         }],
+        cfa: None,
     };
     let image = ZarrImage::create(&path, info)?;
     for row in 0..height.div_ceil(CHUNK) {

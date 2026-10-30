@@ -4,6 +4,10 @@ Multiscale pyramids (ADR-0044): an OME-Zarr image's levels 1 and up, built from 
 mean, out of core and in parallel; and deep-zoom tiles rendered from them on demand, for
 OpenSeadragon (ADR-0045).
 
+A colour image (ADR-0071), raw Bayer samples, keeps its filter's cells whole at every level: each
+pixel is the mean of its colour in the 2 × 2 cells below its cell. Its tiles are demosaiced,
+balanced by the image's own white, and shown through the window on each colour.
+
 ## Place in the architecture
 
 - **Layer:** L3 Processing.
@@ -11,7 +15,7 @@ OpenSeadragon (ADR-0045).
   `siq-types`; `rayon`, `lru`, `jpeg-encoder`, `png`.
 - **Used by:** `siq-jobs` (`kinds::PyramidJob`, `kinds::DziExportJob`), `siq-server` (the data
   routes).
-- **Phase:** P4.4; P4.5 added `tiles`.
+- **Phase:** P4.4; P4.5 added `tiles`; P10.6 colour images.
 
 ## API
 
@@ -21,14 +25,14 @@ OpenSeadragon (ADR-0045).
 | `levels_for(width, height, top)` | Level 0 and each halving until both fit `top` |
 | `estimate(info, threads)` | The RAM a build takes at its peak |
 | `Control` | `progress(done)` and `cancelled()`; `()` is a control that does neither. It is `siq-storage`'s, re-exported: its exports take one too |
-| `mean_2x2(view)` | A view halved, by the 2 × 2 mean, edges included |
+| `mean_2x2(view, cells)` | A view halved, by the 2 × 2 mean, edges included; with `cells`, a mosaic halved by the mean of each colour in the 2 × 2 cells, keeping its pattern |
 | `Mean` | `u16` (rounded to the nearest) and `f32` |
 | `TOP` | 256: the top level's largest size |
 | `tiles::DziGeometry` | OpenSeadragon's DZI levels and tiles: `max_level`, `level_size`, `tiles`, `tile_rect`, `descriptor` |
-| `tiles::render(image, TileAt, lut, format)` | A tile: its level's region (halved from the top for coarser levels), through a `TileLut`, encoded as JPEG or PNG |
+| `tiles::render(image, TileAt, lut, format)` | A tile: its level's region (halved from the top for coarser levels), through a `TileLut`, encoded as JPEG or PNG. A colour image's is demosaiced from the region and a margin of 2, balanced by red's and blue's 99.9th percentiles at the top level brought to green's, and shown through the window on each colour, in RGB |
 | `tiles::TileLut` | `min`, `max`, `gamma`, `colormap`; `check`; `channel_lut(image, c)` gives a channel's own |
 | `tiles::value(image, plane, level, x, y)` | The true value of a pixel |
-| `tiles::composite(image, (t, z), fit)`, `tiles::thumbnail(image, (t, z))` | A plane's channels in their own windows and colours, added, at the first level within `fit` pixels: RGB, or as a JPEG within 256 |
+| `tiles::composite(image, (t, z), fit)`, `tiles::thumbnail(image, (t, z))` | A plane's channels in their own windows and colours, added, at the first level within `fit` pixels: RGB, or as a JPEG within 256. A colour image's channels are demosaiced, as its tiles are |
 | `tiles::TileService` | `new(budget)`; `tile`, `descriptor`, `image`, `stats`: tiles cached by bytes, LRU, with ETags that follow the image's generation |
 
 ## Examples
@@ -47,16 +51,21 @@ None.
 
 `cargo test -p siq-pyramid`:
 
-- every level against a naive pyramid, on odd sizes, in `u16` and `f32`;
+- every level against a naive pyramid, on odd sizes, in `u16` and `f32`, and a colour image's
+  against a naive one that keeps the cells; odd chunks refused for a colour image;
 - the level count, and the metadata as built;
 - cancelling;
 - the peak memory of a build, measured by a counting allocator (`tests/memory.rs`, the only test
   in its binary);
 - tiles: the DZI geometry against OpenSeadragon's (a property test), tiles decoded back, levels
   beyond the top, bad mappings and missing tiles, the probe, the cache's eviction and ETags, and
-  concurrent requests.
+  concurrent requests;
+- a colour image's tiles, at the full level, the top and beyond it, and its thumbnail: white
+  where the lamp shines through, and the stain's colour, balanced.
 
 ## Limitations
 
-- One filter: the 2 × 2 mean.
+- One filter: the 2 × 2 mean, of each colour on a colour image.
+- **A colour image's white is its own brightest:** right for brightfield, not for a fluorescent
+  colour. Before its pyramid is built, an image larger than 1 MP shows unbalanced.
 - A cancelled build leaves its levels part-built; the next build redoes them.

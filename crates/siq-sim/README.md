@@ -76,7 +76,7 @@ in [ADR-0012](../../docs/adr/0012-simulation-strategy.md)'s P1.10b amendment.
   - later `siq-datagen` and the tests of M5, M8 and M11–M13.
 - **Phases:** P1.6 (`optics`), P1.7 (`state`, `camera`), P1.8 (`grbl`), P1.10a (`dialect`),
   P1.10b (`peripherals`); P5.2 the camera's mount; P6.3 `SimFocus`, and the stage's error per
-  axis.
+  axis; P10.6 the colour sensor.
 
 ## API
 
@@ -86,7 +86,7 @@ in [ADR-0012](../../docs/adr/0012-simulation-strategy.md)'s P1.10b amendment.
 |---|---|
 | `Shot { pose, calibration, sensor, settings }` | One frame: the true pose, the stage-to-sensor map (px per µm), the whole sensor's size, and the `CameraSettings` (ROI, binning, format, exposure, gain) |
 | `OpticsModel` | NA, immersion index, wavelength, `Vignetting::{None, Cos4 { corner }, Polynomial { a, b }}`, and the flux (e⁻ per ms at intensity 1). `blur(defocus)` gives the σ on the sample |
-| `SensorModel` | Fixed-pattern seed, e⁻ per ADU, read noise, dark offset, DSNU and PRNU |
+| `SensorModel` | Fixed-pattern seed, e⁻ per ADU, read noise, dark offset, DSNU and PRNU; a colour sensor's `cfa`, and its `response`, each colour's share of the light (a warm lamp: red 0.75, green 1, blue 0.55). A colour sensor's frames are raw Bayer samples, its capabilities and each frame's metadata give its filter array, and a binned pixel keeps its place in the pattern (P10.6, ADR-0071) |
 | `render_signal(world, optics, sensor, shot, detail, &mut Scratch)` → `Rendered` | The noiseless signal, in `Scratch::signal()` |
 | `digitize(signal, optics, sensor, shot, seq, out)` | Noise, offsets, gain, quantization and clipping, into a `u16` frame |
 | `form_image(world, optics, sensor, shot, seq, &mut Scratch, out)` | Both, at full detail |
@@ -165,7 +165,9 @@ None.
 - ROI as crop and binning as sum;
 - clipping to Mono14, Mono12 and Mono8;
 - a relief blurred only where it is out of focus;
-- the renderer's drafts and cache.
+- the renderer's drafts and cache;
+- a colour sensor's shares of the light through each filter, binned too, and a region at an odd
+  corner an exact crop.
 
 **`camera`,** on a `ManualClock`:
 

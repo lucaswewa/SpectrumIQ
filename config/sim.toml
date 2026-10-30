@@ -34,6 +34,7 @@ height = 8742
 pixel_format = "Mono14"
 frame_rate = 9.0            # Hz, full frame
 pixel_size = 3.76           # µm, the sensor's pixel pitch
+# cfa = "gbrg"              # a colour sensor's filter array, as the Adimec's; mono without
 
 [stage]
 kind = "sim"                # the GRBL driver, against the GRBL emulator

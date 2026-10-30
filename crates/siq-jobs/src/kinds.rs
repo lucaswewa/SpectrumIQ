@@ -569,6 +569,7 @@ impl CompositeJob {
             pixel_size: [1.0, pixel, pixel],
             origin: [0.0, y, x],
             channels: self.channels.clone(),
+            cfa: None,
         };
         let mut image = ZarrImage::create(&self.image, info).map_err(JobError::failed)?;
         ctx.log(format!(

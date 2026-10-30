@@ -12,8 +12,8 @@ images (ADR-0042), the master format of everything derived, with their OME-TIFF 
 - **Depends on:** `siq-types`, `siq-buffer`; `zarrs` (with zstd), `tiff` (its low-level BigTIFF
   encoder), `flate2`, `rayon`, `memmap2`, `sha2`, `serde_json`, `chrono`, `windows-sys`.
 - **Used by:** the service (P4.7), `siq-jobs` (P4.3), `siq-datagen` (P4.9).
-- **Phase:** P4.1; P4.2 added `zarr`, P4.6 `ometiff`, P4.7 `write_plane` and `Catalog::delete`, and
-  P4.9 `write_frame`.
+- **Phase:** P4.1; P4.2 added `zarr`, P4.6 `ometiff`, P4.7 `write_plane` and `Catalog::delete`,
+  P4.9 `write_frame`, and P10.6 `ImageInfo::cfa`.
 
 ## API
 
@@ -28,7 +28,7 @@ images (ADR-0042), the master format of everything derived, with their OME-TIFF 
 | `Catalog` | `scan(data_root)`, `refresh`, `record(path)`, `list` (newest first), `get(id)`, `delete(id)` (the folder, then the entry) |
 | `free_space(path)` | The bytes this process may still write on a path's disk |
 | `zarr::ZarrImage` | An OME-Zarr image, NGFF 0.5: `create(path, ImageInfo)` and `open(path)`; `set_levels(n)` adds levels, for the pyramid (P4.4); `write_chunk(level, (t, c, z), (row, col), view)` from any thread, edge chunks clipped; `write_plane(level, (t, c, z), view)`, its chunks in parallel; `read_region(level, (t, c, z), rect)` → `Region` |
-| `zarr::ImageInfo` | The name, `SampleType` (`U16`, `F32`), level 0's `Size5`, the levels, the chunk, the pixel size and origin in µm, and the `ChannelInfo`s (label, colour, window); `size(level)` and `chunks(level)` |
+| `zarr::ImageInfo` | The name, `SampleType` (`U16`, `F32`), level 0's `Size5`, the levels, the chunk, the pixel size and origin in µm, the `ChannelInfo`s (label, colour, window), and a colour image's `cfa` (P10.6, ADR-0071), kept under `spectrumiq` in `zarr.json`, and needing even chunks; `size(level)` and `chunks(level)` |
 | `ometiff::export(image, manifest, out, compression, control)` | The image as one OME-TIFF file: BigTIFF, an IFD per plane in `XYZCT` order with its other levels as SubIFDs, tiles of 512, and the OME-XML. Tiles are encoded in parallel on the calling rayon pool, in batches; the file is written as `<out>.part` and renamed once whole |
 | `ometiff::ome_xml(info, manifest)` | The OME-XML (2016-06) written: the image, its channels and planes, and the manifest's date, description and provenance |
 | `ometiff::TiffCompression` | `Deflate` (the default) or `None` |

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // The ROI's histogram: 256 bars over the pixel format's whole range, linear or logarithmic,
 // with the display window's two ends as markers. Dragging a marker, or moving it with the arrow
-// keys, sets that end (`update`); the page makes the mapping manual from there.
+// keys, sets that end (`update`); the page makes the mapping manual from there. A colour frame's
+// red, green and blue are drawn as a line each, instead of the bars.
 import { computed, onMounted, ref, watch } from 'vue'
 
-import { barHeights, shareToValue, valueToShare } from './histogram'
+import { CHANNEL_COLOURS, barHeights, shareToValue, valueToShare } from './histogram'
 
 const props = defineProps<{
   counts: readonly number[]
@@ -12,12 +13,19 @@ const props = defineProps<{
   bits: number
   window?: readonly [number, number]
   log?: boolean
+  /** A colour frame's red's, green's and blue's counts. */
+  colours?: readonly (readonly number[])[]
 }>()
 const emit = defineEmits<{ update: [end: 'min' | 'max', value: number] }>()
 
 const root = ref<HTMLElement>()
 const canvas = ref<HTMLCanvasElement>()
-const heights = computed(() => barHeights(props.counts, props.log ?? false))
+const heights = computed(() =>
+  props.colours?.length ? [] : barHeights(props.counts, props.log ?? false),
+)
+const lines = computed(() =>
+  (props.colours ?? []).map((counts) => barHeights(counts, props.log ?? false)),
+)
 
 function draw() {
   const target = canvas.value
@@ -33,8 +41,15 @@ function draw() {
     const tall = share * height
     context.fillRect(index * bar, height - tall, Math.ceil(bar), tall)
   })
+  lines.value.forEach((shares, colour) => {
+    const step = width / Math.max(shares.length, 1)
+    context.strokeStyle = CHANNEL_COLOURS[colour] ?? context.fillStyle
+    context.beginPath()
+    shares.forEach((share, index) => context.lineTo((index + 0.5) * step, height - share * height))
+    context.stroke()
+  })
 }
-watch(heights, draw)
+watch([heights, lines], draw)
 onMounted(draw)
 
 const ends = computed(() =>

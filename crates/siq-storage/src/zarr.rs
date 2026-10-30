@@ -3,7 +3,7 @@
 //!
 //! - The group's `zarr.json` holds the NGFF metadata under `ome`: `multiscales` (the axes, with
 //!   space in µm; each level's scale and translation) and `omero` (each channel's label, colour and
-//!   window).
+//!   window), and `spectrumiq` what NGFF has no word for: a colour sensor's filter array (`cfa`).
 //! - Level `l` halves the one before it in `y` and `x`, rounding up, so its pixel is 2ˡ of level
 //!   0's. Its translation centres it on the level-0 pixels it covers.
 //! - The writer stores one chunk at a time, in any order and from any thread
@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use rayon::prelude::*;
 use serde_json::{Map, Value, json};
-use siq_types::{ImageView, RectPx};
+use siq_types::{Cfa, ImageView, RectPx};
 use zarrs::array::codec::ZstdCodec;
 use zarrs::array::{Array, ArrayBuilder, ArrayMetadataOptions, ArraySubset, data_type};
 use zarrs::filesystem::FilesystemStore;
@@ -109,6 +109,9 @@ pub struct ImageInfo {
     pub origin: [f64; 3],
     /// The channels, one per `c`.
     pub channels: Vec<ChannelInfo>,
+    /// A colour sensor's filter array at level 0's top left: each pixel is then a sample of one
+    /// colour, and every level keeps the pattern (ADR-0071). `None` for a mono image.
+    pub cfa: Option<Cfa>,
 }
 
 impl ImageInfo {
@@ -180,7 +183,11 @@ impl ImageInfo {
             }],
             "omero": { "channels": channels, "rdefs": { "model": "color" } },
         });
-        Map::from_iter([("ome".to_owned(), ome)])
+        let mut attributes = Map::from_iter([("ome".to_owned(), ome)]);
+        if let Some(cfa) = self.cfa {
+            attributes.insert("spectrumiq".to_owned(), json!({ "cfa": cfa }));
+        }
+        attributes
     }
 
     fn full_scale(&self) -> f64 {
@@ -224,6 +231,11 @@ impl ZarrImage {
         if info.levels == 0 || info.chunk == 0 || info.channels.len() as u64 != info.size.c {
             return Err(wrong(
                 "an image needs a level, a chunk size, and a channel per `c`",
+            ));
+        }
+        if info.cfa.is_some() && info.chunk % 2 == 1 {
+            return Err(wrong(
+                "a colour image's chunks hold whole cells: an even size",
             ));
         }
         std::fs::create_dir_all(path).map_err(crate::io_at(path))?;
@@ -541,6 +553,9 @@ fn read_info(attributes: &Map<String, Value>) -> Result<ImageInfo, String> {
         pixel_size: transform("scale")?,
         origin: transform("translation").unwrap_or([0.0; 3]),
         channels,
+        cfa: attributes
+            .get("spectrumiq")
+            .and_then(|ours| serde_json::from_value(ours["cfa"].clone()).ok()),
     })
 }
 

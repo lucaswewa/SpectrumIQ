@@ -24,7 +24,7 @@ use siq_devices::{
 };
 use siq_preview::{
     Contrast, DisplaySettings, FrameStats, PreviewSink, Renderer, RoiSettings, StatsSink,
-    StreamKind, fit,
+    StreamKind, WhiteBalance, fit,
 };
 use siq_types::{
     Binning, FrameMeta, Micrometers, MicrometersPerSecond, Millis, PixelFormat, RectPx, Roi,
@@ -204,7 +204,7 @@ fn preview(frame: &FrameLease, display: &DisplaySettings) -> anyhow::Result<Vec<
         .image::<u16>()
         .context("only 16-bit frames are previewed")?;
     let mut renderer = Renderer::default();
-    let mapping = renderer.mapping(&image, meta.pixel_format.bits(), display);
+    let mapping = renderer.mapping(&image, meta.pixel_format.bits(), meta.cfa, display);
     let (width, height) = meta.image_size();
     let whole = RectPx::new(0, 0, width, height);
     renderer.show(
@@ -361,8 +361,22 @@ pub struct Histogram {
     pub bins: Vec<u32>,
     /// The 0.1th and 99.9th percentiles.
     pub window: [u16; 2],
-    /// The focus measure: the mean squared Sobel gradient.
+    /// The focus measure: the mean squared Sobel gradient, of a colour frame's luminance.
     pub focus: f64,
+    /// A colour frame's red, green and blue, `bins` and `window` being green's; none for a mono
+    /// frame.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub colours: Vec<ColourCounts>,
+}
+
+/// A colour's histogram, in 256 bins over the pixel format's range, and its 0.1th and 99.9th
+/// percentiles.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, JsonSchema)]
+pub struct ColourCounts {
+    /// The counts.
+    pub bins: Vec<u32>,
+    /// The percentiles.
+    pub window: [u16; 2],
 }
 
 /// The latest statistics, as the previews' statistics sink.
@@ -444,11 +458,18 @@ impl Display {
     #[property]
     async fn histogram(&self) -> Option<Histogram> {
         let stats = bound(&self.instrument).stats.latest()?;
+        let colours = stats.colours.iter().flatten();
         Some(Histogram {
             frame: stats.meta.seq.0,
             bins: stats.histogram.to_vec(),
             window: [stats.window.0, stats.window.1],
             focus: stats.focus,
+            colours: colours
+                .map(|(bins, (low, high))| ColourCounts {
+                    bins: bins.to_vec(),
+                    window: [*low, *high],
+                })
+                .collect(),
         })
     }
 
@@ -474,6 +495,28 @@ impl Display {
         };
         let settings = DisplaySettings {
             contrast,
+            ..instrument.previews.display()
+        };
+        instrument.previews.set_display(settings);
+        Ok(settings)
+    }
+
+    /// Fixes a colour frame's white balance at the ROI's latest: red's and blue's 99.9th
+    /// percentiles brought to green's. The ROI on a blank of the slide makes it white.
+    #[action(global_lock = false)]
+    async fn white_from_roi(&self) -> Result<DisplaySettings, ActionError> {
+        let instrument = bound(&self.instrument);
+        let stats = instrument
+            .stats
+            .latest()
+            .context("no frame has been measured yet: start live view")?;
+        let colours = stats.colours.context("the frames aren't in colour")?;
+        let [red, green, blue] = colours.map(|(_, (_, high))| f32::from(high.max(1)));
+        let settings = DisplaySettings {
+            white_balance: WhiteBalance::Fixed {
+                red: green / red,
+                blue: green / blue,
+            },
             ..instrument.previews.display()
         };
         instrument.previews.set_display(settings);

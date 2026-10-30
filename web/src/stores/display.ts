@@ -15,6 +15,12 @@ export const useDisplayStore = defineStore('display', () => {
     await display.read('lut', lut)
   }
 
+  /** Fixes a colour frame's white balance at the ROI's brightest. */
+  async function whiteFromRoi() {
+    await display.run('white_from_roi')
+    await display.read('lut', lut)
+  }
+
   return {
     fitted: display.fitted,
     lut,
@@ -25,5 +31,6 @@ export const useDisplayStore = defineStore('display', () => {
     setRoiRegion: (next: Value<'display', 'roi_region'>) =>
       display.write('roi_region', next, roiRegion),
     autoContrastOnce,
+    whiteFromRoi,
   }
 })

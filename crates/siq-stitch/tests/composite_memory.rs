@@ -128,6 +128,7 @@ fn compositing_holds_its_blocks_and_chunks_not_the_mosaic() {
             colour: [255; 3],
             window: (0.0, 65_535.0),
         }],
+        cfa: None,
     };
     let image = ZarrImage::create(&folder.path().join("mosaic.ome.zarr"), info).unwrap();
     let plane = Plane {

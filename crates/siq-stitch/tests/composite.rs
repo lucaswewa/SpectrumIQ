@@ -40,6 +40,7 @@ fn image(folder: &std::path::Path, bounds: &Bounds, planes: u64) -> ZarrImage {
         pixel_size: [1.0, PIXEL_UM, PIXEL_UM],
         origin: [0.0, 0.0, 0.0],
         channels: (0..planes).map(channel).collect(),
+        cfa: None,
     };
     ZarrImage::create(&folder.join("mosaic.ome.zarr"), info).unwrap()
 }

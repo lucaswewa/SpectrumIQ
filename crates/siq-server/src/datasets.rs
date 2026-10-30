@@ -19,7 +19,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use siq_buffer::Policy;
 use siq_config::model::ChannelConfig;
-use siq_imgproc::{Histogram, histogram};
+use siq_imgproc::{Histogram, histogram, histogram_cfa};
 use siq_jobs::kinds::{DziExportJob, OmeTiffExportJob, PyramidJob, ZarrFromRawJob};
 use siq_jobs::{JobState, Priority};
 use siq_pyramid::tiles::TileFormat;
@@ -201,9 +201,14 @@ impl Datasets {
             }
             let frame = instrument.acquisition.snap(true).await?;
             let image = frame.image::<u16>().context("only 16-bit frames for now")?;
-            let mut counts = Histogram::new(frame.meta().pixel_format.bits());
-            histogram(&image, 4, &mut counts)?;
-            taken.push((*frame.meta(), counts.auto_window(0.001, 0.999)));
+            // A colour frame's window is green's, as the previews show it.
+            let bits = frame.meta().pixel_format.bits();
+            let mut counts: [Histogram; 3] = std::array::from_fn(|_| Histogram::new(bits));
+            match frame.meta().cfa {
+                Some(cfa) => histogram_cfa(&image, cfa, 2, &mut counts)?,
+                None => histogram(&image, 4, &mut counts[1])?,
+            }
+            taken.push((*frame.meta(), counts[1].auto_window(0.001, 0.999)));
         }
         let report = tokio::task::spawn_blocking(move || writer.finish()).await?;
         if let Some(error) = report.error {
@@ -409,5 +414,6 @@ fn image_info(
         pixel_size: [1.0, pixel, pixel],
         origin,
         channels,
+        cfa: meta.cfa,
     }
 }

@@ -77,6 +77,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             channel("gradient", [0, 255, 0]),
             channel("checkers", [0, 128, 255]),
         ],
+        cfa: None,
     };
     let image = ZarrImage::create(&path, info)?;
     let (rows, cols) = image.info().chunks(0);

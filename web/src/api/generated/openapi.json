@@ -1334,6 +1334,74 @@
         }
       }
     },
+    "/api/v1/display/white_from_roi": {
+      "get": {
+        "summary": "All invocations of white_from_roi.",
+        "description": "List all the invocations of white_from_roi that the server is keeping, with their times and links.",
+        "operationId": "list_invocations_api_v1_display_white_from_roi_get",
+        "responses": {
+          "200": {
+            "description": "A list of every invocation of white_from_roi.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InvocationSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Fixes a colour frame's white balance at the ROI's latest: red's and blue's 99.9th",
+        "description": "## Fixes a colour frame's white balance at the ROI's latest: red's and blue's 99.9th\n\nFixes a colour frame's white balance at the ROI's latest: red's and blue's 99.9th\npercentiles brought to green's. The ROI on a blank of the slide makes it white.\n\n## Important note\n\nThis `POST` request starts an action: the server may carry on after answering. The answer is always a 201 with the invocation, whose `href` can be polled to follow it, and whose `output` link gives the result when it has completed.",
+        "operationId": "start_action_api_v1_display_white_from_roi_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/display_white_from_roi_input"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Action has been invoked (and may still be running).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/display_white_from_roi_invocation"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Action completed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/display_white_from_roi_output"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/display/properties": {
       "get": {
         "summary": "Read All Properties",
@@ -7732,11 +7800,11 @@
         ]
       },
       "display_auto_contrast_once_output": {
-        "description": "How the previews show a frame: the contrast and the colours.",
+        "description": "How the previews show a frame: the contrast, the colours, and a colour frame's white balance.",
         "type": "object",
         "properties": {
           "contrast": {
-            "description": "The window, fixed or automatic.",
+            "description": "The window, fixed or automatic: on a colour frame, green's, after the white balance.",
             "oneOf": [
               {
                 "description": "A fixed window, and a gamma.",
@@ -7796,7 +7864,7 @@
             ]
           },
           "colormap": {
-            "description": "The colours.",
+            "description": "The colours of a mono frame. A colour frame shows its own, inverted or not.",
             "oneOf": [
               {
                 "description": "Black to white.",
@@ -7829,6 +7897,50 @@
                 "additionalProperties": false
               }
             ]
+          },
+          "white_balance": {
+            "description": "How a colour frame's colours are balanced.",
+            "oneOf": [
+              {
+                "description": "Each frame's brightest shows white: red's and blue's 99.9th percentiles are brought to\ngreen's.",
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "auto",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "description": "Fixed gains.",
+                "type": "object",
+                "properties": {
+                  "red": {
+                    "description": "Red's gain.",
+                    "type": "number"
+                  },
+                  "blue": {
+                    "description": "Blue's gain.",
+                    "type": "number"
+                  },
+                  "kind": {
+                    "const": "fixed",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "red",
+                  "blue"
+                ]
+              }
+            ],
+            "default": {
+              "kind": "auto"
+            }
           }
         },
         "required": [
@@ -7978,8 +8090,41 @@
                 "minItems": 2
               },
               "focus": {
-                "description": "The focus measure: the mean squared Sobel gradient.",
+                "description": "The focus measure: the mean squared Sobel gradient, of a colour frame's luminance.",
                 "type": "number"
+              },
+              "colours": {
+                "description": "A colour frame's red, green and blue, `bins` and `window` being green's; none for a mono\nframe.",
+                "type": "array",
+                "items": {
+                  "description": "A colour's histogram, in 256 bins over the pixel format's range, and its 0.1th and 99.9th\npercentiles.",
+                  "type": "object",
+                  "properties": {
+                    "bins": {
+                      "description": "The counts.",
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "window": {
+                      "description": "The percentiles.",
+                      "type": "array",
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 65535
+                      },
+                      "maxItems": 2,
+                      "minItems": 2
+                    }
+                  },
+                  "required": [
+                    "bins",
+                    "window"
+                  ]
+                }
               }
             },
             "required": [
@@ -7995,11 +8140,11 @@
         ]
       },
       "display_lut_value": {
-        "description": "How the previews show a frame: the contrast and the colours.",
+        "description": "How the previews show a frame: the contrast, the colours, and a colour frame's white balance.",
         "type": "object",
         "properties": {
           "contrast": {
-            "description": "The window, fixed or automatic.",
+            "description": "The window, fixed or automatic: on a colour frame, green's, after the white balance.",
             "oneOf": [
               {
                 "description": "A fixed window, and a gamma.",
@@ -8059,7 +8204,7 @@
             ]
           },
           "colormap": {
-            "description": "The colours.",
+            "description": "The colours of a mono frame. A colour frame shows its own, inverted or not.",
             "oneOf": [
               {
                 "description": "Black to white.",
@@ -8092,6 +8237,50 @@
                 "additionalProperties": false
               }
             ]
+          },
+          "white_balance": {
+            "description": "How a colour frame's colours are balanced.",
+            "oneOf": [
+              {
+                "description": "Each frame's brightest shows white: red's and blue's 99.9th percentiles are brought to\ngreen's.",
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "auto",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "description": "Fixed gains.",
+                "type": "object",
+                "properties": {
+                  "red": {
+                    "description": "Red's gain.",
+                    "type": "number"
+                  },
+                  "blue": {
+                    "description": "Blue's gain.",
+                    "type": "number"
+                  },
+                  "kind": {
+                    "const": "fixed",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "red",
+                  "blue"
+                ]
+              }
+            ],
+            "default": {
+              "kind": "auto"
+            }
           }
         },
         "required": [
@@ -8161,6 +8350,267 @@
         },
         "required": [
           "zoom"
+        ]
+      },
+      "display_white_from_roi_input": {
+        "description": "Represent the input of an action that never takes parameters.\n\nThis may be either an empty dictionary or ``None``.",
+        "oneOf": [
+          {
+            "description": "A model representing an object that must have no keys.",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "display_white_from_roi_output": {
+        "description": "How the previews show a frame: the contrast, the colours, and a colour frame's white balance.",
+        "type": "object",
+        "properties": {
+          "contrast": {
+            "description": "The window, fixed or automatic: on a colour frame, green's, after the white balance.",
+            "oneOf": [
+              {
+                "description": "A fixed window, and a gamma.",
+                "type": "object",
+                "properties": {
+                  "min": {
+                    "description": "The value shown black, and below.",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535
+                  },
+                  "max": {
+                    "description": "The value shown full, and above.",
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535
+                  },
+                  "gamma": {
+                    "description": "The gamma: above 1 brightens the shadows.",
+                    "type": "number"
+                  },
+                  "kind": {
+                    "const": "manual",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "min",
+                  "max",
+                  "gamma"
+                ]
+              },
+              {
+                "description": "The window between two percentiles of the frame's values, at gamma 1.",
+                "type": "object",
+                "properties": {
+                  "low_pct": {
+                    "description": "The low percentile, from 0 to 100.",
+                    "type": "number"
+                  },
+                  "high_pct": {
+                    "description": "The high percentile, from 0 to 100.",
+                    "type": "number"
+                  },
+                  "kind": {
+                    "const": "auto",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "low_pct",
+                  "high_pct"
+                ]
+              }
+            ]
+          },
+          "colormap": {
+            "description": "The colours of a mono frame. A colour frame shows its own, inverted or not.",
+            "oneOf": [
+              {
+                "description": "Black to white.",
+                "const": "grey",
+                "type": "string"
+              },
+              {
+                "description": "White to black.",
+                "const": "inverted",
+                "type": "string"
+              },
+              {
+                "description": "Black to this colour, as for a fluorescence channel.",
+                "type": "object",
+                "properties": {
+                  "colour": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 255
+                    },
+                    "maxItems": 3,
+                    "minItems": 3
+                  }
+                },
+                "required": [
+                  "colour"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "white_balance": {
+            "description": "How a colour frame's colours are balanced.",
+            "oneOf": [
+              {
+                "description": "Each frame's brightest shows white: red's and blue's 99.9th percentiles are brought to\ngreen's.",
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "auto",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              },
+              {
+                "description": "Fixed gains.",
+                "type": "object",
+                "properties": {
+                  "red": {
+                    "description": "Red's gain.",
+                    "type": "number"
+                  },
+                  "blue": {
+                    "description": "Blue's gain.",
+                    "type": "number"
+                  },
+                  "kind": {
+                    "const": "fixed",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "red",
+                  "blue"
+                ]
+              }
+            ],
+            "default": {
+              "kind": "auto"
+            }
+          }
+        },
+        "required": [
+          "contrast",
+          "colormap"
+        ]
+      },
+      "display_white_from_roi_invocation": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InvocationStatus"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "format": "uri"
+          },
+          "timeStarted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeRequested": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeCompleted": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkElement"
+            }
+          },
+          "input": {
+            "$ref": "#/components/schemas/display_white_from_roi_input"
+          },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/display_white_from_roi_output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "log": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogRecordModel"
+            }
+          },
+          "error": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProblemDetails"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "id",
+          "action",
+          "href",
+          "timeStarted",
+          "timeRequested",
+          "timeCompleted",
+          "input",
+          "log"
         ]
       },
       "stage_alarm_data": {
