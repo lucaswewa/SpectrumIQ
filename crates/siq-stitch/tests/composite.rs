@@ -1,8 +1,8 @@
 //! Out-of-core compositing (ADR-0063): a `siq-datagen` scan's tiles, through the simulator's flat,
 //! composited at their true corners match the ideal mosaic (PSNR), and at the stage's corners they
 //! don't; two neighbours composited apart agree where they overlap, so leave no seam, where
-//! without the flat they don't; whole pixels are copied as they are; and a pixel no tile covers is
-//! 0. REQ-STI-002, REQ-STI-003.
+//! without the flat they don't; whole pixels are copied as they are; a pixel no tile covers is 0;
+//! and a colour scan composited in red, green and blue. REQ-STI-002, REQ-STI-003.
 
 use serde_json::Value;
 use siq_calib::shading::FlatField;
@@ -71,6 +71,26 @@ fn rms(values: &[f64]) -> f64 {
     (values.iter().map(|v| v * v).sum::<f64>() / values.len().max(1) as f64).sqrt()
 }
 
+/// How `got` matches `want`: the scale of the best fit `a · want + b`, as the flat leaves the
+/// level free, and the PSNR of the residual, in dB.
+fn against(got: &[f64], want: &[f64]) -> (f64, f64) {
+    let n = got.len() as f64;
+    let (mg, mw) = (got.iter().sum::<f64>() / n, want.iter().sum::<f64>() / n);
+    let (mut gw, mut ww) = (0.0, 0.0);
+    for (g, w) in got.iter().zip(want) {
+        (gw, ww) = (gw + (g - mg) * (w - mw), ww + (w - mw) * (w - mw));
+    }
+    let a = gw / ww;
+    let off: Vec<f64> = got
+        .iter()
+        .zip(want)
+        .map(|(g, w)| g - (a * (w - mw) + mg))
+        .collect();
+    let peak =
+        got.iter().copied().fold(f64::MIN, f64::max) - got.iter().copied().fold(f64::MAX, f64::min);
+    (a, 20.0 * (peak / rms(&off)).log10())
+}
+
 /// A `siq-datagen` scan of 3 × 3 tiles of 512 × 384 over grains, with its ideal mosaic.
 struct Scan {
     _folder: tempfile::TempDir,
@@ -82,6 +102,11 @@ struct Scan {
 
 impl Scan {
     fn new() -> Self {
+        Self::of(false)
+    }
+
+    /// The scan, in colour if `colour`.
+    fn of(colour: bool) -> Self {
         let folder = tempfile::tempdir().unwrap();
         let args = TileScanArgs {
             world: "grains".to_owned(),
@@ -93,6 +118,7 @@ impl Scan {
             stage_error: 5.0,
             light: 1.0,
             no_mosaic: false,
+            colour,
         };
         let out = Output {
             data_root: folder.path().to_owned(),
@@ -145,6 +171,7 @@ fn a_scan_composited_at_its_true_places_matches_the_ideal_mosaic() {
         let plane = Plane {
             at: (0, 0, 0),
             tiles,
+            colour: None,
         };
         let options = CompositeOptions::default();
         let shading = Some((DARK, &flat));
@@ -166,22 +193,7 @@ fn a_scan_composited_at_its_true_places_matches_the_ideal_mosaic() {
         let from = [16 - 256 - bounds.origin[0], 16 - 192 - bounds.origin[1]];
         let rect = |at: [i64; 2]| RectPx::new(at[0] as u32, at[1] as u32, w as u32, h as u32);
         let (got, want) = (read(&made, 0, rect(from)), read(&ideal, 0, rect([16, 16])));
-        // The residual against the best fit `a · ideal + b`: the flat leaves the level free.
-        let n = got.len() as f64;
-        let (mg, mw) = (got.iter().sum::<f64>() / n, want.iter().sum::<f64>() / n);
-        let (mut gw, mut ww) = (0.0, 0.0);
-        for (g, w) in got.iter().zip(&want) {
-            (gw, ww) = (gw + (g - mg) * (w - mw), ww + (w - mw) * (w - mw));
-        }
-        let a = gw / ww;
-        let off: Vec<f64> = got
-            .iter()
-            .zip(&want)
-            .map(|(g, w)| g - (a * (w - mw) + mg))
-            .collect();
-        let peak = got.iter().copied().fold(f64::MIN, f64::max)
-            - got.iter().copied().fold(f64::MAX, f64::min);
-        let psnr = 20.0 * (peak / rms(&off)).log10();
+        let (_, psnr) = against(&got, &want);
         eprintln!("at the {which} corners: PSNR {psnr:.1} dB against the ideal mosaic");
         scores.push(psnr);
     }
@@ -208,10 +220,12 @@ fn neighbours_composited_apart_agree_where_they_overlap() {
                 Plane {
                     at: (0, 0, 0),
                     tiles: vec![pa],
+                    colour: None,
                 },
                 Plane {
                     at: (0, 1, 0),
                     tiles: vec![pb],
+                    colour: None,
                 },
             ];
             let options = CompositeOptions::default();
@@ -275,6 +289,7 @@ fn whole_pixels_are_copied_and_uncovered_ones_are_0() {
         nominal: [0.0, 0.0],
         sensor: [0, 0],
         binning: 1,
+        cfa: None,
     };
     let corners = [[0.3, -0.2], [66.6, 10.4]];
     let placed = (0..2)
@@ -301,6 +316,7 @@ fn whole_pixels_are_copied_and_uncovered_ones_are_0() {
     let plane = Plane {
         at: (0, 0, 0),
         tiles: placed,
+        colour: None,
     };
     composite::composite(&tiles[..], &[plane], &bounds, &made, None, &options, &()).unwrap();
     let all = read(&made, 0, RectPx::new(0, 0, 131, 58));
@@ -312,4 +328,60 @@ fn whole_pixels_are_copied_and_uncovered_ones_are_0() {
     // Between them, and below the first, nothing.
     assert_eq!(at(65, 5), 0);
     assert_eq!(at(10, 50), 0);
+}
+
+// ADR-0071: a colour scan's tiles composited at their true corners, each colour a plane of its
+// own, demosaiced where each block samples them. Each plane matches the ideal mosaic, as the lamp
+// lights it through its filter: red at 0.75 and blue at 0.55 of green.
+#[test]
+fn a_colour_scan_composites_in_red_green_and_blue() {
+    let scan = Scan::of(true);
+    let flat = true_flat(512, 384);
+    let ideal = ZarrImage::open(&scan.dataset.zarr_dir().join("truth.ome.zarr")).unwrap();
+    let tiles: Vec<Placed> = (0..9).map(|p| scan.placed(p, "true")).collect();
+    assert!(tiles.iter().all(|placed| placed.tile.cfa.is_some()));
+    let corners: Vec<[f64; 2]> = tiles.iter().map(|placed| placed.corner).collect();
+    let bounds = Bounds::of(&corners, &[[512, 384]; 9]);
+    let place = tempfile::tempdir().unwrap();
+    let made = image(place.path(), &bounds, 3);
+    let planes: Vec<Plane> = (0..3)
+        .map(|colour| Plane {
+            at: (0, colour as u64, 0),
+            tiles: tiles.clone(),
+            colour: Some(colour),
+        })
+        .collect();
+    let options = CompositeOptions::default();
+    let shading = Some((DARK, &flat));
+    composite::composite(
+        &scan.source,
+        &planes,
+        &bounds,
+        &made,
+        shading,
+        &options,
+        &(),
+    )
+    .unwrap();
+    let (w, h) = (
+        ideal.info().size.x as u32 - 32,
+        ideal.info().size.y as u32 - 32,
+    );
+    let from = [16 - 256 - bounds.origin[0], 16 - 192 - bounds.origin[1]];
+    let want = read(&ideal, 0, RectPx::new(16, 16, w, h));
+    let fits: Vec<(f64, f64)> = (0..3)
+        .map(|c| {
+            against(
+                &read(&made, c, RectPx::new(from[0] as u32, from[1] as u32, w, h)),
+                &want,
+            )
+        })
+        .collect();
+    eprintln!("red, green and blue against the ideal mosaic: {fits:?}");
+    let [(red, _), (green, _), (blue, _)] = [fits[0], fits[1], fits[2]];
+    assert!(
+        (red / green - 0.75).abs() < 0.03 && (blue / green - 0.55).abs() < 0.03,
+        "{fits:?}"
+    );
+    assert!(fits.iter().all(|&(_, psnr)| psnr >= 25.0), "{fits:?}");
 }

@@ -1,11 +1,13 @@
 //! Pairwise registration (ADR-0061): for each pair of overlapping tiles, how far one truly is from
 //! the other, by phase correlation of their nominal overlaps, flat-corrected, searched only as far
-//! as the stage's uncertainty reaches, and how sure that is.
+//! as the stage's uncertainty reaches, and how sure that is. Colour tiles are registered on their
+//! luminance (ADR-0071).
 
 use rayon::prelude::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use siq_calib::shading::FlatField;
+use siq_imgproc::luminance;
 use siq_register::{Options, Registrar, Registration};
 use siq_types::{ImageView, OwnedImage, RectPx};
 
@@ -206,6 +208,16 @@ fn one(
         pa.view()?.sub_view(Crops::rect(crops.a, crops.size))?,
         pb.view()?.sub_view(Crops::rect(crops.b, crops.size))?,
     );
+    let seen = |view: &ImageView<'_, u16>| {
+        let mut seen = OwnedImage::new(view.width(), view.height());
+        luminance(view, &mut seen.view_mut()).expect("an image of its own size");
+        seen
+    };
+    let lum = a.cfa.map(|_| (seen(&va), seen(&vb)));
+    let (va, vb) = match &lum {
+        Some((la, lb)) => (la.view(), lb.view()),
+        None => (va, vb),
+    };
     let found = match shading {
         None => registrar.register(va, vb),
         Some((dark, flat)) => {

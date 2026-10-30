@@ -19,6 +19,7 @@ use std::sync::Arc;
 use siq_acquire::Acquisition;
 use siq_calib::Move;
 use siq_devices::{Approach, DeviceError, MoveOpts, Stage, Xyz};
+use siq_imgproc::luminance;
 use siq_register::{RegisterError, Registrar};
 use siq_types::{Micrometers, OwnedImage};
 
@@ -132,11 +133,16 @@ pub enum RoutineError {
     Travel([f64; 2]),
 }
 
-/// A frame, copied out of the pool, and its binning.
+/// A frame, copied out of the pool, and its binning: a colour frame's luminance (ADR-0071).
 async fn snap(acquisition: &Acquisition) -> Result<(OwnedImage<u16>, [f64; 2]), RoutineError> {
     let frame = acquisition.snap(false).await?;
     let image = frame.image::<u16>().ok_or(RoutineError::Format)?;
-    let copy = OwnedImage::from_fn(image.width(), image.height(), |x, y| image.row(y)[x]);
+    let mut copy = OwnedImage::new(image.width(), image.height());
+    match frame.meta().cfa {
+        None => siq_imgproc::copy(&image, &mut copy.view_mut()),
+        Some(_) => luminance(&image, &mut copy.view_mut()),
+    }
+    .map_err(|error| RoutineError::Failed(error.to_string()))?;
     let (horizontal, vertical) = frame.meta().binning.factors();
     Ok((copy, [f64::from(horizontal), f64::from(vertical)]))
 }

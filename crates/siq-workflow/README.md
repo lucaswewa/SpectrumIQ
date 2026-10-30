@@ -41,7 +41,7 @@ instrument.
     time-lapse's points, due and begun, and those skipped.
 - **`autofocus`** (ADR-0054): focus found where the stage is, and focus surfaces.
   - **Two sweeps of the focus drive,** a frame at each step, scored by Tenengrad over the frame's
-    middle three quarters: a coarse one over the range, binned 2 × 2 at a quarter of the exposure,
+    middle three quarters, a colour frame's luminance (P10.7, ADR-0071): a coarse one over the range, binned 2 × 2 at a quarter of the exposure,
     then a fine one at the camera's own resolution about the coarse one's estimate. Each estimate
     is the vertex of a Gaussian fitted to the frames above half the sweep's peak.
   - **Nothing to focus on:** a coarse sweep whose sharpness rises by less than a fifth of its peak
@@ -65,7 +65,8 @@ instrument.
   The places are about where the stage is or, if they would leave its travel there, about the
   nearest place where they don't. The flat's places are kept within it in the same way.
 
-  Shifts are in sensor pixels: a binned frame's are scaled up. Registrations run on blocking
+  Shifts are in sensor pixels: a binned frame's are scaled up. A colour frame is registered on its
+  luminance (P10.7). Registrations run on blocking
   threads, as one of a 100 MP frame takes a good part of a second. A registration whose
   peak-to-correlation energy is under the plan's least stops the routine: the field is bare, or the
   move left it.
@@ -76,6 +77,7 @@ instrument.
   - **The flat:** the focus moved away by the plan's defocus (0 for a blank slide), frames at nine
     places a field apart about the stage, so that what is in the field averages away; then the
     stage and the focus put back, whether it worked or not.
+  - **A colour frame** is summed as its luminance: one flat, for every colour (P10.7).
 - **`routines::channel`** (ADR-0035): a channel put in place, in order, each step waiting for its
   device: every light off, the filter, the exposure, then the channel's light. The engine and the
   server's `imaging` Thing share it.
@@ -88,7 +90,8 @@ instrument.
   `thiserror`, `tokio`, `tracing`. Tokio's `test-util`, for the paused clock, in the tests.
 - **Used by:** `siq-server` (the `calibration`, `imaging` and `workflow` Things).
 - **Phase:** P5.2; P5.3 the shading's captures; P6.1 the engine and the channel routine; P6.2
-  the tile scans; P6.3 autofocus and focus maps; P6.4 the sequences.
+  the tile scans; P6.3 autofocus and focus maps; P6.4 the sequences; P10.7 colour frames on
+  their luminance.
 
 ## API
 
@@ -179,7 +182,8 @@ camera at 256 × 192 in brightfield, the GRBL emulator, the simulator's instant 
 against the truth where the stage truly is:
 
 - on grains over a tilted, curved surface, focus within a quarter of the depth of field from up
-  to 20 µm out, at five places, the camera as it was;
+  to 20 µm out, at five places, the camera as it was; and at two on a colour sensor, on its
+  luminance;
 - on a bare field, nothing to focus on, the focus back where it was, and the step failing; plans
   refused for an autofocus of no range, a map of two places, or a focus on the surface before any
   map;

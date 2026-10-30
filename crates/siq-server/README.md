@@ -77,7 +77,8 @@ This is the only crate that depends on teta-wot.
   Thing, and the local console's login; P9.3 the audit trail and its query; P9.4 the users
   routes, the local console's user made at start, and where its secret is; P10.1 the Euresys
   camera, with `euresys`; P10.2 the pool checked against the RAM at start; P10.6 colour: the
-  histogram per colour, `white_from_roi`, and a snap's image keeping its filter array.
+  histogram per colour, `white_from_roi`, and a snap's image keeping its filter array; P10.7 a
+  colour frame's luminance for the live mosaic.
 
 ## API
 
@@ -311,7 +312,8 @@ the corner of the stage's travel where it starts, and back:
   within 0.1 % in scale and 0.05° in rotation, against the stage's noise and whole steps;
 - the residuals under 1 µm RMS, and the backlash within 1 µm of the 2 injected;
 - the calibration kept, in force, in `status`, on the next frame with its objective, and copied
-  into a snap's dataset.
+  into a snap's dataset;
+- the same on a colour sensor, its frames registered on their luminance (P10.7).
 
 `shading`, end to end over HTTP on a blank slide, with the camera's cos⁴ vignetting:
 
@@ -320,7 +322,8 @@ the corner of the stage's travel where it starts, and back:
 - both in force and in `status`; the previews' correction turned on;
 - a `siq-datagen` tile scan's flat estimated as a job, and kept for its frames' objective and
   channel;
-- a flat from the corner of the stage's travel, its places a field in, and the stage back.
+- a flat from the corner of the stage's travel, its places a field in, and the stage back;
+- a colour sensor's flat, of its frames' luminance, within 2 % of the vignetting (P10.7).
 
 `workflow`, over HTTP with the simulator's mount as the calibration in force:
 

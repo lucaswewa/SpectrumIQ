@@ -13,6 +13,7 @@ rayon.workspace = true
 schemars.workspace = true
 serde.workspace = true
 siq-calib = { path = "../siq-calib" }
+siq-imgproc = { path = "../siq-imgproc" }
 siq-register = { path = "../siq-register" }
 siq-storage = { path = "../siq-storage" }
 siq-types = { path = "../siq-types" }

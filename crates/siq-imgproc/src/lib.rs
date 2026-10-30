@@ -5,7 +5,7 @@
 //! - [`histogram`], [`Histogram`], [`Lut`]: statistics and display mapping.
 //! - [`focus`]: focus measures.
 //! - [`demosaic`], [`histogram_cfa`], [`white_gains`], [`balanced`], [`map_colours`]: a colour
-//!   filter's mosaic, shown in colour.
+//!   filter's mosaic, shown in colour; [`luminance`], for processing it.
 //!
 //! Every kernel writes into a buffer its caller owns, and splits its rows into bands on rayon's
 //! pool. Called from a pool thread, a kernel allocates nothing. The loops are plain, for the
@@ -21,7 +21,7 @@ mod display;
 mod focus;
 mod resample;
 
-pub use bayer::{balanced, demosaic, histogram_cfa, map_colours, white_gains};
+pub use bayer::{balanced, demosaic, histogram_cfa, luminance, map_colours, white_gains};
 pub use blur::{MAX_SIGMA, gaussian_blur};
 pub use correct::{Calibration, correct, correct_in_place};
 pub use display::{BINS, Colormap, DisplayMapping, Histogram, Lut, histogram};

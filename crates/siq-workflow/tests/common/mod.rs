@@ -36,12 +36,22 @@ pub struct Rig {
 /// The simulated instrument of `config/sim.toml`, its camera `size` pixels looking at `world`
 /// (the configured one if `None`), calibrated with the simulator's own mount.
 pub async fn instrument(size: (u32, u32), world: Option<Arc<dyn World>>) -> Rig {
+    instrument_in(size, world, None).await
+}
+
+/// [`instrument`], its camera's sensor a colour one if `cfa` is given.
+pub async fn instrument_in(
+    size: (u32, u32),
+    world: Option<Arc<dyn World>>,
+    cfa: Option<siq_types::Cfa>,
+) -> Rig {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config/sim.toml");
     let mut config = siq_config::load(&path).unwrap();
     let CameraConfig::Sim(camera) = &mut config.camera else {
         panic!("a simulated camera")
     };
     (camera.width, camera.height) = size;
+    camera.cfa = cfa;
     let clock: Arc<dyn Clock> = Arc::new(SystemClock::new());
     let peripherals = &config.peripherals;
     let sources = peripherals.illumination.as_ref().unwrap().sources.clone();

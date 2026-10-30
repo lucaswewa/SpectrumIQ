@@ -6,10 +6,11 @@
 //! targets.
 //!
 //! ```text
-//! cargo run --release -p siq-jobs --example bench_stitch_500mp [-- --out <folder>] [--world grains]
+//! cargo run --release -p siq-jobs --example bench_stitch_500mp [-- --out <folder>] [--world grains] [--colour]
 //! ```
 //!
 //! The scan goes in a temporary data root removed at the end, or under `<folder>` with `--out`.
+//! With `--colour`, the frames are raw Bayer, and the mosaic is red, green and blue (P10.7).
 //! Smoke mode (`SIQ_SMOKE=1`) uses 3 × 2 tiles of 512 × 384, and sets no targets.
 
 use std::error::Error;
@@ -97,6 +98,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         stage_error: 5.0,
         light: 1.0,
         no_mosaic: true,
+        colour: args.iter().any(|arg| arg == "--colour"),
     };
     let output = siq_datagen::Output {
         data_root: root,
@@ -120,7 +122,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (source, frames) = MappedTiles::open(&reader, |_| true)?;
     let mut estimator = Estimator::new(DARK);
     for k in 0..frames.len() {
-        estimator.add(&source.pixels(k)?.view()?)?;
+        let pixels = source.pixels(k)?;
+        let view = pixels.view()?;
+        match scan.colour {
+            false => estimator.add(&view)?,
+            true => {
+                let mut seen = siq_types::OwnedImage::new(view.width(), view.height());
+                siq_imgproc::luminance(&view, &mut seen.view_mut())?;
+                estimator.add(&seen.view())?;
+            }
+        }
     }
     let flat = estimator.finish(Roi::full(width, height), [width, height])?;
     drop(source);

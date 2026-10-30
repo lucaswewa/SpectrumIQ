@@ -106,8 +106,6 @@ async fn go(devices: &siq_workflow::DeviceSet, [x, y]: [f64; 2], focus: f64) {
 #[tokio::test]
 async fn autofocus_finds_focus_within_a_quarter_of_the_depth_of_field() {
     let specimen = Arc::new(Specimen::new());
-    let world: Arc<dyn World> = specimen.clone();
-    let common::Rig { devices, state, .. } = common::instrument((256, 192), Some(world)).await;
     let c = specimen.centre;
     let places = [
         ([c[0], c[1]], 12.0),
@@ -116,7 +114,24 @@ async fn autofocus_finds_focus_within_a_quarter_of_the_depth_of_field() {
         ([c[0] - 150.0, c[1] - 120.0], -20.0),
         ([c[0] + 120.0, c[1] - 150.0], 3.0),
     ];
-    for (at, offset) in places {
+    focuses(specimen, &places, None).await;
+}
+
+// ADR-0071: a colour sensor's frames are scored on their luminance, as well.
+#[tokio::test]
+async fn a_colour_camera_autofocuses_on_luminance() {
+    let specimen = Arc::new(Specimen::new());
+    let c = specimen.centre;
+    let places = [([c[0], c[1]], 12.0), ([c[0] - 150.0, c[1] - 120.0], -20.0)];
+    focuses(specimen, &places, Some(siq_types::Cfa::Gbrg)).await;
+}
+
+/// Autofocuses at each of `places`, from its offset out of focus, on a sensor with `cfa`.
+async fn focuses(specimen: Arc<Specimen>, places: &[([f64; 2], f64)], cfa: Option<siq_types::Cfa>) {
+    let world: Arc<dyn World> = specimen.clone();
+    let rig = common::instrument_in((256, 192), Some(world), cfa).await;
+    let common::Rig { devices, state, .. } = rig;
+    for &(at, offset) in places {
         go(&devices, at, specimen.in_focus(at, 0.0) + offset).await;
         let truth = specimen.in_focus_now(&state);
         let found = autofocus(&devices, &AutofocusPlan::default())

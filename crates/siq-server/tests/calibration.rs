@@ -2,7 +2,8 @@
 //! the camera mounted turned 0.4°, with 0.2 % more pixels per µm and a shear of 0.001, the stage
 //! with its backlash, scale error and noise. The calibration recovers the mount within 0.1 % in
 //! scale and 0.05° in rotation (M5's criterion), measures the backlash, is kept as a version, and
-//! frames and datasets carry it from then on. REQ-CAL-001, REQ-CAL-003.
+//! frames and datasets carry it from then on. As well on a colour camera, on its frames'
+//! luminance (ADR-0071). REQ-CAL-001, REQ-CAL-003.
 
 mod common;
 
@@ -17,6 +18,16 @@ use teta_wot::testing::TestClient;
 
 #[tokio::test]
 async fn the_calibration_recovers_the_camera_s_mount_and_is_stamped_on_frames() {
+    calibrates(None).await;
+}
+
+#[tokio::test]
+async fn a_colour_camera_s_calibration_recovers_its_mount_from_luminance() {
+    calibrates(Some(siq_types::Cfa::Gbrg)).await;
+}
+
+/// Calibrates the simulated instrument, its sensor's filter array `cfa`.
+async fn calibrates(cfa: Option<siq_types::Cfa>) {
     let (settings, data) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
     let mut config = config();
     config.server.settings = settings.path().to_owned();
@@ -28,6 +39,7 @@ async fn the_calibration_recovers_the_camera_s_mount_and_is_stamped_on_frames() 
     // A field of 1.5 × 1.2 mm: against the stage's 0.5 µm, moves out to 0.4 of it measure the
     // scale to 0.03 % and the rotation to 0.015°, a third of the targets.
     (camera.width, camera.height) = (4096, 3072);
+    camera.cfa = cfa;
     let (mount, stage_scale) = (config.sim.mount, config.sim.errors.scale_error);
     assert!(mount.rotation > 0.0, "sim.toml turns the camera");
     let (server, instrument) = Service::build(config).await.unwrap().into_parts();

@@ -54,6 +54,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 stage_error: 5.0,
                 light: 1.0,
                 no_mosaic: false,
+                colour: false,
             };
             let out = Output {
                 data_root: temporary.path().to_owned(),
@@ -140,6 +141,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let plane = Plane {
         at: (0, 0, 0),
         tiles: placed,
+        colour: None,
     };
     let options = CompositeOptions::default();
     let began = Instant::now();

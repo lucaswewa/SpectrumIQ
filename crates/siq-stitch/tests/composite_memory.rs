@@ -97,6 +97,7 @@ fn compositing_holds_its_blocks_and_chunks_not_the_mosaic() {
                 nominal: corners[k],
                 sensor: [0, 0],
                 binning: 1,
+                cfa: None,
             },
             corner: corners[k],
         })
@@ -134,6 +135,7 @@ fn compositing_holds_its_blocks_and_chunks_not_the_mosaic() {
     let plane = Plane {
         at: (0, 0, 0),
         tiles,
+        colour: None,
     };
     let options = CompositeOptions::default();
     let pool = rayon::ThreadPoolBuilder::new()

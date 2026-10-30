@@ -123,7 +123,7 @@ impl Camera {
             roi: settings.roi,
             binning: settings.binning,
             pixel_format: settings.pixel_format,
-            cfa: None,
+            cfa: self.noise.cfa,
             pose: Some(reported),
             pose_quality: PoseQuality::Settled,
             channel: None,

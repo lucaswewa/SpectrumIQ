@@ -5,7 +5,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use siq_storage::{DatasetReader, FrameKey, MappedFrame, RawFrame};
-use siq_types::{Affine2, FrameMeta, ImageView, OwnedImage};
+use siq_types::{Affine2, Cfa, FrameMeta, ImageView, OwnedImage};
 
 use crate::StitchError;
 
@@ -22,6 +22,9 @@ pub struct Tile {
     pub sensor: [u32; 2],
     /// The sensor pixels a side of its pixels.
     pub binning: u32,
+    /// A colour frame's filter array at its first pixel: it is registered on its luminance, and
+    /// composited in red, green and blue (ADR-0071).
+    pub cfa: Option<Cfa>,
 }
 
 /// The tiles of a mosaic, placed by their poses. The mosaic's pixels are the frames', along the
@@ -62,6 +65,7 @@ impl Mosaic {
                     ],
                     sensor: [meta.roi.offset_x, meta.roi.offset_y],
                     binning,
+                    cfa: meta.cfa,
                 })
             })
             .collect::<Result<_, _>>()?;

@@ -1,0 +1,13 @@
+PixelFormat=BayerGB8
+BinningHorizontal=1
+BinningVertical=1
+Width=11264
+Height=9200
+OffsetX=0
+OffsetY=0
+ExposureMode=Timed
+TriggerSource=Trigger
+AcquisitionFramePeriod=531821.0
+ExposureTime=350000.0
+Gain=1.0
+device:CameraControlMethod=NC

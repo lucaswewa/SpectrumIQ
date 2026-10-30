@@ -1,7 +1,7 @@
 //! The overlap graph and pairwise registration (ADR-0061): tiles placed by their poses through the
 //! calibration, the pairs that overlap enough, every pair's offset recovered on a `siq-datagen`
-//! scan to a fraction of a pixel of the truth, flat-corrected or not, and an overlap with nothing
-//! to register not trusted. REQ-STI-002.
+//! scan to a fraction of a pixel of the truth, flat-corrected or not, mono or colour, and an
+//! overlap with nothing to register not trusted. REQ-STI-002.
 
 use serde_json::Value;
 use siq_calib::shading::{DEGREE, FlatField};
@@ -78,6 +78,7 @@ fn tiles_are_placed_by_their_poses_and_joined_where_they_overlap() {
             nominal: [f64::from(p % 3) * 85.0, f64::from(p / 3) * 68.0],
             sensor: [0, 0],
             binning: 1,
+            cfa: None,
         })
         .collect();
     let grid = Mosaic {
@@ -93,8 +94,13 @@ fn tiles_are_placed_by_their_poses_and_joined_where_they_overlap() {
 }
 
 /// A `siq-datagen` scan of `world`, `columns` × `rows` tiles of 512 × 384 at 20 % overlap, the
-/// stage off by 5 µm a standard deviation: its dataset and truth.
-fn scan(root: &std::path::Path, world: &str, columns: u32, rows: u32) -> (Dataset, Value) {
+/// stage off by 5 µm a standard deviation, in colour if `colour`: its dataset and truth.
+fn scan(
+    root: &std::path::Path,
+    world: &str,
+    (columns, rows): (u32, u32),
+    colour: bool,
+) -> (Dataset, Value) {
     let args = TileScanArgs {
         world: world.to_owned(),
         columns,
@@ -105,6 +111,7 @@ fn scan(root: &std::path::Path, world: &str, columns: u32, rows: u32) -> (Datase
         stage_error: 5.0,
         light: 1.0,
         no_mosaic: true,
+        colour,
     };
     let out = Output {
         data_root: root.to_owned(),
@@ -122,14 +129,24 @@ fn true_offset(truth: &Value, i: usize, j: usize) -> [f64; 2] {
     [0, 1].map(|axis| (at(j, axis) - at(i, axis)) / PIXEL_UM)
 }
 
+// ADR-0071: a colour scan's tiles keep their filter array, and register on their luminance as
+// well as mono ones do.
 #[test]
 fn every_pair_s_offset_is_recovered_on_ground_truth() {
+    for colour in [false, true] {
+        recovered(colour);
+    }
+}
+
+fn recovered(colour: bool) {
     let folder = tempfile::tempdir().unwrap();
-    let (dataset, truth) = scan(folder.path(), "grains", 3, 3);
+    let (dataset, truth) = scan(folder.path(), "grains", (3, 3), colour);
     let reader = DatasetReader::open(&dataset).unwrap();
     let (source, frames) = MappedTiles::open(&reader, |_| true).unwrap();
     let l = Affine2::scale(1.0 / PIXEL_UM, 1.0 / PIXEL_UM);
     let mosaic = Mosaic::place(&frames, &l).unwrap();
+    let cfa = colour.then_some(siq_types::Cfa::Gbrg);
+    assert!(mosaic.tiles.iter().all(|tile| tile.cfa == cfa));
     let options = PairOptions::default();
     let pairs = mosaic.overlaps(options.min_overlap_px, options.min_overlap_share);
     // The 12 sides; not the corners, 102 × 77 pixels, 4 % of a tile.
@@ -154,7 +171,7 @@ fn every_pair_s_offset_is_recovered_on_ground_truth() {
         let rms = (errors.iter().map(|e| e * e).sum::<f64>() / errors.len() as f64).sqrt();
         let worst = errors.iter().copied().fold(0.0, f64::max);
         eprintln!(
-            "{} pairs trusted: {rms:.3} px RMS, {worst:.3} px at worst",
+            "{} pairs trusted, colour {colour}: {rms:.3} px RMS, {worst:.3} px at worst",
             errors.len()
         );
         assert!(rms < 0.2 && worst < 0.5, "{rms} RMS, {worst} at worst");
@@ -188,6 +205,7 @@ fn an_overlap_with_nothing_to_register_is_not_trusted() {
         nominal: [x, 0.0],
         sensor: [0, 0],
         binning: 1,
+        cfa: None,
     };
     let mosaic = Mosaic {
         tiles: vec![place(0.0), place(192.0)],

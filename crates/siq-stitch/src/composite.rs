@@ -2,6 +2,10 @@
 //! block from the tiles that cover it at their solved corners: sampled with their sub-pixel shift,
 //! corrected by the flat, weighted by ramps that fall to the tiles' edges, and normalised. Only the
 //! blocks being made, and the tiles' pages they read, are held.
+//!
+//! Colour tiles, raw Bayer samples, can't be placed at sub-pixel offsets as they are: each of red,
+//! green and blue is a plane of its own, its tiles demosaiced over what each block samples of them
+//! (ADR-0071).
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -10,9 +14,10 @@ use rayon::prelude::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use siq_calib::shading::FlatField;
+use siq_imgproc::demosaic;
 use siq_storage::Control;
 use siq_storage::zarr::ZarrImage;
-use siq_types::OwnedImage;
+use siq_types::{Cfa, ImageView, OwnedImage, RectPx};
 
 use crate::StitchError;
 use crate::tiles::{Tile, TileSource};
@@ -22,6 +27,9 @@ use crate::tiles::{Tile, TileSource};
 const GAIN_STEP: usize = 16;
 /// A tile's least weight, at its very edge, so that a pixel it alone covers is still its.
 const LEAST_WEIGHT: f32 = 1e-3;
+/// The pixels demosaiced about what a block samples of a colour tile, so that its edges
+/// interpolate as its inside does.
+const MARGIN: usize = 2;
 
 /// How a mosaic is composited.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, JsonSchema)]
@@ -97,15 +105,52 @@ pub struct Plane {
     pub at: (u64, u64, u64),
     /// Its tiles.
     pub tiles: Vec<Placed>,
+    /// The colour it takes of colour tiles: 0 red, 1 green, 2 blue. Mono tiles are taken as they
+    /// are.
+    pub colour: Option<usize>,
 }
 
 /// The memory a composite with blocks of `options` holds at most with `threads` working, in
-/// bytes, for an image of `chunk` pixels a side: each block's sums and weights, each chunk as
-/// filled, copied whole and encoded, and the encoder's context.
+/// bytes, for an image of `chunk` pixels a side: each block's sums and weights, a colour tile's
+/// part demosaiced, each chunk as filled, copied whole and encoded, and the encoder's context.
 pub fn bytes(chunk: u64, options: &CompositeOptions, threads: usize) -> u64 {
     let side = options.block_chunks.max(1) * chunk;
     let encoder = 4 << 20;
-    threads.max(1) as u64 * (side * side * 8 + 3 * chunk * chunk * 2 + encoder)
+    threads.max(1) as u64 * (side * side * 16 + 3 * chunk * chunk * 2 + encoder)
+}
+
+/// Colour `colour` of `tile`, a mosaic with `cfa` at its first pixel, demosaiced where the mosaic
+/// pixels `spans` sample it from `corner`, and a margin: the plane, and its first pixel in the tile.
+fn one_colour(
+    tile: &ImageView<'_, u16>,
+    (cfa, colour): (Cfa, usize),
+    spans: [(i64, i64); 2],
+    corner: [f64; 2],
+) -> Result<(OwnedImage<u16>, [usize; 2]), StitchError> {
+    let sides = [tile.width(), tile.height()];
+    let [(x0, x1), (y0, y1)] = [0, 1].map(|axis| {
+        let (first, last) = spans[axis];
+        let max = sides[axis] - 1;
+        let at = |m: i64| (m as f64 - corner[axis]).clamp(0.0, max as f64) as usize;
+        (
+            at(first).saturating_sub(MARGIN),
+            (at(last) + 1 + MARGIN).min(max),
+        )
+    });
+    let region = RectPx::new(
+        x0 as u32,
+        y0 as u32,
+        (x1 - x0 + 1) as u32,
+        (y1 - y0 + 1) as u32,
+    );
+    let mosaic = tile.sub_view(region)?;
+    let (w, h) = (mosaic.width(), mosaic.height());
+    let mut rgb = OwnedImage::new(w, h);
+    let cfa = cfa.shifted(x0 as u32, y0 as u32);
+    demosaic(&mosaic, cfa, &mut rgb.view_mut()).expect("an image of its own size");
+    let rgb = rgb.view();
+    let plane = OwnedImage::from_fn(w, h, |x, y| rgb.row(y)[x][colour]);
+    Ok((plane, [x0, y0]))
 }
 
 /// A flat's gains over a tile, on a grid [`GAIN_STEP`] pixels apart.
@@ -286,7 +331,16 @@ fn fill(
             continue;
         }
         let pixels = source.pixels(placed.source)?;
-        let view = pixels.view()?;
+        let whole = pixels.view()?;
+        let coloured = match plane.colour.zip(placed.tile.cfa) {
+            Some((colour, cfa)) => Some(one_colour(&whole, (cfa, colour), [xs, ys], corner)?),
+            None => None,
+        };
+        // What is sampled, and where it starts in the tile.
+        let (view, [ox, oy]) = match &coloured {
+            Some((plane, at)) => (plane.view(), *at),
+            None => (whole, [0, 0]),
+        };
         let gains = shading.map(|(dark, maps)| {
             let tile = &placed.tile;
             (dark, &maps[&(tile.sensor, tile.size, tile.binning)])
@@ -303,15 +357,18 @@ fn fill(
             // Within half a pixel of an edge, the edge's pixel.
             let vc = v.clamp(0.0, hmax as f32);
             let (v0, t) = (vc as usize, vc - vc.floor());
-            let (r0, r1) = (view.row(v0.min(hmax)), view.row((v0 + 1).min(hmax)));
+            let (r0, r1) = (
+                view.row(v0.min(hmax) - oy),
+                view.row((v0 + 1).min(hmax) - oy),
+            );
             for x in xs.0..=xs.1 {
                 let u = (x as f64 - corner[0]) as f32;
                 let value = if options.integer {
-                    f32::from(r0[(u as usize).min(wmax)])
+                    f32::from(r0[(u as usize).min(wmax) - ox])
                 } else {
                     let uc = u.clamp(0.0, wmax as f32);
                     let (u0, s) = (uc as usize, uc - uc.floor());
-                    let (a, b) = (u0.min(wmax), (u0 + 1).min(wmax));
+                    let (a, b) = (u0.min(wmax) - ox, (u0 + 1).min(wmax) - ox);
                     let top = f32::from(r0[a]) * (1.0 - s) + f32::from(r0[b]) * s;
                     let bottom = f32::from(r1[a]) * (1.0 - s) + f32::from(r1[b]) * s;
                     top * (1.0 - t) + bottom * t

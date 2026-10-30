@@ -4746,6 +4746,7 @@ dependencies = [
  "serde_json",
  "siq-calib",
  "siq-datagen",
+ "siq-imgproc",
  "siq-pyramid",
  "siq-register",
  "siq-sim",

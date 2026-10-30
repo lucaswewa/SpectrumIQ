@@ -1,12 +1,14 @@
 //! The shading's captures (ADR-0050): frames for the dark, with every light off, and frames for
 //! the flat, of a blank slide or of the sample out of focus, spread over places so that what is in
 //! the field averages away. Each gives the frames' sum, and the settings they were taken at, for
-//! `siq_calib::shading` to make the dark or fit the flat; and leaves the instrument as it was.
+//! `siq_calib::shading` to make the dark or fit the flat; and leaves the instrument as it was. A
+//! colour frame gives its luminance: one flat, for every colour (ADR-0071).
 
 use siq_acquire::Acquisition;
 use siq_calib::shading::Accumulator;
 use siq_devices::{Approach, FocusDrive, Illumination, MoveOpts, Stage, Xyz};
-use siq_types::{FrameMeta, Micrometers};
+use siq_imgproc::luminance;
+use siq_types::{FrameMeta, Micrometers, OwnedImage};
 
 use crate::routines::stage_camera::RoutineError;
 
@@ -29,6 +31,16 @@ async fn take(
         let frame = acquisition.snap(false).await?;
         let image = frame.image::<u16>().ok_or(RoutineError::Format)?;
         let (width, height) = (image.width(), image.height());
+        let mut seen;
+        let image = match frame.meta().cfa {
+            None => image,
+            Some(_) => {
+                seen = OwnedImage::new(width, height);
+                luminance(&image, &mut seen.view_mut())
+                    .map_err(|error| RoutineError::Failed(error.to_string()))?;
+                seen.view()
+            }
+        };
         let taken = captured.get_or_insert_with(|| Captured {
             sum: Accumulator::new(width, height),
             meta: *frame.meta(),

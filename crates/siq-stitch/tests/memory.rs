@@ -83,6 +83,7 @@ fn registering_holds_at_most_threads_times_a_pair_s_bytes() {
             nominal: [f64::from(k) * step as f64, 0.0],
             sensor: [0, 0],
             binning: 1,
+            cfa: None,
         })
         .collect();
     let mosaic = Mosaic {

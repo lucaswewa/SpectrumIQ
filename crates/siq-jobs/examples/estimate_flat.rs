@@ -72,6 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         stage_error: 2.0,
         light: 1.0,
         no_mosaic: true,
+        colour: false,
     };
     let output = siq_datagen::Output {
         data_root: root.clone(),

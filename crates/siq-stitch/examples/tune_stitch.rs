@@ -73,6 +73,7 @@ impl Scan {
             stage_error: 5.0,
             light,
             no_mosaic: false,
+            colour: false,
         };
         let out = Output {
             data_root: folder.path().to_owned(),
@@ -198,6 +199,7 @@ impl Scan {
         let plane = Plane {
             at: (0, 0, 0),
             tiles,
+            colour: None,
         };
         let began = Instant::now();
         let shading = flat.then_some((DARK, &self.flat));

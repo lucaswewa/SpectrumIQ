@@ -1,5 +1,7 @@
 //! A frame made ready to paint (ADR-0059): binned to about the canvas's scale, by a whole factor,
-//! then corrected by the dark and the flat in force, on the calling rayon pool.
+//! then corrected by the dark and the flat in force, on the calling rayon pool. A colour frame is
+//! binned by an even factor, so that each pixel is the mean of whole filter cells: luminance
+//! (ADR-0071).
 
 use rayon::prelude::*;
 use siq_calib::shading::FlatField;
@@ -59,8 +61,11 @@ impl Preparer {
         shading: Option<(f32, &FlatField)>,
     ) -> Result<Prepared, KernelError> {
         let camera = u32::from(meta.binning.horizontal.get());
-        let factor = (1.0 / (canvas_scale * f64::from(camera))).round();
-        let factor = factor.clamp(1.0, f64::from(u8::MAX)) as u8;
+        let mut factor = (1.0 / (canvas_scale * f64::from(camera))).round();
+        if meta.cfa.is_some() {
+            factor = (factor / 2.0).ceil().max(1.0) * 2.0;
+        }
+        let factor = factor.clamp(1.0, f64::from(u8::MAX - 1)) as u8;
         let by = Binning::new(factor, factor).expect("a factor of at least 1");
         let (width, height) = by.image_size(image.width() as u32, image.height() as u32);
         let (w, h) = (width as usize, height as usize);

@@ -23,7 +23,8 @@ budget.
   the threshold.
 - **Frames come prepared** (`Preparer`): binned by the whole factor nearest to the canvas's scale,
   then corrected, `(value − dark) × gain`, by the dark and flat in force, on the calling rayon
-  pool.
+  pool. A colour frame is binned by an even factor, rounded up: whole filter cells to a pixel, so
+  the canvas paints its luminance (P10.7, ADR-0071).
 - **The viewport** (`Viewport`): the stage point at its centre, a zoom (view pixels a canvas
   pixel) and a size up to 1920 × 1080. `canvas.render` draws it from the pages it meets, a
   dispatch each over the view's pixels the page may show: each view pixel takes the canvas pixel
@@ -38,7 +39,7 @@ budget.
   `schemars`, `serde`, `thiserror`; `naga`, `png`, `siq-synth` and `tempfile` in the tests and the
   example.
 - **Used by:** `siq-server`'s `mosaic_live` Thing.
-- **Phase:** P7.2; P7.3 added the viewport and the frames' preparation.
+- **Phase:** P7.2; P7.3 added the viewport and the frames' preparation; P10.7 colour frames.
 
 ## API
 
@@ -83,7 +84,7 @@ there is none:
 - a budget of two pages: the third evicts the first, which reads back from host RAM, and comes
   back when painted again; clearing;
 - a viewport's rectangle of the canvas, the pages it sees, and its checks; a frame binned to the
-  scale, and its flat applied;
+  scale, and its flat applied; a colour frame binned by whole cells, to its luminance;
 - a view across a page's edge, every pixel within 1 of the canvas's word through the LUT;
 - a spot at the centre of a view about it, within 0.01 view pixels;
 - a view across two pages, one evicted, shown at its shrunk detail.

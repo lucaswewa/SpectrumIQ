@@ -11,8 +11,8 @@ use siq_stitch_live::paint::Frame;
 use siq_stitch_live::view::Params;
 use siq_stitch_live::{Canvas, CanvasGeometry, CanvasOptions, PAGE, Preparer, View, Viewport};
 use siq_types::{
-    Affine2, Binning, FrameFlags, FrameMeta, FrameSeq, ImageView, Millis, PixelFormat, PoseQuality,
-    Roi, Timestamp,
+    Affine2, Binning, Cfa, FrameFlags, FrameMeta, FrameSeq, ImageView, Millis, PixelFormat,
+    PoseQuality, Roi, Timestamp,
 };
 
 fn gpu() -> Option<GpuHandle> {
@@ -149,6 +149,34 @@ fn a_frame_is_binned_to_the_canvas_scale_and_flat_corrected() {
         .prepare(&image, &meta(512, 384, 2), 0.25, None)
         .unwrap();
     assert_eq!((quarter.width, quarter.binning), (128, 4));
+}
+
+// ADR-0071: a colour frame is binned by an even factor, whole filter cells to a pixel, so that it
+// paints its luminance, not its pattern.
+#[test]
+fn a_colour_frame_is_binned_by_whole_cells() {
+    let mosaic: Vec<u16> = (0..192)
+        .flat_map(|y| (0..256).map(move |x| [3000, 4000, 2000][Cfa::Gbrg.colour(x, y)]))
+        .collect();
+    let image = ImageView::new(&mosaic, 256, 192, 256).unwrap();
+    let colour = |width, height, binning| FrameMeta {
+        cfa: Some(Cfa::Gbrg),
+        ..meta(width, height, binning)
+    };
+    let mut preparer = Preparer::default();
+    // Half the sensor's scale: 2, as for a mono frame. The camera's 2 × 2 binning keeps the
+    // pattern, so half its scale is 2 more, not 1.
+    for (camera, binning) in [(1, 2), (2, 4)] {
+        let meta = colour(256 * u32::from(camera), 192 * u32::from(camera), camera);
+        let prepared = preparer.prepare(&image, &meta, 0.5, None).unwrap();
+        assert_eq!((prepared.width, prepared.binning), (128, binning));
+        assert!(prepared.samples.iter().all(|&value| value == 3250));
+    }
+    // A third, to 3: rounded up to 4.
+    let third = preparer
+        .prepare(&image, &colour(256, 192, 1), 1.0 / 3.0, None)
+        .unwrap();
+    assert_eq!((third.width, third.binning), (64, 4));
 }
 
 /// Texture that varies smoothly, the same each run.

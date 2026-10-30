@@ -3,6 +3,7 @@
 //! - [`demosaic`]: at the mosaic's own size by bilinear interpolation, smaller from whole cells.
 //! - [`histogram_cfa`], [`white_gains`], [`balanced`] and [`map_colours`]: each colour's
 //!   statistics, the white balance, and the display mapping on each colour.
+//! - [`luminance`]: what registration, focus and the flat take of a mosaic (P10.7).
 
 use siq_types::{Cfa, ImageView, ImageViewMut, RectPx};
 
@@ -41,24 +42,49 @@ pub fn demosaic(
     }
 }
 
+/// Pixel `i`'s neighbour `d` away, of `n`, mirrored at an edge: which keeps its colour.
+fn mirror(i: usize, d: isize, n: usize) -> usize {
+    let at = i as isize + d;
+    let at = if at < 0 {
+        -at
+    } else if at >= n as isize {
+        2 * n as isize - 2 - at
+    } else {
+        at
+    };
+    at.clamp(0, n as isize - 1) as usize
+}
+
+/// The luminance of `input`, a mosaic of any phase, in `out`, the same size: each pixel the 3 × 3
+/// binomial mean about it, mirrored at the edges. Wherever it is centred, it weighs red, green and
+/// blue 1 : 2 : 1, so the pattern is gone, and the detail is still a pixel's.
+pub fn luminance(
+    input: &ImageView<'_, u16>,
+    out: &mut ImageViewMut<'_, u16>,
+) -> Result<(), KernelError> {
+    check("the output", size(input), size_mut(out))?;
+    let (width, height) = size(input);
+    for_bands(out.reborrow(), &|first, mut band| {
+        for (y, row) in (first..).zip(band.rows_mut()) {
+            let lines = [-1, 0, 1].map(|d| input.row(mirror(y, d, height)));
+            for (x, value) in row.iter_mut().enumerate() {
+                let [l, c, r] = [-1, 0, 1].map(|d| mirror(x, d, width));
+                let across =
+                    |line: &[u16]| u32::from(line[l]) + 2 * u32::from(line[c]) + u32::from(line[r]);
+                let sum = across(lines[0]) + 2 * across(lines[1]) + across(lines[2]);
+                *value = ((sum + 8) / 16) as u16;
+            }
+        }
+    });
+    Ok(())
+}
+
 fn interpolate(
     input: &ImageView<'_, u16>,
     phases: [[usize; 2]; 2],
     out: &mut ImageViewMut<'_, [u16; 3]>,
 ) {
     let (width, height) = size(input);
-    // A neighbour, mirrored at an edge: which keeps its colour.
-    let mirror = |i: usize, d: isize, n: usize| {
-        let at = i as isize + d;
-        let at = if at < 0 {
-            -at
-        } else if at >= n as isize {
-            2 * n as isize - 2 - at
-        } else {
-            at
-        };
-        at.clamp(0, n as isize - 1) as usize
-    };
     for_bands(out.reborrow(), &|first, mut band| {
         for (y, row) in (first..).zip(band.rows_mut()) {
             let lines = [-1, 0, 1].map(|d| mirror(y, d, height));

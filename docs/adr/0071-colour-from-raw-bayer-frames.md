@@ -142,3 +142,69 @@ They are P10.7's.
   - the per-colour histograms take 1.9 ms.
 - `preview_to_files -- <folder> gbrg`: the 100 MP colour sensor's overview and ROI JPEGs, looked
   at.
+
+## Amendment (P10.7, 2026-10-29): processing on luminance, and the stitch in colour
+
+**Context.** After P10.6, everything that measured a colour frame still took the mosaic as it
+was: autofocus, the stage–camera calibration, the flat, the live mosaic and the stitch.
+
+**Decision.**
+
+- **Luminance** (`siq-imgproc` `luminance`): each pixel the 3 × 3 binomial mean about it, mirrored
+  at the edges. Wherever it is centred, it weighs red, green and blue 1 : 2 : 1, so it needs no
+  pattern, and keeps a pixel's detail and the frame's geometry. On linear colours it is exact
+  inside the image.
+- **On luminance:**
+  - autofocus's sharpness;
+  - the stage–camera calibration's frames;
+  - the flat, both captured and estimated from a dataset. There is one flat, for every colour.
+- **The live mosaic** bins a colour frame by an even factor, rounded up: each pixel is the mean of
+  whole cells, which is luminance at no cost. A camera's 2 × 2 binning keeps the pattern, so a
+  half-scale canvas bins its frames 2 more, not 1.
+- **The stitch:**
+  - a tile keeps its frame's filter array (`Tile::cfa`);
+  - its pairs are registered on luminance;
+  - each colour channel of the dataset is composited as three planes, red, green and blue
+    (`Plane::colour`). Each block demosaics, by `demosaic`'s bilinear, only what it samples of a
+    tile, with a margin of 2, and takes the plane's colour at the tile's sub-pixel offset. Tiles
+    placed at sub-pixel offsets can't keep a Bayer pattern;
+  - the stitched image's channels are `<label> red`, `green` and `blue`, pure colours, each in
+    the 0.1–99.9 % window of its colour in the first frame: the viewer's additive composite is
+    then white balanced. The image isn't a mosaic, so its `cfa` is `None`.
+- **Datasets** keep their raw frames, the filter array in each sidecar's `FrameMeta`.
+- **`config/sim.toml` stays mono.** Its fluorescence channels keep their tints, and every earlier
+  milestone's manual test its look. Colour is tested by the colour variants of each routine's
+  test, and `cfa = "gbrg"`, commented in, turns it on.
+
+**Alternatives considered.**
+
+- **A half-resolution luminance,** each cell's mean, as the statistics take it. It would change
+  the geometry every consumer has: the calibration's scale, the registration's shifts, autofocus's
+  windows. The binomial keeps it, for one more pass.
+- **A single colour plane,** green. That is half the samples, and needs interpolating as well.
+- **One demosaic for a block's three colours.** It would save two of a block's three demosaics,
+  about a quarter of the composite's time, but a block would hold and write three planes. The
+  500 MP benchmark meets its target without it.
+
+**Consequences.**
+
+- The stitched colour mosaic is three times the planes. Its composite, at 535 MP, takes 19.7 s
+  where mono takes 4.0, and the whole stitch 27.1 s of the 30 s target.
+- The registration is a little less sharp on luminance: 0.12 px RMS of the truth on the
+  generator's scan, where mono gives 0.064. The target is 0.2 px.
+
+**Verification.**
+
+- `siq-imgproc` `bayer`: `luminance_takes_the_pattern_away_and_keeps_linear_detail`.
+- `siq-workflow` `autofocus`: `a_colour_camera_autofocuses_on_luminance`.
+- `siq-server`:
+  - `calibration`: `a_colour_camera_s_calibration_recovers_its_mount_from_luminance`, to 0.1 %
+    and 0.05°;
+  - `shading`: `a_colour_camera_s_flat_is_its_luminance_s`, within 2 %.
+- `siq-stitch-live` `view`: `a_colour_frame_is_binned_by_whole_cells`.
+- `siq-stitch`:
+  - `pairs`: every pair of a colour scan within 0.2 px RMS of the truth;
+  - `composite`: `a_colour_scan_composites_in_red_green_and_blue`, each plane at 27 dB against the
+    ideal mosaic, and red at 0.743 and blue at 0.545 of green, as the lamp gives.
+- `siq-jobs` `kinds`: `a_colour_scan_is_stitched_in_red_green_and_blue`.
+- `bench_stitch_500mp -- --colour`: 27.1 s and 1.38 GB, within the targets.

@@ -250,7 +250,7 @@ fn paint(
     let prepared = pool.install(|| preparer.prepare(&image, &meta, scale, shading))?;
     drop(frame);
     let display = instrument.previews.display();
-    // The prepared frame is mono: its colour waits for P10.7.
+    // The prepared frame is mono: a colour frame's luminance.
     let bits = meta.pixel_format.bits();
     let mapping = match renderer.mapping(&prepared.view()?, bits, None, &display) {
         Mapping::Mono(mapping) | Mapping::Colour(_, [_, mapping, _]) => mapping,

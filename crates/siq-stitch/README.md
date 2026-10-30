@@ -52,7 +52,9 @@ out of core into OME-Zarr.
   tests and the examples.
 - **Used by:** `siq-jobs`' `CompositeJob` and `StitchJob`; `siq-server`, for the report's overlays.
 - **Phase:** P8.1; P8.2 added the global solve; P8.3 the compositing; P8.4 the report and
-  `StitchOptions`; P8.5 the accuracy suite, the search's size and the edges' correlation weights.
+  `StitchOptions`; P8.5 the accuracy suite, the search's size and the edges' correlation weights;
+  P10.7 colour tiles (ADR-0071, amended): registered on their luminance, and composited in red,
+  green and blue.
 
 ## API
 
@@ -60,7 +62,7 @@ out of core into OME-Zarr.
 |---|---|
 | `Mosaic::place(&frames, &l)` | The tiles of `(FrameKey, FrameMeta)`s placed by their poses through `l`, sensor pixels a µm: `Mosaic { tiles, px_per_um }` |
 | `mosaic.overlaps(min_px, min_share)` | The pairs `(i, j)`, `i < j`, whose nominal rectangles overlap by `min_px` each way over `min_share` of a tile |
-| `Tile` | `key`, `size`, `nominal` (its corner, in mosaic pixels), `sensor` (its first pixel on the sensor) and `binning` |
+| `Tile` | `key`, `size`, `nominal` (its corner, in mosaic pixels), `sensor` (its first pixel on the sensor), `binning`, and a colour frame's `cfa`. A colour tile's pairs are registered on its luminance |
 | `pairs::register(&source, &mosaic, &pairs, shading, &options, threads)` | Each pair's `Edge`, in order; `shading` the dark level and the flat, or `None` |
 | `Edge` | `i`, `j`, `shift` (`j`'s corner from `i`'s, in mosaic pixels), `pce`, `margin`, `ncc`, `overlap_px`, `confident` |
 | `PairOptions` | `min_overlap_px` (32), `min_overlap_share` (0.05), `stage_sigma_um` (5), `reach_sigmas` (4), `search_px` (1024), `min_shared` (0.25), `min_pce` (50), `min_ncc` (0.8), `min_margin` (0.3); `reach_px(px_per_um)` |
@@ -69,7 +71,7 @@ out of core into OME-Zarr.
 | `MappedTiles::open(&reader, keep)`, `.with_capacity(n)` | A dataset's frames that `keep` takes, and their metadata, mapped as read; at most `n` kept mapped |
 | `composite::composite(&source, &planes, &bounds, &image, shading, &options, &control)` | `planes` written into level 0 of `image`, a block at a time on the calling pool; `control` hears the progress and may stop it |
 | `Bounds::of(&corners, &sizes)` | The box of the tiles at their corners: `Bounds { origin, size }`, in mosaic pixels |
-| `Plane { at, tiles }`, `Placed { source, tile, corner }` | A plane `(t, c, z)` of the image, and its tiles: each the source's index, the tile, and its corner |
+| `Plane { at, tiles, colour }`, `Placed { source, tile, corner }` | A plane `(t, c, z)` of the image, and its tiles: each the source's index, the tile, and its corner. `colour`, 0 red, 1 green, 2 blue, is the colour the plane takes of colour tiles, each demosaiced where a block samples it, with a margin of 2 |
 | `CompositeOptions` | `feather_px` (128), `integer` (false), `block_chunks` (2) |
 | `composite::bytes(chunk, &options, threads)` | The most the composite holds |
 | `solve::solve(&mosaic, &edges, &options)` | The tiles' corners that best agree with the trusted edges and the stage: a `Solution` |
@@ -114,7 +116,7 @@ None.
   corners only below a lower share;
 - a `siq-datagen` scan of 3 × 3 tiles over grains, the stage off by 5 µm: its 12 sides registered
   within 0.2 pixels RMS and 0.5 at worst of the truth (0.064 and 0.126 here), uncorrected and
-  through a flat;
+  through a flat; and in colour, on luminance (0.120 and 0.299);
 - an overlap of noise alone not trusted, and a textured one 3 and 2 pixels off its nominal place
   found within 0.05;
 - `tests/memory.rs`: a counting allocator holds the registration within `threads` ×
@@ -131,13 +133,17 @@ None.
 - `tests/composite.rs`: a 3 × 3 scan through the simulator's flat, composited at its true corners,
   against the ideal mosaic at 25 dB at least (28.0 here) and 6 dB over the stage's corners (16.2);
   two neighbours composited apart, within 0.5 % of each other in their overlap through the flat
-  (0.1 %) and over 2 % without it; whole pixels copied, and uncovered ones 0;
+  (0.1 %) and over 2 % without it; whole pixels copied, and uncovered ones 0; a colour scan in
+  red, green and blue, each at 25 dB at least (27.1–27.6), and red at 0.743 and blue at 0.545 of
+  green, as the lamp gives;
 - `tests/composite_memory.rs`: a 4 × 4 mosaic of 18.2 MB composited on two threads within
   `composite::bytes`, 5.0 MB at the peak.
 
 ## Limitations
 
 - **Translations only,** by design (ADR-0013): a calibration's error shows as residuals.
+- **A colour mosaic costs five times a mono one** to composite: three planes, each block
+  demosaicing what it reads of a tile once for each.
 - **Sparse overlaps aren't trusted:** cells far apart leave a side with nothing to register; the
   solver leans on the tile's other sides and its stage prior.
 - **Narrow overlaps can mislead:** where a pair's stage error is a large share of its overlap, as

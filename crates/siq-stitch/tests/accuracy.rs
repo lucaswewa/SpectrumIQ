@@ -64,6 +64,7 @@ fn stitch(case: Case) -> Placement {
         stage_error: case.stage_um,
         light: case.light,
         no_mosaic: true,
+        colour: false,
     };
     let out = Output {
         data_root: folder.path().to_owned(),

@@ -2,7 +2,8 @@
 //! slide, the camera's cos⁴ vignetting (the corners at 0.8 of the centre), a dark taken with the
 //! lights off and turned back on, a flat taken out of focus and the focus put back, the flat
 //! within 2 % of the vignetting, both in force and in `status`, the previews' correction, and a
-//! tile scan's flat estimated as a job. REQ-CAL-002.
+//! tile scan's flat estimated as a job; and a colour camera's flat, of its luminance (ADR-0071).
+//! REQ-CAL-002.
 
 mod common;
 
@@ -30,6 +31,64 @@ fn blank_slide(folder: &std::path::Path) -> std::path::PathBuf {
     path
 }
 
+/// How far `flat`'s surface is from the simulator's vignetting on its 256 × 192 sensor, at
+/// worst: a share, its level aside.
+fn off(flat: &ShadingRecord) -> f64 {
+    let surface = flat.flat.as_ref().unwrap();
+    let (cx, cy) = (128.0, 96.0);
+    let light = |x: f64, y: f64| {
+        let rho2 = ((x - cx) * (x - cx) + (y - cy) * (y - cy)) / (cx * cx + cy * cy);
+        Vignetting::Cos4 { corner: 0.8 }.at(rho2)
+    };
+    let places: Vec<_> = (0..=8)
+        .flat_map(|j| (0..=8).map(move |i| (f64::from(i) * 32.0, f64::from(j) * 24.0)))
+        .collect();
+    let ratios: Vec<f64> = places
+        .iter()
+        .map(|&(x, y)| surface.at(x, y) / light(x, y))
+        .collect();
+    let mean = ratios.iter().sum::<f64>() / ratios.len() as f64;
+    ratios
+        .iter()
+        .map(|r| (r / mean - 1.0).abs())
+        .fold(0.0, f64::max)
+}
+
+#[tokio::test]
+async fn a_colour_camera_s_flat_is_its_luminance_s() {
+    let (folder, settings) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let mut config = config();
+    config.server.settings = settings.path().to_owned();
+    config.sim.world = WorldConfig::Image {
+        path: blank_slide(folder.path()),
+        pixel_size: Micrometers(10_000.0),
+    };
+    let siq_config::model::CameraConfig::Sim(camera) = &mut config.camera else {
+        panic!("a simulated camera")
+    };
+    camera.cfa = Some(siq_types::Cfa::Gbrg);
+    let (client, _) = serve(config).await;
+    invoke(
+        &client,
+        "/api/v1/imaging/select_channel",
+        json!({ "id": 1 }),
+    )
+    .await;
+    let to = json!({ "x": -20000.0, "y": -15000.0, "z": 0.0 });
+    invoke(&client, "/api/v1/stage/move_to", to).await;
+    invoke(
+        &client,
+        "/api/v1/calibration/capture_dark",
+        json!({ "frames": 8 }),
+    )
+    .await;
+    let input = json!({ "defocus_um": 50.0, "frames": 18 });
+    let flat = invoke(&client, "/api/v1/calibration/capture_flat", input).await;
+    let worst = off(&serde_json::from_value(flat).unwrap());
+    assert!(worst < 0.02, "the flat off by {:.2} %", worst * 100.0);
+    client.stop().await;
+}
+
 #[tokio::test]
 async fn a_dark_and_a_flat_are_captured_kept_and_shown_and_a_scan_s_flat_is_estimated() {
     let (folder, settings) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
@@ -51,6 +110,7 @@ async fn a_dark_and_a_flat_are_captured_kept_and_shown_and_a_scan_s_flat_is_esti
         stage_error: 2.0,
         light: 1.0,
         no_mosaic: true,
+        colour: false,
     };
     let output = siq_datagen::Output {
         data_root: config.server.data_root.clone(),
@@ -96,24 +156,7 @@ async fn a_dark_and_a_flat_are_captured_kept_and_shown_and_a_scan_s_flat_is_esti
         (flat.kind, flat.frames, flat.level),
         (ShadingKind::Flat, 18, dark.level)
     );
-    let surface = flat.flat.as_ref().unwrap();
-    let (cx, cy) = (128.0, 96.0);
-    let light = |x: f64, y: f64| {
-        let rho2 = ((x - cx) * (x - cx) + (y - cy) * (y - cy)) / (cx * cx + cy * cy);
-        Vignetting::Cos4 { corner: 0.8 }.at(rho2)
-    };
-    let places: Vec<_> = (0..=8)
-        .flat_map(|j| (0..=8).map(move |i| (f64::from(i) * 32.0, f64::from(j) * 24.0)))
-        .collect();
-    let ratios: Vec<f64> = places
-        .iter()
-        .map(|&(x, y)| surface.at(x, y) / light(x, y))
-        .collect();
-    let mean = ratios.iter().sum::<f64>() / ratios.len() as f64;
-    let worst = ratios
-        .iter()
-        .map(|r| (r / mean - 1.0).abs())
-        .fold(0.0, f64::max);
+    let worst = off(&flat);
     assert!(worst < 0.02, "the flat off by {:.2} %", worst * 100.0);
 
     // Both in force, and in `status`.

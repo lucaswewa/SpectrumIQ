@@ -12,9 +12,9 @@ Scientific microscope instrument software:
 ## Status
 
 **In progress:** Milestone 10, the hardware: the Adimec camera on its Coaxlink, then the stage and
-the focus drive. P10.6 is the latest: the camera's raw Bayer frames shown in colour, live and in
-the viewer, with white balance, and a colour sensor in the simulator
-(`siq-preview --example preview_to_files -- <folder> gbrg`, ADR-0071).
+the focus drive. P10.7 is the latest: a colour camera's frames measured on their luminance, for
+autofocus, the calibration, the flat, the live mosaic and the stitch's registration, and the
+stitched mosaic in colour (`siq-jobs --example bench_stitch_500mp -- --colour`, ADR-0071).
 
 Done so far:
 
@@ -212,7 +212,10 @@ Done so far:
   - P10.6, colour for display (ADR-0071): a colour sensor in the simulator (`[camera] cfa`); the
     previews demosaiced, the overview from whole filter cells and the ROI interpolated at 1:1;
     a window on each colour, with automatic white balance or one fixed from the ROI; the
-    statistics per colour; and the pyramid keeping the cells whole, its tiles demosaiced.
+    statistics per colour; and the pyramid keeping the cells whole, its tiles demosaiced;
+  - P10.7, colour for processing (ADR-0071, amended): luminance, the 3 × 3 binomial, for
+    autofocus, the stage–camera calibration and the flat; the live mosaic binned by whole cells;
+    and the stitch registered on luminance and composited in red, green and blue.
 
 The [roadmap](docs/plan/README.md#3-roadmap) tracks every phase.
 

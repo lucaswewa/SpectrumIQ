@@ -1,7 +1,8 @@
 //! `tilescan`: the tiles of a mosaic over a 2D world, cells or grains, on a grid. The stage misses
 //! each nominal pose by a random error: each frame is rendered at its true pose, and recorded with
 //! its nominal one. The ground truth is each tile's true pose, and the world itself as the ideal
-//! mosaic, `zarr/truth.ome.zarr`: what a perfect stitch gives, and what the viewer browses.
+//! mosaic, `zarr/truth.ome.zarr`: what a perfect stitch gives, and what the viewer browses. With
+//! `--colour`, the frames are a colour sensor's raw Bayer samples, as the Adimec's (ADR-0071).
 
 use std::path::PathBuf;
 
@@ -13,7 +14,7 @@ use serde_json::json;
 use siq_storage::Dataset;
 use siq_storage::zarr::{CHUNK, ChannelInfo, ImageInfo, SampleType, Size5, ZarrImage};
 use siq_synth::{CellsParams, GrainsParams, World, WorldInfo, grid, sample, write_ground_truth};
-use siq_types::{OwnedImage, RectPx, RectUm, StagePose, Vec2Um};
+use siq_types::{Cfa, OwnedImage, RectPx, RectUm, StagePose, Vec2Um};
 
 use crate::{Camera, Generator, Output, dataset, gaussian, key, record, um, write_truth};
 
@@ -47,6 +48,9 @@ pub struct TileScanArgs {
     /// Leaves out the ideal mosaic.
     #[arg(long)]
     pub no_mosaic: bool,
+    /// A colour sensor, its filter array the Adimec's, GBRG: raw Bayer frames.
+    #[arg(long)]
+    pub colour: bool,
 }
 
 /// The `tilescan` generator.
@@ -98,6 +102,7 @@ pub fn tilescan(args: &TileScanArgs, out: &Output) -> anyhow::Result<PathBuf> {
     let built = world.build()?;
     let mut camera = Camera::new((args.width, args.height), out.seed);
     camera.optics.flux *= args.light;
+    camera.noise.cfa = args.colour.then_some(Cfa::Gbrg);
     let [width, height] = camera.field();
     let step = [width, height].map(|field| field * (1.0 - args.overlap));
     let (dataset, truth) = dataset(out, "tilescan", serde_json::to_value(args)?)?;

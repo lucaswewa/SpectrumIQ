@@ -258,3 +258,40 @@ fn white_balance_brings_each_colour_s_brightest_to_green_s_and_maps_through_it()
     let shown: Vec<_> = shown.view().rows().flatten().copied().collect();
     assert_eq!(shown, [[255; 3], [0; 3], [128; 3]]);
 }
+
+// P10.7: luminance weighs red, green and blue 1 : 2 : 1 wherever it is centred, so the pattern
+// is gone, and on linear colours it is exact inside the image, in several bands.
+#[test]
+fn luminance_takes_the_pattern_away_and_keeps_linear_detail() {
+    for cfa in CFAS {
+        let (data, stride) = mosaic(cfa, 300, 200, |_, _| [3000, 4000, 2000]);
+        let input = ImageView::new(&data, 300, 200, stride).unwrap();
+        let mut out = OwnedImage::new(300, 200);
+        luminance(&input, &mut out.view_mut()).unwrap();
+        assert!(
+            out.view().rows().flatten().all(|&v| v == 3250),
+            "{cfa:?}, edges too"
+        );
+
+        let colour = |x: usize, y: usize| {
+            let (x, y) = (x as u16, y as u16);
+            [1000 + 3 * x + 2 * y, 4000 + x + 5 * y, 2000 + 2 * x + y]
+        };
+        let (width, height) = (700, 400);
+        let (data, stride) = mosaic(cfa, width, height, colour);
+        let input = ImageView::new(&data, width, height, stride).unwrap();
+        let mut out = OwnedImage::new(width, height);
+        luminance(&input, &mut out.view_mut()).unwrap();
+        for y in 1..height - 1 {
+            for x in 1..width - 1 {
+                let [r, g, b] = colour(x, y).map(u32::from);
+                let expected = ((r + 2 * g + b + 2) / 4) as i32;
+                let found = i32::from(out.view().row(y)[x]);
+                assert!((found - expected).abs() <= 1, "{cfa:?} at ({x}, {y})");
+            }
+        }
+    }
+    let input = OwnedImage::<u16>::new(4, 4);
+    let mut wrong = OwnedImage::new(3, 4);
+    assert!(luminance(&input.view(), &mut wrong.view_mut()).is_err());
+}

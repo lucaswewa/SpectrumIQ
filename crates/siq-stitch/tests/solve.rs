@@ -33,6 +33,7 @@ fn grid(columns: u32, rows: u32) -> Mosaic {
             ],
             sensor: [0, 0],
             binning: 1,
+            cfa: None,
         })
         .collect();
     Mosaic {
@@ -103,6 +104,7 @@ fn a_scan_s_pairs_solve_to_its_truth_with_outliers_rejected() {
         stage_error: 5.0,
         light: 1.0,
         no_mosaic: true,
+        colour: false,
     };
     let out = Output {
         data_root: folder.path().to_owned(),

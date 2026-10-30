@@ -7,7 +7,8 @@
 //!   moves little. A coarse sweep whose sharpness rises by less than a share of its peak has
 //!   nothing to focus on, and the drive goes back where it was. The camera is binned for the
 //!   coarse sweep, at an exposure that keeps the light the same; the fine sweep is at its own
-//!   resolution, where the little that the blur changes near focus shows.
+//!   resolution, where the little that the blur changes near focus shows. A colour frame is
+//!   scored on its luminance (ADR-0071).
 //! - **A focus surface** is fitted to the focus found at places: a plane by least squares, with
 //!   places far off it set aside, or a thin-plate spline through them. Each place's residual is
 //!   the surface's error there, the spline's with the place left out of its fit.
@@ -15,8 +16,8 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use siq_devices::{Approach, CameraSettings, MoveOpts};
-use siq_imgproc::{FocusMeasure, focus};
-use siq_types::{Binning, Micrometers, Millis, RectPx};
+use siq_imgproc::{FocusMeasure, focus, luminance};
+use siq_types::{Binning, Micrometers, Millis, OwnedImage, RectPx};
 
 use crate::DeviceSet;
 use crate::routines::stage_camera::RoutineError;
@@ -129,7 +130,16 @@ pub async fn autofocus(devices: &DeviceSet, plan: &AutofocusPlan) -> Result<Focu
                 let (w, h) = (image.width() as u32, image.height() as u32);
                 let middle = image.sub_view(RectPx::new(w / 8, h / 8, w * 3 / 4, h * 3 / 4));
                 let middle = middle.map_err(|error| RoutineError::Failed(error.to_string()))?;
-                curve.push([z, focus(&middle, FocusMeasure::Tenengrad)]);
+                let sharpness = match frame.meta().cfa {
+                    None => focus(&middle, FocusMeasure::Tenengrad),
+                    Some(_) => {
+                        let mut seen = OwnedImage::new(middle.width(), middle.height());
+                        luminance(&middle, &mut seen.view_mut())
+                            .map_err(|error| RoutineError::Failed(error.to_string()))?;
+                        focus(&seen.view(), FocusMeasure::Tenengrad)
+                    }
+                };
+                curve.push([z, sharpness]);
             }
             Ok::<_, RoutineError>(())
         };

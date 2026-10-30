@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use siq_calib::shading::{Estimator, FlatField, ShadingRecord, ShadingRegistry};
-use siq_imgproc::{Histogram, histogram};
+use siq_imgproc::{Histogram, histogram, histogram_cfa, luminance};
 use siq_pyramid::tiles::{DziGeometry, TileAt, TileFormat, TileLut, render};
 use siq_pyramid::{Control, PyramidError, TOP};
 use siq_stitch::composite::{self, Bounds, CompositeOptions, Placed, Plane};
@@ -14,7 +14,7 @@ use siq_stitch::{MappedTiles, Mosaic, Report, StitchError, StitchOptions, pairs,
 use siq_storage::ometiff::{self, TiffCompression};
 use siq_storage::zarr::{CHUNK, ChannelInfo, ImageInfo, SampleType, Size5, ZarrImage};
 use siq_storage::{Dataset, DatasetReader, FrameKey, StorageError};
-use siq_types::{Affine2, ChannelId, ObjectiveId, Roi};
+use siq_types::{Affine2, ChannelId, ObjectiveId, OwnedImage, Roi};
 
 use crate::{Job, JobCtx, JobError, JobOutput, Resources};
 
@@ -369,7 +369,16 @@ impl Job for ShadingJob {
             let pixels = mapped
                 .image_u16()
                 .ok_or_else(|| JobError::failed("only 16-bit frames can be estimated from"))?;
-            estimator.add(&pixels).map_err(JobError::failed)?;
+            // A colour frame's luminance: one flat, for every colour (ADR-0071).
+            match frame.sidecar.meta.cfa {
+                None => estimator.add(&pixels),
+                Some(_) => {
+                    let mut seen = OwnedImage::new(pixels.width(), pixels.height());
+                    luminance(&pixels, &mut seen.view_mut()).map_err(JobError::failed)?;
+                    estimator.add(&seen.view())
+                }
+            }
+            .map_err(JobError::failed)?;
             last = Some(frame.sidecar.meta);
             ctx.progress((n + 1) as f64 / frames.len() as f64);
         }
@@ -457,7 +466,7 @@ fn stopped(error: StitchError) -> JobError {
 
 impl CompositeJob {
     /// The image's planes, from the frames' `(t, c, z)`s in order, their frames' tiles, and each
-    /// plane's channel id.
+    /// plane's channel id. Colour frames make three channels each: red, green and blue.
     fn planes(&self, mosaic: &Mosaic) -> (Size5, Vec<(Plane, u16)>) {
         let sorted = |pick: fn(&FrameKey) -> u32| {
             let mut values: Vec<u32> = self.corners.iter().map(|(key, _)| pick(key)).collect();
@@ -471,33 +480,38 @@ impl CompositeJob {
             sorted(|key| key.z),
         );
         let rank = |values: &[u32], value: u32| values.partition_point(|&v| v < value) as u64;
+        let colours = mosaic
+            .tiles
+            .first()
+            .and_then(|tile| tile.cfa)
+            .map_or(1, |_| 3);
         let mut planes: Vec<(Plane, u16)> = Vec::new();
         for (source, ((key, corner), tile)) in self.corners.iter().zip(&mosaic.tiles).enumerate() {
-            let at = (
-                rank(&ts, key.t),
-                rank(&cs, u32::from(key.c)),
-                rank(&zs, key.z),
-            );
-            let placed = Placed {
-                source,
-                tile: *tile,
-                corner: *corner,
-            };
-            match planes.iter_mut().find(|(plane, _)| plane.at == at) {
-                Some((plane, _)) => plane.tiles.push(placed),
-                None => planes.push((
-                    Plane {
-                        at,
-                        tiles: vec![placed],
-                    },
-                    key.c,
-                )),
+            for colour in 0..colours {
+                let c = rank(&cs, u32::from(key.c)) * colours + colour;
+                let at = (rank(&ts, key.t), c, rank(&zs, key.z));
+                let placed = Placed {
+                    source,
+                    tile: *tile,
+                    corner: *corner,
+                };
+                match planes.iter_mut().find(|(plane, _)| plane.at == at) {
+                    Some((plane, _)) => plane.tiles.push(placed),
+                    None => planes.push((
+                        Plane {
+                            at,
+                            tiles: vec![placed],
+                            colour: (colours == 3).then_some(colour as usize),
+                        },
+                        key.c,
+                    )),
+                }
             }
         }
         let size = |values: &[u32]| values.len() as u64;
         let counts = Size5 {
             t: size(&ts),
-            c: size(&cs),
+            c: size(&cs) * colours,
             z: size(&zs),
             y: 0,
             x: 0,
@@ -674,7 +688,8 @@ pub struct StitchJob {
 
 impl StitchJob {
     /// The channels' labels, colours and windows, in id order: the window from the 0.1 and 99.9
-    /// percentiles of each channel's first frame.
+    /// percentiles of each channel's first frame. A colour frame's channel is three, its red,
+    /// green and blue, each through its own window: its white balance (ADR-0071).
     fn infos(&self, reader: &DatasetReader) -> Result<Vec<ChannelInfo>, JobError> {
         let mut ids: Vec<u16> = reader
             .frames()
@@ -691,24 +706,49 @@ impl StitchJob {
                     .find(|frame| frame.sidecar.key.c == c);
                 let mapped = frame.map(|frame| frame.map()).transpose();
                 let mapped = mapped.map_err(JobError::failed)?;
-                let window = mapped
-                    .as_ref()
-                    .and_then(|mapped| mapped.image_u16())
-                    .map(|view| {
-                        let mut counts = Histogram::new(16);
-                        let _ = histogram(&view, 4, &mut counts);
+                let cfa = frame.and_then(|frame| frame.sidecar.meta.cfa);
+                let mut counts: [Histogram; 3] = std::array::from_fn(|_| Histogram::new(16));
+                let view = mapped.as_ref().and_then(|mapped| mapped.image_u16());
+                if let Some(view) = view {
+                    let _ = match cfa {
+                        Some(cfa) => histogram_cfa(&view, cfa, 2, &mut counts),
+                        None => histogram(&view, 4, &mut counts[0]),
+                    };
+                }
+                let window = |counts: &Histogram| match counts.count() {
+                    0 => (0.0, 65_535.0),
+                    _ => {
                         let (low, high) = counts.auto_window(0.001, 0.999);
                         (f64::from(low), f64::from(high))
-                    });
+                    }
+                };
                 let named = self.channels.iter().find(|(id, ..)| *id == c);
-                Ok(ChannelInfo {
-                    label: named
-                        .map_or_else(|| format!("channel {c}"), |(_, name, _)| name.clone()),
-                    colour: named.map_or([255; 3], |(.., colour)| *colour),
-                    window: window.unwrap_or((0.0, 65_535.0)),
+                let label =
+                    named.map_or_else(|| format!("channel {c}"), |(_, name, _)| name.clone());
+                let colour = named.map_or([255; 3], |(.., colour)| *colour);
+                Ok(match cfa {
+                    None => vec![ChannelInfo {
+                        label,
+                        colour,
+                        window: window(&counts[0]),
+                    }],
+                    Some(_) => [
+                        ("red", [255, 0, 0]),
+                        ("green", [0, 255, 0]),
+                        ("blue", [0, 0, 255]),
+                    ]
+                    .into_iter()
+                    .zip(&counts)
+                    .map(|((name, colour), counts)| ChannelInfo {
+                        label: format!("{label} {name}"),
+                        colour,
+                        window: window(counts),
+                    })
+                    .collect(),
                 })
             })
-            .collect()
+            .collect::<Result<Vec<Vec<_>>, _>>()
+            .map(|channels| channels.into_iter().flatten().collect())
     }
 }
 

@@ -1,14 +1,14 @@
 //! The jobs the service runs (ADR-0043 to ADR-0046, ADR-0063): a dataset's pyramid, built through
 //! the scheduler, then its DZI and OME-TIFF exports, each recorded; and a scan's frames composited
-//! into a mosaic with its pyramid. REQ-DATA-003, REQ-DATA-004,
-//! REQ-DATA-005.
+//! into a mosaic with its pyramid; and a colour scan stitched in red, green and blue.
+//! REQ-DATA-003, REQ-DATA-004, REQ-DATA-005, REQ-STI-002.
 
 use std::time::Duration;
 
 use siq_jobs::kinds::{DziExportJob, OmeTiffExportJob, PyramidJob};
 use siq_jobs::*;
 use siq_pyramid::tiles::{DziGeometry, TileFormat};
-use siq_stitch::CompositeOptions;
+use siq_stitch::{CompositeOptions, StitchOptions};
 use siq_storage::ometiff::TiffCompression;
 use siq_storage::zarr::{ChannelInfo, ImageInfo, SampleType, Size5, ZarrImage};
 use siq_storage::{Dataset, DatasetKind, FrameKey, NewDataset, ProcessingState};
@@ -178,6 +178,7 @@ fn a_scan_s_frames_are_composited_into_a_mosaic_as_a_job_and_recorded() {
         stage_error: 2.0,
         light: 1.0,
         no_mosaic: true,
+        colour: false,
     };
     let out = siq_datagen::Output {
         data_root: root.path().to_owned(),
@@ -250,4 +251,72 @@ fn a_scan_s_frames_are_composited_into_a_mosaic_as_a_job_and_recorded() {
         ("composite", ProcessingState::Done)
     );
     assert_eq!(record.outputs, ["zarr/mosaic.ome.zarr"]);
+}
+
+// ADR-0071: a colour scan stitched as a job, each channel three, red, green and blue: placed by
+// their luminance, composited in colour, each in its own window, which is its white balance.
+#[test]
+fn a_colour_scan_is_stitched_in_red_green_and_blue() {
+    let root = tempfile::tempdir().unwrap();
+    let args = siq_datagen::tilescan::TileScanArgs {
+        world: "grains".to_owned(),
+        columns: 2,
+        rows: 2,
+        width: 256,
+        height: 192,
+        overlap: 0.2,
+        stage_error: 2.0,
+        light: 1.0,
+        no_mosaic: true,
+        colour: true,
+    };
+    let out = siq_datagen::Output {
+        data_root: root.path().to_owned(),
+        smoke: false,
+        seed: 2,
+    };
+    let dataset = Dataset::open(siq_datagen::tilescan::tilescan(&args, &out).unwrap()).unwrap();
+    let pixel = 0.376;
+    let job = kinds::StitchJob {
+        dataset: dataset.path().to_owned(),
+        image: "stitched".to_owned(),
+        l: Affine2::scale(1.0 / pixel, 1.0 / pixel),
+        channels: vec![(0, "brightfield".to_owned(), [255; 3])],
+        shading: Vec::new(),
+        options: StitchOptions::default(),
+    };
+    let jobs = Scheduler::new(SchedulerConfig::new(14_000_000_000, 0), None).unwrap();
+    let id = jobs.submit(
+        Box::new(job),
+        Priority::Background,
+        Some(dataset.path().to_owned()),
+    );
+    let info = jobs.wait(id, Duration::from_secs(60)).unwrap();
+    assert_eq!(info.state, JobState::Done, "{info:?}");
+
+    let image = ZarrImage::open(&dataset.zarr_dir().join("stitched.ome.zarr")).unwrap();
+    let channels: Vec<_> = image
+        .info()
+        .channels
+        .iter()
+        .map(|c| (c.label.as_str(), c.colour))
+        .collect();
+    assert_eq!(
+        channels,
+        [
+            ("brightfield red", [255, 0, 0]),
+            ("brightfield green", [0, 255, 0]),
+            ("brightfield blue", [0, 0, 255])
+        ]
+    );
+    assert_eq!(image.info().cfa, None, "no longer a mosaic");
+    // Under the warm lamp, each colour's white below green's.
+    let high: Vec<f64> = image.info().channels.iter().map(|c| c.window.1).collect();
+    assert!(high[2] < high[0] && high[0] < high[1], "{high:?}");
+    for c in 0..3 {
+        let middle = image
+            .read_region::<u16>(0, (0, c, 0), RectPx::new(200, 150, 32, 32))
+            .unwrap();
+        assert!(middle.pixels.iter().all(|&v| v > 0), "plane {c}");
+    }
 }

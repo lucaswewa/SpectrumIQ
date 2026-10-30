@@ -25,7 +25,7 @@ The design is in [ADR-0025](../../docs/adr/0025-cpu-kernel-strategy.md).
   - live stitching (P7);
   - flat-field calibration (P5.3, P5.4);
   - pyramids and storage (M4).
-- **Phase:** P1.5; P10.6 added the colour filter's kernels.
+- **Phase:** P1.5; P10.6 added the colour filter's kernels; P10.7 `luminance`.
 
 ## API
 
@@ -45,6 +45,7 @@ The design is in [ADR-0025](../../docs/adr/0025-cpu-kernel-strategy.md).
 | `white_gains(&[Histogram; 3], fraction)` | The gains that bring red's and blue's `fraction` points to green's |
 | `balanced(&DisplayMapping, gains)` | The mapping on each colour: the window over each gain. The colormap shows as grey, or inverted |
 | `map_colours(&[Lut; 3], rgb, out)` | Each colour through its own table, to `[u8; 3]` |
+| `luminance(mosaic, out)` | A mosaic of any phase's luminance, the same size: the 3 × 3 binomial mean, mirrored at the edges, which weighs red, green and blue 1 : 2 : 1 wherever it is centred. What registration, focus and the flat take of a colour frame (P10.7) |
 | `for_each_row(out, work)` | Runs `work(y, row)` on every row in the kernels' bands: for other crates' per-pixel passes (P1.6) |
 | `Sample` | `u8`, `u16`, `f32`: what the resampling kernels and `focus` take |
 | `KernelError` | `Size { what, expected, found }` or `Parameter` |
@@ -76,7 +77,7 @@ None.
 
 | Binary | What |
 |---|---|
-| `bayer` | Demosaicing at size and shrunk against naive references, on every pattern; linear colours exact inside a large image; a single colour at any size; each colour's histogram, the white gains, and the mapping on each colour |
+| `bayer` | Demosaicing at size and shrunk against naive references, on every pattern; linear colours exact inside a large image; a single colour at any size; each colour's histogram, the white gains, and the mapping on each colour; luminance without the pattern, exact on linear colours |
 | `kernels` | Every kernel against a naive reference, as proptests with padded rows; one large image in several bands; single pixels, saturation and refusals |
 | `no_alloc` | A counting global allocator over every thread sees no allocation in 20 runs of every kernel on a rayon pool. It is the test files' one `unsafe` exception, needed for an allocator |
 

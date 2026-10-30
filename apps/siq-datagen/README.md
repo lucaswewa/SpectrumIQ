@@ -12,7 +12,7 @@ siq-datagen <generator> --help                 the generator's arguments
 
 | Generator | Writes | Ground truth (`truth/`) |
 |---|---|---|
-| `tilescan` | A grid of tiles over a cells or grains world (8 × 7 tiles of 4096 × 3072 by default, 15 % overlap), each taken at its nominal pose by a stage off by a random error (2 µm a standard deviation, per axis), in the camera's usual light or a share of it (`--light`: less is noisier), and recorded with the nominal pose; and the ideal mosaic, `zarr/truth.ome.zarr` (28 467 × 18 739, 533 MP, by default), with its pyramid | `tilescan.json`: each tile's frame, nominal and true pose, and error; the grid, the region and the mosaic. `world.json` |
+| `tilescan` | A grid of tiles over a cells or grains world (8 × 7 tiles of 4096 × 3072 by default, 15 % overlap), each taken at its nominal pose by a stage off by a random error (2 µm a standard deviation, per axis), in the camera's usual light or a share of it (`--light`: less is noisier), mono or a colour sensor's raw Bayer samples (`--colour`, GBRG, P10.7), and recorded with the nominal pose; and the ideal mosaic, `zarr/truth.ome.zarr` (28 467 × 18 739, 533 MP, by default), with its pyramid | `tilescan.json`: each tile's frame, nominal and true pose, and error; the grid, the region and the mosaic. `world.json` |
 | `zstack` | 41 frames of a height field, 2 µm apart in focus (2048 × 1536), and the stack as `zarr/stack.ome.zarr` | `zstack.json`: each plane's focus. `world.json` and `world.height.f32`: the height under every pixel |
 | `beads` | 41 frames through a bead volume, 1 µm apart (1024 × 1024), each bead blurred by its own defocus, and the stack as `zarr/stack.ome.zarr` | `beads.json`: each plane's focus, and the PSF. `world.json`: every bead's position, size and brightness |
 
@@ -40,7 +40,7 @@ Then open the Viewer at <http://127.0.0.1:5000/#/datasets>, and View the tile sc
 - **Depends on:** `siq-sim` (the image formation), `siq-synth` (the worlds and their ground
   truth), `siq-storage` (datasets, raw frames, OME-Zarr), `siq-pyramid`, `siq-devices`,
   `siq-types`; `clap`, `rayon`, `serde`, `serde_json`, `anyhow`.
-- **Phase:** P4.9; P8.5 added the tile scan's light. M12 (SIM phase sets) and M13 (light fields) add
+- **Phase:** P4.9; P8.5 added the tile scan's light; P10.7 its colour sensor. M12 (SIM phase sets) and M13 (light fields) add
   their generators.
 
 ## Adding a generator
